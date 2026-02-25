@@ -1,0 +1,383 @@
+Directory structure:
+└── src/
+    ├── App.css
+    ├── App.tsx
+    ├── index.css
+    ├── main.tsx
+    ├── components/
+    │   └── ui/
+    │       └── Button.tsx
+    ├── layouts/
+    │   └── MainLayout.tsx
+    ├── lib/
+    │   └── enemy_list.ts
+    └── pages/
+        └── HomePage.tsx
+
+================================================
+FILE: App.css
+================================================
+#root {
+    max-width: 1280px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+
+================================================
+FILE: App.tsx
+================================================
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout';
+import HomePage from './pages/HomePage';
+import './App.css';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<HomePage />} />
+          {/* Add more routes here */}
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+
+
+================================================
+FILE: index.css
+================================================
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'VCR OSD Mono';
+  src: url('/fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  font-family: 'VCR OSD Mono', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  padding: 0;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+    padding: 0px;
+  }
+}
+
+
+================================================
+FILE: main.tsx
+================================================
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+
+
+================================================
+FILE: components/ui/Button.tsx
+================================================
+import React from 'react';
+import { motion } from 'framer-motion';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    variant?: 'primary' | 'outline' | 'ghost' | 'danger';
+    size?: 'sm' | 'md' | 'lg' | 'xl';
+    className?: string;
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+    ({ className = '', variant = 'primary', size = 'md', children, ...props }, ref) => {
+        // Shared clip-paths for different sizes
+        const polygons = {
+            sm: '[clip-path:polygon(2px_0,calc(100%-2px)_0,100%_2px,100%_calc(100%-2px),calc(100%-2px)_100%,2px_100%,0_calc(100%-2px),0_2px)]',
+            md: '[clip-path:polygon(4px_0,calc(100%-4px)_0,100%_4px,100%_calc(100%-4px),calc(100%-4px)_100%,4px_100%,0_calc(100%-4px),0_4px)]',
+            lg: '[clip-path:polygon(6px_0,calc(100%-6px)_0,100%_6px,100%_calc(100%-6px),calc(100%-6px)_100%,6px_100%,0_calc(100%-6px),0_6px)]',
+            xl: '[clip-path:polygon(10px_0,calc(100%-10px)_0,100%_10px,100%_calc(100%-10px),calc(100%-10px)_100%,10px_100%,0_calc(100%-10px),0_10px)]',
+        };
+
+        const poly = polygons[size];
+
+        // Button variants handling: Outer background is the border color, Inner is the fill
+        const variants = {
+            primary: {
+                outer: 'bg-white',
+                inner: 'bg-white text-black',
+            },
+            outline: {
+                outer: 'bg-white',
+                inner: 'bg-black text-white',
+            },
+            ghost: {
+                outer: 'bg-transparent',
+                inner: 'bg-transparent text-white group-hover:bg-white/10',
+            },
+            danger: {
+                outer: 'bg-red-600',
+                inner: 'bg-transparent text-white group-hover:bg-red-600 group-hover:text-black',
+            },
+        };
+
+        const sizes = {
+            sm: 'text-xs',
+            md: 'text-sm',
+            lg: 'text-base',
+            xl: 'text-5xl',
+        };
+
+        const padding = {
+            sm: 'p-[1px]', // 1px border
+            md: 'p-[2px]', // 2px border
+            lg: 'p-[2px]',
+            xl: 'p-[3px]', // 3px border for giant buttons
+        };
+
+        const innerPadding = {
+            sm: 'px-3 py-1',
+            md: 'px-6 py-2',
+            lg: 'px-8 py-3',
+            xl: 'px-14 py-5',
+        };
+
+        // Motion variants logic
+        const getMotionProps = () => {
+            if (variant === 'primary') {
+                return {
+                    whileHover: {},
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        transition: { duration: 0 }
+                    }
+                };
+            }
+            if (variant === 'outline') {
+                return {
+                    whileHover: {
+                        opacity: 0.5,
+                        transition: { duration: 0.1 }
+                    },
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        transition: { duration: 0 }
+                    }
+                };
+            }
+            return {};
+        };
+
+        const getInnerMotionProps = () => {
+            if (variant === 'primary') {
+                return {
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        color: '#ffffff',
+                        transition: { duration: 0 }
+                    }
+                };
+            }
+            return {};
+        };
+
+        return (
+            <motion.button
+                ref={ref}
+                className={`group relative inline-flex items-center justify-center font-bold disabled:opacity-50 disabled:pointer-events-none uppercase tracking-tighter cursor-pointer ${poly} ${variants[variant].outer} ${padding[size]} ${className}`}
+                {...getMotionProps()}
+                {...(props as any)}
+            >
+                <motion.div
+                    className={`w-full h-full flex items-center justify-center ${poly} ${variants[variant].inner} ${sizes[size]} ${innerPadding[size]}`}
+                    {...getInnerMotionProps()}
+                >
+                    {children}
+                </motion.div>
+            </motion.button>
+        );
+    }
+);
+
+Button.displayName = 'Button';
+
+export default Button;
+
+
+
+================================================
+FILE: layouts/MainLayout.tsx
+================================================
+import { Outlet } from 'react-router-dom';
+
+const MainLayout = () => {
+  return (
+    <div className="">
+      <div className="left-0 top-0 fixed z-10 h-dvh w-dvw p-10 py-20 bg-black/70">
+        <div className="md:w-1/2 h-full flex flex-col px-10" >
+          <div>
+            <img
+              className=" mx-auto"
+              src="/images/ultrakidle-logo.png"
+            />
+          </div>
+          <div className="h-full pb-10">
+            <Outlet />
+            <div className="text-left text-xl">
+              <span className="opacity-50">
+                INTO SOCIALS... OK
+              </span>
+              <div className="flex gap-3 text-3xl">
+                <a
+                  target="_blank"
+                  href="https://github.com/ikz87"
+                  className="underline cursor-pointer"
+                >GITHUB</a>
+                <a
+                  target="_blank"
+                  href="https://www.youtube.com/@kz8785/"
+                  className="underline cursor-pointer"
+                >YOUTUBE</a>
+                <a
+                  target="_blank"
+                  href="https://x.com/iikz87ii"
+                  className="underline cursor-pointer"
+                >TWITTER</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className=" h-dvh w-dvw bg-black fixed top-0 left-0  overflow-hidden ">
+        <img className="object-cover w-full h-full mx-auto scale-[1.02]" src="/images/main-menu.gif" />
+      </div>
+    </div>
+  );
+};
+
+export default MainLayout;
+
+
+
+================================================
+FILE: lib/enemy_list.ts
+================================================
+export const enemies = [
+  { id: 1, name: "Big Johninator" },
+  { id: 2, name: "Cancerous Rodent" },
+  { id: 3, name: "Very Cancerous Rodent" },
+  { id: 4, name: "Cerberus" },
+  { id: 5, name: "Deathcatcher" },
+  { id: 6, name: "Drone" },
+  { id: 7, name: "Earthmover (Central Brain)" },
+  { id: 8, name: "1000-THR Defence System (Mainframe)" },
+  { id: 9, name: "1000-THR Defence System (Rocket Launchers)" },
+  { id: 10, name: "1000-THR Defence System (Mortar Launchers)" },
+  { id: 11, name: "1000-THR Defence System (Towers)" },
+  { id: 12, name: "Ferryman" },
+  { id: 13, name: "Filth" },
+  { id: 14, name: "Flesh Panopticon" },
+  { id: 15, name: "Spotlight Eye Spawn" },
+  { id: 16, name: "Malicious Spawn" },
+  { id: 17, name: "Flesh Prison" },
+  { id: 18, name: "Eye Spawn" },
+  { id: 19, name: "Malicious Spawn (P1)" },
+  { id: 20, name: "Gabriel (Judge of Hell)" },
+  { id: 21, name: "Gabriel (Apostate of Hate)" },
+  { id: 22, name: "Geryon" },
+  { id: 23, name: "Gutterman" },
+  { id: 24, name: "Guttertank" },
+  { id: 25, name: "Hideous Mass" },
+  { id: 26, name: "Idol" },
+  { id: 27, name: "Insurrectionist" },
+  { id: 28, name: "Leviathan" },
+  { id: 29, name: "Malicious Face" },
+  { id: 30, name: "Mannequin" },
+  { id: 31, name: "Mindflayer" },
+  { id: 32, name: "Minos Prime" },
+  { id: 33, name: "Minotaur" },
+  { id: 34, name: "Mirror Reaper" },
+  { id: 35, name: "Mysterious Druid Knight (& Owl)" },
+  { id: 36, name: "Power" },
+  { id: 37, name: "Providence" },
+  { id: 38, name: "Puppet" },
+  { id: 39, name: "Schism" },
+  { id: 40, name: "Sentry" },
+  { id: 41, name: "Sisyphus Prime" },
+  { id: 42, name: "Soldier" },
+  { id: 43, name: "Something Wicked" },
+  { id: 44, name: "Stalker" },
+  { id: 45, name: "Stray" },
+  { id: 46, name: "Streetcleaner" },
+  { id: 47, name: "Swordsmachine" },
+  { id: 48, name: "Swordsmachine \"Agony\"" },
+  { id: 49, name: "Swordsmachine \"Tundra\"" },
+  { id: 50, name: "The Corpse of King Minos' Arm" },
+  { id: 51, name: "The Corpse of King Minos" },
+  { id: 52, name: "V2" },
+  { id: 53, name: "V2 (2nd)" },
+  { id: 54, name: "Virtue" },
+];
+
+
+
+================================================
+FILE: pages/HomePage.tsx
+================================================
+import Button from '../components/ui/Button';
+
+const HomePage = () => {
+  return (
+    <div className="flex flex-col w-full justify-between h-full">
+      <div className="flex flex-col gap-4 w-full mx-auto h-full">
+        <div className="flex flex-col gap-0 mt-2 w-full text-xl opacity-50 text-left">
+          <span>
+            DAILY_CHALLENGE READY
+          </span>
+          <span className="mt-10">
+            SYSTEM V1 INITIALIZED
+          </span>
+          <span>
+            DIAGNOSTICS... OK
+          </span>
+          <span>
+            STANDBY - WAIT FOR WAKE
+          </span>
+        </div>
+        <div className="flex flex-col gap-4 w-[450px]">
+          <Button variant="primary" size="xl">PLAY</Button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default HomePage;
+
+

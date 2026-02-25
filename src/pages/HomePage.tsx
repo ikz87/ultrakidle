@@ -1,0 +1,196 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import Button from '../components/ui/Button';
+import { useGameInit } from '../hooks/useGameInit';
+import { Typewriter } from '../components/Typewriter';
+
+const LoadingDots = () => {
+  const [dotCount, setDotCount] = useState(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev % 3) + 1);
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span className="inline-block w-[3ch] text-left">{'.'.repeat(dotCount)}</span>;
+};
+
+const getCountdown = () => {
+  const now = new Date();
+  const nextMidnight = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+      0, 0, 0
+    )
+  );
+
+  const msDiff = nextMidnight.getTime() - now.getTime();
+
+  const hours = Math.floor(msDiff / (1000 * 60 * 60));
+  const minutes = Math.floor((msDiff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((msDiff % (1000 * 60)) / 1000);
+
+  return { hours, minutes, seconds };
+};
+
+const HomePage = () => {
+  const { loading: gameLoading, guessHistory } = useGameInit();
+  const navigate = useNavigate();
+  const [titleFinished, setTitleFinished] = useState(false);
+  const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
+  const [countdown, setCountdown] = useState(getCountdown());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getCountdown());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Diagnostics should only start once loading is finished AND the title has finished typing
+  useEffect(() => {
+    if (!gameLoading && titleFinished) {
+      // Small delay before starting the rest of the text
+      const timer = setTimeout(() => setDiagnosticsStarted(true), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [gameLoading, titleFinished]);
+
+  const hasWon = guessHistory.some(g => g.hint_data?.correct);
+  const hasReachedLimit = guessHistory.length >= 5;
+  const isGameOver = hasWon || hasReachedLimit;
+
+  const statusText = hasWon ? "COMPLETED" : hasReachedLimit ? "FAILED" : "READY";
+  const statusColor = hasWon ? "text-green-500" : hasReachedLimit ? "text-red-500" : "";
+
+  return (
+    <div className="flex flex-col w-full justify-between h-full">
+      <div className="flex flex-col gap-4 w-full mx-auto h-full">
+        <div className="flex flex-col gap-0 mt-2 w-full lg:text-xl text-lg opacity-50 text-left min-h-[160px]">
+          <div className="flex gap-1 items-baseline">
+            <Typewriter
+              text="DAILY_CHALLENGE "
+              speed={0.03}
+              onComplete={() => setTitleFinished(true)}
+            />
+            <AnimatePresence mode="wait">
+              {titleFinished && gameLoading && (
+                <motion.div
+                  key="dots"
+                  initial={{ display: 'none' }}
+                  animate={{ display: 'inline-block' }}
+                  exit={{ display: 'none' }}
+                >
+                  <LoadingDots />
+                </motion.div>
+              )}
+              {diagnosticsStarted && (
+                <motion.div
+                  key="ready"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={statusColor}
+                >
+                  <Typewriter text={statusText} speed={0.03} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {diagnosticsStarted && (
+            <>
+              <Typewriter
+                text="SYSTEM V1 INITIALIZED"
+                speed={0.02}
+                delay={0.4}
+                className="mt-10"
+              />
+              <Typewriter
+                text="DIAGNOSTICS... OK"
+                speed={0.02}
+                delay={0.8}
+              />
+              {isGameOver ? (
+                <Typewriter
+                  text="NEXT CHALLENGE IN:"
+                  speed={0.02}
+                  delay={1.2}
+                />
+              ) : (
+                <Typewriter
+                  text="STANDBY - WAIT FOR WAKE"
+                  speed={0.02}
+                  delay={1.2}
+                />
+              )}
+            </>
+          )}
+        </div>
+
+        {diagnosticsStarted && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.8, duration: 0.5 }}
+            className="flex flex-col gap-4 w-full max-w-[450px]"
+          >
+            {isGameOver ? (
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="xl"
+                  disabled
+                  className="cursor-default"
+                >
+                  {String(countdown.hours).padStart(2, '0')}:
+                  {String(countdown.minutes).padStart(2, '0')}:
+                  {String(countdown.seconds).padStart(2, '0')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="md"
+                  onClick={() => navigate('/play')}
+                  className="opacity-50 hover:opacity-100"
+                >
+                  VIEW BOARD
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate('/credits')}
+                  className="mt-4"
+                >
+                  CREDITS
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <Button
+                  variant="primary"
+                  size="xl"
+                  onClick={() => navigate('/play')}
+                >
+                  {guessHistory.length > 0 ? 'CONTINUE' : 'PLAY'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate('/credits')}
+                >
+                  CREDITS
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default HomePage;
