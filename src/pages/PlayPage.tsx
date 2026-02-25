@@ -127,7 +127,7 @@ const PlayPage = () => {
                     {hasWon && (
                         <Typewriter
                             text="STATUS: TARGET IDENTIFIED"
-                            className="text-green-400 opacity-50"
+                            className="text-green-500 opacity-50"
                             speed={0.02}
                         />
                     )}
@@ -135,7 +135,7 @@ const PlayPage = () => {
                         <div className="flex flex-col gap-1 items-start">
                             <Typewriter
                                 text="STATUS: MISSION FAILED - LIMIT REACHED"
-                                className="text-red-400"
+                                className="text-red-500"
                                 speed={0.02}
                             />
                             {revealedEnemy && (

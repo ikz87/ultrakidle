@@ -39,25 +39,25 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                             </td>
 
                             {/* Enemy Type */}
-                            <td className={`px-4 py-4 font-bold border-l-4 ${guess.properties.enemy_type.result === 'correct'
-                                ? 'bg-green-600/20 border-green-500 text-green-400'
-                                : 'bg-red-600/20 border-red-500 text-red-400'
+                            <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${guess.properties.enemy_type.result === 'correct'
+                                ? 'bg-green-600/20 border-green-500 text-green-500'
+                                : 'bg-red-600/20 border-red-500 text-red-500'
                                 }`}>
                                 {guess.properties.enemy_type.value || 'UNKNOWN'}
                             </td>
 
                             {/* Weight Class */}
-                            <td className={`px-4 py-4 font-bold border-l-4 ${guess.properties.weight_class.result === 'correct'
-                                ? 'bg-green-600/20 border-green-500 text-green-400'
-                                : 'bg-red-600/20 border-red-500 text-red-400'
+                            <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${guess.properties.weight_class.result === 'correct'
+                                ? 'bg-green-600/20 border-green-500 text-green-500'
+                                : 'bg-red-600/20 border-red-500 text-red-500'
                                 }`}>
                                 {guess.properties.weight_class.value || 'UNKNOWN'}
                             </td>
 
                             {/* Health */}
-                            <td className={`px-4 py-4 font-bold border-l-4 ${guess.properties.health.result === 'correct'
-                                ? 'bg-green-600/20 border-green-500 text-green-400'
-                                : 'bg-red-600/20 border-red-500 text-red-400'
+                            <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${guess.properties.health.result === 'correct'
+                                ? 'bg-green-600/20 border-green-500 text-green-500'
+                                : 'bg-red-600/20 border-red-500 text-red-500'
                                 }`}>
                                 <div className="flex items-center gap-2 h-full">
                                     {guess.properties.health.value}
@@ -67,17 +67,17 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                             </td>
 
                             {/* Is Boss */}
-                            <td className={`px-4 py-4 font-bold border-l-4 ${guess.properties.is_boss.result === 'correct'
-                                ? 'bg-green-600/20 border-green-500 text-green-400'
-                                : 'bg-red-600/20 border-red-500 text-red-400'
+                            <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${guess.properties.is_boss.result === 'correct'
+                                ? 'bg-green-600/20 border-green-500 text-green-500'
+                                : 'bg-red-600/20 border-red-500 text-red-500'
                                 }`}>
                                 {guess.properties.is_boss.value ? 'YES' : 'NO'}
                             </td>
 
                             {/* Appearance */}
-                            <td className={`px-4 py-4 font-bold border-l-4 ${guess.properties.appearance.result === 'correct'
-                                ? 'bg-green-600/20 border-green-500 text-green-400'
-                                : 'bg-red-600/20 border-red-500 text-red-400'
+                            <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${guess.properties.appearance.result === 'correct'
+                                ? 'bg-green-600/20 border-green-500 text-green-500'
+                                : 'bg-red-600/20 border-red-500 text-red-500'
                                 }`}>
                                 {guess.properties.appearance.value || 'UNKNOWN'}
                             </td>

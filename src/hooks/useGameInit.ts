@@ -26,6 +26,7 @@ export function useGameInit() {
     const [dailyId, setDailyId] = useState<number | null>(null);
     const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
     const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+    const [streak, setStreak] = useState<number>(0);
     const [refreshKey, setRefreshKey] = useState(0);
 
     const refresh = () => {
@@ -75,6 +76,12 @@ export function useGameInit() {
                 if (!statsError) {
                     setDailyStats(statsData);
                 }
+
+                // 6. Fetch user streak
+                const { data: streakData, error: streakError } = await supabase.rpc('get_user_streak');
+                if (!streakError && streakData !== null) {
+                    setStreak(streakData);
+                }
             } catch (err) {
                 console.error('Game init error:', err);
             } finally {
@@ -85,5 +92,5 @@ export function useGameInit() {
         init();
     }, [refreshKey]);
 
-    return { loading, dailyId, guessHistory, dailyStats, refresh };
+    return { loading, dailyId, guessHistory, dailyStats, streak, refresh };
 }

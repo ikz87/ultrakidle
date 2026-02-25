@@ -39,7 +39,7 @@ const getCountdown = () => {
 };
 
 const HomePage = () => {
-  const { loading: gameLoading, guessHistory, dailyStats, refresh } = useGameInit();
+  const { loading: gameLoading, guessHistory, dailyStats, streak, refresh } = useGameInit();
   const navigate = useNavigate();
   const [titleFinished, setTitleFinished] = useState(false);
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
@@ -100,13 +100,24 @@ const HomePage = () => {
                   key="ready"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className={statusColor}
                 >
-                  <Typewriter text={statusText} speed={0.03} />
+                  {statusText !== "READY" ? (
+                    <span className={statusColor}>
+                      <Typewriter text={statusText} speed={0.03} />
+                    </span>
+                  ) : (
+                    <Typewriter text={statusText} speed={0.03} />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
+          {diagnosticsStarted && (
+            <div className="mt-1">
+              <Typewriter text={`CURRENT_STREAK ${streak}`} speed={0.03} />
+            </div>
+          )}
 
           {diagnosticsStarted && (
             <>
@@ -125,20 +136,20 @@ const HomePage = () => {
                 <Typewriter
                   text={`${dailyStats.total_wins} OUT OF ${dailyStats.total_players} MACHINES HAVE IDENTIFIED TODAY'S TARGET`}
                   speed={0.02}
-                  delay={1.6}
+                  delay={1.2}
                 />
               )}
               {isGameOver ? (
                 <Typewriter
                   text="NEXT CHALLENGE IN:"
                   speed={0.02}
-                  delay={1.2}
+                  delay={2}
                 />
               ) : (
                 <Typewriter
                   text="STANDBY - WAIT FOR WAKE"
                   speed={0.02}
-                  delay={1.2}
+                  delay={2}
                 />
               )}
             </>
@@ -180,6 +191,13 @@ const HomePage = () => {
                 >
                   CREDITS
                 </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate('/history')}
+                >
+                  LOGS
+                </Button>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -196,6 +214,13 @@ const HomePage = () => {
                   onClick={() => navigate('/credits')}
                 >
                   CREDITS
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate('/history')}
+                >
+                  RECORDS
                 </Button>
               </div>
             )}

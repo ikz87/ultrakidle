@@ -3,6 +3,7 @@ import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import PlayPage from './pages/PlayPage';
 import CreditsPage from './pages/CreditsPage';
+import HistoryPage from './pages/HistoryPage';
 import './App.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="play" element={<PlayPage />} />
           <Route path="credits" element={<CreditsPage />} />
+          <Route path="history" element={<HistoryPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

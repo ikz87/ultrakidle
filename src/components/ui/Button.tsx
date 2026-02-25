@@ -34,8 +34,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 inner: 'bg-transparent text-white group-hover:bg-white/10',
             },
             danger: {
-                outer: 'bg-red-600',
-                inner: 'bg-transparent text-white group-hover:bg-red-600 group-hover:text-black',
+                outer: 'bg-red-500',
+                inner: 'bg-transparent text-white group-hover:bg-red-500 group-hover:text-black',
             },
         };
 
