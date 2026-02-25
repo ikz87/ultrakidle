@@ -5,6 +5,7 @@ export interface GuessHistoryEntry {
     guess_enemy_id: number;
     hint_data: {
         correct: boolean;
+        correct_id?: number;
         properties: {
             enemy_type: { value: string; result: 'correct' | 'incorrect' };
             weight_class: { value: string; result: 'correct' | 'incorrect' };
@@ -15,10 +16,22 @@ export interface GuessHistoryEntry {
     };
 }
 
+export interface DailyStats {
+    total_players: number;
+    total_wins: number;
+}
+
 export function useGameInit() {
     const [loading, setLoading] = useState(true);
     const [dailyId, setDailyId] = useState<number | null>(null);
     const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
+    const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const refresh = () => {
+        setLoading(true);
+        setRefreshKey(prev => prev + 1);
+    };
 
     useEffect(() => {
         async function init() {
@@ -56,6 +69,12 @@ export function useGameInit() {
                 }
 
                 setGuessHistory((history as unknown as GuessHistoryEntry[]) ?? []);
+
+                // 5. Fetch daily stats
+                const { data: statsData, error: statsError } = await supabase.rpc('get_daily_stats');
+                if (!statsError) {
+                    setDailyStats(statsData);
+                }
             } catch (err) {
                 console.error('Game init error:', err);
             } finally {
@@ -64,7 +83,7 @@ export function useGameInit() {
         }
 
         init();
-    }, []);
+    }, [refreshKey]);
 
-    return { loading, dailyId, guessHistory };
+    return { loading, dailyId, guessHistory, dailyStats, refresh };
 }

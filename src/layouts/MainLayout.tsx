@@ -2,17 +2,17 @@ import { Outlet } from 'react-router-dom';
 
 const MainLayout = () => {
   return (
-    <div className="overflow-hidden">
+    <div className="text-white overflow-hidden">
       <div className="fixed top-0 left-0 z-10 h-dvh w-dvw overflow-auto lg:px-10 px-5 lg:py-20 py-5">
         <div className="md:w-full flex-0 h-full  flex flex-col" >
-          <div className="z-20 md:w-1/2">
+          <div className="z-20 max-w-[600px]">
             <img
               className=" mx-auto"
               src="/images/ultrakidle-logo.png"
             />
           </div>
           <div className="flex flex-col h-full w-full">
-            <div className="flex-1">
+            <div className="flex-1 pb-10">
             <Outlet />
             </div>
             <div className="z-30  text-left lg:text-xl text-lg">

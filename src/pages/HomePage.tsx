@@ -39,7 +39,7 @@ const getCountdown = () => {
 };
 
 const HomePage = () => {
-  const { loading: gameLoading, guessHistory } = useGameInit();
+  const { loading: gameLoading, guessHistory, dailyStats, refresh } = useGameInit();
   const navigate = useNavigate();
   const [titleFinished, setTitleFinished] = useState(false);
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
@@ -47,10 +47,16 @@ const HomePage = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown(getCountdown());
+      const current = getCountdown();
+      setCountdown(current);
+
+      // If the countdown reaches zero, refresh the game data
+      if (current.hours === 0 && current.minutes === 0 && current.seconds === 0) {
+        refresh();
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [refresh]);
 
   // Diagnostics should only start once loading is finished AND the title has finished typing
   useEffect(() => {
@@ -115,6 +121,13 @@ const HomePage = () => {
                 speed={0.02}
                 delay={0.8}
               />
+              {dailyStats && (
+                <Typewriter
+                  text={`${dailyStats.total_wins} OUT OF ${dailyStats.total_players} MACHINES HAVE IDENTIFIED TODAY'S TARGET`}
+                  speed={0.02}
+                  delay={1.6}
+                />
+              )}
               {isGameOver ? (
                 <Typewriter
                   text="NEXT CHALLENGE IN:"

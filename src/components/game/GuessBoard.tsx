@@ -2,6 +2,7 @@ export interface GuessResult {
     guess_id?: number;
     enemy_name: string;
     correct: boolean;
+    correct_id?: number;
     properties: {
         enemy_type: { value: string; result: 'correct' | 'incorrect' };
         weight_class: { value: string; result: 'correct' | 'incorrect' };
@@ -17,7 +18,7 @@ interface GuessBoardProps {
 
 export const GuessBoard = ({ guesses }: GuessBoardProps) => {
     return (
-        <div className="mt-4  lg:w-1/2 w-full overflow-x-auto">
+        <div className="mt-4  overflow-x-auto">
             <table className="w-full text-sm text-left uppercase border-collapse">
                 <thead className="text-xs text-white/50 bg-white/5 border-b border-white/10">
                     <tr>
