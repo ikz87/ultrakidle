@@ -7,9 +7,10 @@ import { enemies } from '../lib/enemy_list';
 
 const HistoryPage = () => {
     const navigate = useNavigate();
-    const { loading, history } = usePlayHistory();
+    const { loading, history: rawHistory } = usePlayHistory();
     const [visibleCount, setVisibleCount] = useState(10);
 
+    const history = rawHistory.filter(h => h.won || h.guesses >= 5);
     const totalMissions = history.length;
     const successfulMissions = history.filter(h => h.won).length;
     const successRate = totalMissions > 0 ? Math.round((successfulMissions / totalMissions) * 100) : 0;
@@ -74,13 +75,9 @@ const HistoryPage = () => {
                                                 day: 'numeric'
                                             })}
                                         </span>
-                                        {entry.targetEnemyId ? (
-                                            <span className="text-sm">
-                                                {enemies.find(e => e.id === entry.targetEnemyId)?.name || 'UNKNOWN'}
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs opacity-30">IN PROGRESS...</span>
-                                        )}
+                                        <span className="text-sm">
+                                            {enemies.find(e => e.id === entry.targetEnemyId)?.name || 'UNKNOWN_TARGET'}
+                                        </span>
                                     </div>
 
                                     <div className="flex flex-col items-end gap-1">
