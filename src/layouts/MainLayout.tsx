@@ -44,7 +44,7 @@ const MainLayout = () => {
         </div>
       </div>
       <div className=" h-dvh w-dvw bg-black fixed top-0 left-0  overflow-hidden ">
-        <img className="opacity-30 object-cover w-full h-full mx-auto scale-[1.02]" src="/images/main-menu.gif" />
+        <img className="opacity-30 object-cover w-full h-full mx-auto scale-[1.04]" src="/images/main-menu.gif" />
       </div>
     </div>
   );
