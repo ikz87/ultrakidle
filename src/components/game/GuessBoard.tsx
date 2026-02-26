@@ -61,8 +61,8 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                                 }`}>
                                 <div className="flex items-center gap-2 h-full">
                                     {guess.properties.health.value}
-                                    {guess.properties.health.result === 'higher' && <span className="text-lg">↑</span>}
-                                    {guess.properties.health.result === 'lower' && <span className="text-lg">↓</span>}
+                                    {guess.properties.health.result === 'higher' && <span className="text-lg">▲</span>}
+                                    {guess.properties.health.result === 'lower' && <span className="text-lg">▼</span>}
                                 </div>
                             </td>
 

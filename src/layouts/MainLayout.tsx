@@ -7,6 +7,7 @@ const MainLayout = () => {
         <div className="md:w-full flex-0 h-full  flex flex-col" >
           <div className="z-20 max-w-[600px]">
             <h1 className="sr-only">Ultrakidle</h1>
+            <div className="sr-only">wordle, ultrakilldle, ultrakidle, daily game, character guesser</div>
             <img
               className=" mx-auto"
               src="/images/ultrakidle-logo.png"

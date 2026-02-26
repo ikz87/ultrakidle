@@ -9,6 +9,7 @@ import type { GuessResult } from '../components/game/GuessBoard';
 import { enemies } from '../lib/enemy_list';
 import { Typewriter } from '../components/Typewriter';
 import { motion } from 'framer-motion';
+import Modal from '../components/ui/Modal';
 
 const PlayPage = () => {
     const navigate = useNavigate();
@@ -16,6 +17,7 @@ const PlayPage = () => {
     const [guesses, setGuesses] = useState<GuessResult[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [shouldFlash, setShouldFlash] = useState(false);
+    const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
     // Load initial guesses from history
     useEffect(() => {
         if (!loading && guessHistory.length > 0) {
@@ -104,7 +106,48 @@ const PlayPage = () => {
                     >
                         &lt; RETURN TO HOME
                     </Button>
+                    <Button
+                        variant="ghost"
+                        size="md"
+                        onClick={() => setIsHowToPlayOpen(true)}
+                        className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100 mt-2"
+                    >
+                        ? HOW TO PLAY
+                    </Button>
                 </div>
+
+                <Modal
+                    isOpen={isHowToPlayOpen}
+                    onClose={() => setIsHowToPlayOpen(false)}
+                    title="SYSTEM_GUIDE: HOW TO PLAY"
+                >
+                    <div className="space-y-4 font-mono text-sm">
+                        <p>IDENTIFY THE TARGET ENEMY IN <span className="text-white font-bold">5 ATTEMPTS</span>.</p>
+
+                        <div className="space-y-2">
+                            <p className="opacity-50 underline uppercase">Color Indicators:</p>
+                            <div className="flex gap-3 items-center">
+                                <div className="w-4 h-4 bg-green-500/20 border border-green-500" />
+                                <span>CORRECT PROPERTY MATCH</span>
+                            </div>
+                            <div className="flex gap-3 items-center">
+                                <div className="w-4 h-4 bg-red-500/20 border border-red-500" />
+                                <span>INCORRECT PROPERTY MATCH</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-white/10">
+                            <p className="opacity-50 underline uppercase">Properties Tracked:</p>
+                            <ul className="list-disc [&>*]:text-left pl-4 list-outside  space-y-1 opacity-80 ">
+                                <li>TYPE: ???, DEMON, MACHINE, HUSK, ANGEL OR PRIME SOUL</li>
+                                <li>WEIGHT: LIGHT, MEDIUM, HEAVY OR SUPERHEAVY</li>
+                                <li>HEALTH: NUMERIC COMPARISON. TARGET CAN BE HIGHER ▲ OR LOWER ▼</li>
+                                <li>IS BOSS: ANY ENEMY THAT HAS APPEARED WITH A VISIBLE HEALTH BAR. IF AN ENEMY COUNTS AS A BOSS ITS HEALTH IS THAT OF THEIR BOSS APPEARANCE</li>
+                                <li>REGISTERED AT: LEVEL OF FIRST ENCOUNTER</li>
+                            </ul>
+                        </div>
+                    </div>
+                </Modal>
 
                 <div className="w-full z-10">
                     <EnemySearch
