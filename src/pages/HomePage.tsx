@@ -224,7 +224,7 @@ const HomePage = () => {
                   size="xl"
                   onClick={() => navigate('/history')}
                 >
-                  RECORDS
+                  HISTORY
                 </Button>
               </div>
             )}
