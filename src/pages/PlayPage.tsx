@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useGameInit } from '../hooks/useGameInit';
 import Button from '../components/ui/Button';
@@ -9,16 +8,15 @@ import type { GuessResult } from '../components/game/GuessBoard';
 import { enemies } from '../lib/enemy_list';
 import { Typewriter } from '../components/Typewriter';
 import { motion } from 'framer-motion';
-import Modal from '../components/ui/Modal';
 
 const PlayPage = () => {
-    const navigate = useNavigate();
     const { loading, guessHistory } = useGameInit();
     const [guesses, setGuesses] = useState<GuessResult[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [shouldFlash, setShouldFlash] = useState(false);
-    const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
     const [copySuccess, setCopySuccess] = useState(false);
+    const bottomRef = useRef<HTMLDivElement>(null);
+
     // Load initial guesses from history
     useEffect(() => {
         if (!loading && guessHistory.length > 0) {
@@ -78,32 +76,46 @@ const PlayPage = () => {
     const hasReachedLimit = guesses.length >= 5;
     const isGameOver = hasWon || hasReachedLimit;
 
+    // Scroll to bottom if game is over on mount
+    useEffect(() => {
+        if (!loading && isGameOver) {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [loading, isGameOver]);
+
+
     // The RPC returns correct_id only on the 5th failed guess.
     // We look for it in the history to reveal the enemy.
     const revealedId = guesses.find(g => g.correct_id)?.correct_id;
     const revealedEnemy = revealedId ? enemies.find(e => e.id === revealedId) : null;
 
-    const copyMissionLog = () => {
-        const getEmoji = (result: string, color?: string) => {
-            if (color === 'green' || result === 'correct') return '🟩';
-            if (color === 'yellow') return '🟧';
-            return '🟥';
+    const guessGridData = guesses.map(g => {
+        const getStatus = (result: string, color?: string) => {
+            if (color === 'green' || result === 'correct') return 'green';
+            if (color === 'yellow') return 'yellow';
+            return 'red';
         };
 
-        const grid = guesses.map(g => {
-            const row = [
-                getEmoji(g.correct ? 'correct' : 'incorrect'), // Name
-                getEmoji(g.properties.enemy_type.result), // Type
-                getEmoji(g.properties.weight_class.result), // Weight
-                getEmoji(g.properties.health.result, g.properties.health.color), // Health
-                getEmoji(g.properties.is_boss.result), // Boss
-                getEmoji(g.properties.appearance.result, g.properties.appearance.color) // Appearance
-            ];
-            return row.join('');
-        }).join('\n');
+        return [
+            getStatus(g.correct ? 'correct' : 'incorrect'), // Name
+            getStatus(g.properties.enemy_type.result), // Type
+            getStatus(g.properties.weight_class.result), // Weight
+            getStatus(g.properties.health.result, g.properties.health.color), // Health
+            getStatus(g.properties.is_boss.result), // Boss
+            getStatus(g.properties.appearance.result, g.properties.appearance.color) // Appearance
+        ];
+    });
 
-        const text = `${grid}\n\nhttps://ultrakilldle.online`;
-        navigator.clipboard.writeText(text);
+    const emojiGrid = guessGridData.map(row =>
+        row.map(status => {
+            if (status === 'green') return '🟩';
+            if (status === 'yellow') return '🟧';
+            return '🟥';
+        }).join('')
+    ).join('\n');
+
+    const copyMissionLog = () => {
+        navigator.clipboard.writeText(emojiGrid);
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
     };
@@ -123,79 +135,6 @@ const PlayPage = () => {
     return (
         <>
             <div className="z-20  flex flex-col w-full pt-4  h-full justify-start items-start">
-                <div className="mb-6">
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <Button
-                            variant="ghost"
-                            size="md"
-                            onClick={() => navigate('/')}
-                            className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
-                        >
-                            &lt; RETURN TO HOME
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="md"
-                            onClick={() => setIsHowToPlayOpen(true)}
-                            className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
-                        >
-                            ? HOW TO PLAY
-                        </Button>
-                        {isGameOver && (
-                            <Button
-                                variant="ghost"
-                                size="md"
-                                onClick={copyMissionLog}
-                                className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
-                                initial={{ backgroundColor: "rgba(255, 255, 255, 1)", opacity: 0 }}
-                                animate={{ backgroundColor: "rgba(255, 255, 255, 0)", opacity: 1 }}
-                                transition={{
-                                    opacity: { duration: 0.1, delay: 0.8 },
-                                    backgroundColor: { duration: 0.5, delay: 0.8 }
-                                }}
-                            >
-                                {copySuccess ? '✓ LOG COPIED' : '⎘ COPY MISSION LOG'}
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                <Modal
-                    isOpen={isHowToPlayOpen}
-                    onClose={() => setIsHowToPlayOpen(false)}
-                    title="SYSTEM_GUIDE: HOW TO PLAY"
-                >
-                    <div className="space-y-4 font-mono text-sm">
-                        <p>IDENTIFY THE TARGET ENEMY IN <span className="text-white font-bold">5 ATTEMPTS</span>.</p>
-
-                        <div className="space-y-2">
-                            <p className="opacity-50 underline uppercase">Color Indicators:</p>
-                            <div className="flex gap-3 items-center">
-                                <div className="w-4 h-4 bg-green-500/20 border border-green-500" />
-                                <span>CORRECT PROPERTY MATCH</span>
-                            </div>
-                            <div className="flex gap-3 items-center">
-                                <div className="w-4 h-4 bg-yellow-500/20 border border-yellow-500" />
-                                <span>PARTIAL PROPERTY MATCH</span>
-                            </div>
-                            <div className="flex gap-3 items-center">
-                                <div className="w-4 h-4 bg-red-500/20 border border-red-500" />
-                                <span>INCORRECT PROPERTY MATCH</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 pt-2 border-t border-white/10">
-                            <p className="opacity-50 underline uppercase">Properties Tracked:</p>
-                            <ul className="list-disc [&>*]:text-left pl-4 list-outside  space-y-1 opacity-80 ">
-                                <li>TYPE: ???, DEMON, MACHINE, HUSK, ANGEL OR PRIME SOUL</li>
-                                <li>WEIGHT: LIGHT, MEDIUM, HEAVY OR SUPERHEAVY</li>
-                                <li>HEALTH: NUMERIC COMPARISON. TARGET CAN BE HIGHER ▲ OR LOWER ▼. <span className="text-yellow-500">YELLOW</span> INDICATES VALUE IS WITHIN 10 HP OF TARGET</li>
-                                <li>IS BOSS: ANY ENEMY THAT HAS APPEARED WITH A VISIBLE HEALTH BAR. IF AN ENEMY COUNTS AS A BOSS ITS HEALTH IS THAT OF THEIR BOSS APPEARANCE</li>
-                                <li>REGISTERED AT: LEVEL OF FIRST ENCOUNTER. <span className="text-yellow-500">YELLOW</span> INDICATES TARGET ENEMY ALSO APPEARS IN THIS LEVEL</li>
-                            </ul>
-                        </div>
-                    </div>
-                </Modal>
 
                 <div className="w-full z-10">
                     <EnemySearch
@@ -247,15 +186,72 @@ const PlayPage = () => {
                             )}
                         </div>
                     )}
+                    {isGameOver && (
+                        <div className="flex flex-col gap-2 items-start mt-4 border-t border-white/10 pt-4 w-full">
+                            <Typewriter
+                                text="COMPRESSED MISSION LOG:"
+                                className="text-white opacity-50 text-sm"
+                                speed={0.01}
+                                delay={isGameOver ? 0.5 : 0}
+                            />
+                            <motion.div
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                    visible: {
+                                        transition: {
+                                            staggerChildren: 0.05,
+                                            delayChildren: 0.8
+                                        }
+                                    }
+                                }}
+                                className="flex flex-col gap-1 mt-1"
+                            >
+                                {guessGridData.map((row, rowIndex) => (
+                                    <div key={rowIndex} className="flex gap-1">
+                                        {row.map((status, colIndex) => (
+                                            <motion.div
+                                                key={colIndex}
+                                                variants={{
+                                                    hidden: { opacity: 0, scale: 0.5 },
+                                                    visible: { opacity: 1, scale: 1 }
+                                                }}
+                                                className={`w-6 h-6 border ${status === 'green' ? 'bg-green-500/20 border-green-500' :
+                                                    status === 'yellow' ? 'bg-yellow-500/20 border-yellow-500' :
+                                                        'bg-red-500/20 border-red-500'
+                                                    }`}
+                                            />
+                                        ))}
+                                    </div>
+                                ))}
+                            </motion.div>
+                            <Button
+                                variant="ghost"
+                                size="lg"
+                                onClick={copyMissionLog}
+                                className="text-xl  flex items-center gap-2 opacity-50 hover:opacity-100 mb-4"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 1.2 + (guessGridData.length * 0.05) }}
+                            >
+                                {copySuccess ? (
+                                    <>✓ COPIED</>
+                                ) : (
+                                    <>⎘ COPY LOG</>
+                                )}
+                            </Button>
+                        </div>
+                    )}
                 </div>
+                <div ref={bottomRef} />
             </div>
             {
-                !hasWon && hasReachedLimit && (
+                (!hasWon && hasReachedLimit && (
                     <div className="-z-10 h-dvh w-dvw bg-black fixed top-0 left-0 flex items-center justify-center overflow-visible">
                         <div className="w-1/2 h-1/2 overflow-visible">
                             <img className="opacity-10 overflow-visible object-cover w-full h-full mx-auto " src="/images/ultrakill-death.gif" />
                         </div>
-                    </div>) || (
+                    </div>)) || (
                     <div className="-z-10 h-dvh w-dvw bg-black/40 fixed top-0 left-0  overflow-visible">
                     </div>)
             }

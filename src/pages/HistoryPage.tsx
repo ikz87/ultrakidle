@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { usePlayHistory } from '../hooks/usePlayHistory';
 import { Typewriter } from '../components/Typewriter';
 import { enemies } from '../lib/enemy_list';
 
 const HistoryPage = () => {
-    const navigate = useNavigate();
     const { loading, history: rawHistory } = usePlayHistory();
     const [visibleCount, setVisibleCount] = useState(10);
 
@@ -19,17 +17,6 @@ const HistoryPage = () => {
 
     return (
         <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
-            <div className="mb-6">
-                <Button
-                    variant="ghost"
-                    size="md"
-                    onClick={() => navigate('/')}
-                    className="flex items-center gap-2 opacity-50 hover:opacity-100"
-                >
-                    &lt; RETURN TO HOME
-                </Button>
-            </div>
-
             <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest text-white">
 
                 <div className="flex flex-col gap-2 pb-6 border-b border-white/10">
