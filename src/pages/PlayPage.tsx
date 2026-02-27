@@ -115,7 +115,7 @@ const PlayPage = () => {
     ).join('\n');
 
     const copyMissionLog = () => {
-        navigator.clipboard.writeText(emojiGrid);
+        navigator.clipboard.writeText(`${emojiGrid}\n\nhttps://ultrakidle.online/`);
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
     };
