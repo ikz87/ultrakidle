@@ -77,7 +77,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col w-full h-full min-h-0">
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
-        <div className="flex flex-col gap-0 mt-2 w-full lg:text-xl text-lg opacity-50 text-left flex-shrink-0">
+        <div className="flex flex-col gap-0 mt-2 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
           <div className="flex gap-1 items-baseline">
             <Typewriter
               text="DAILY_CHALLENGE "

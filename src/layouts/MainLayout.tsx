@@ -88,11 +88,11 @@ const MainLayout = () => {
             <div className="flex-1 min-h-0 overflow-auto pb-10">
               <Outlet />
             </div>
-            <div className="z-30  text-left lg:text-xl text-lg">
+            <div className="z-30  text-left lg:text-xl md:text-lg text-sm">
               <span className="opacity-50">
                 INTO SOCIALS... OK
               </span>
-              <div className="flex gap-3 lg:text-3xl text-xl">
+              <div className="flex gap-3 lg:text-3xl md:text-xl text-lg">
                 <a
                   target="_blank"
                   href="https://github.com/ikz87"
