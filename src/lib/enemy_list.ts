@@ -49,7 +49,7 @@ export const enemies = [
   { id: 52, name: "V2", icon: ["https://ultrakill.wiki.gg/images/V2.webp"] },
   { id: 53, name: "V2 (2nd)", icon: ["https://ultrakill.wiki.gg/images/V2_%282nd%29.webp"] },
   { id: 54, name: "Virtue", icon: ["https://ultrakill.wiki.gg/images/Virtue.webp"] },
-  { id: 59, name: "Ghost Drone", icon: ["https://ultrakill.wiki.gg/images/Drone.webp"] },
+  { id: 59, name: "Ghost Drone", icon: ["https://ultrakill.wiki.gg/images/thumb/DroneGhostFull.webp/200px-DroneGhostFull.webp"] },
   {
     id: 66,
     name: 'Swordsmachine "Tundra/Agony"',
