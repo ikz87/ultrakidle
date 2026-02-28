@@ -57,4 +57,5 @@ export const enemies = [
   { id: 56, name: 'Insurrectionist "Rude"' },
   { id: 57, name: 'Ferryman "Rudraksha"' },
   { id: 58, name: 'Ferryman "Agonis"' },
+  { id: 59, name: "Ghost Drone" },
 ];

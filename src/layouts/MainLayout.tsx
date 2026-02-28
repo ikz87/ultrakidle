@@ -52,7 +52,7 @@ const MainLayout = () => {
             onClose={() => setIsHowToPlayOpen(false)}
             title="SYSTEM_GUIDE: HOW TO PLAY"
           >
-            <div className="space-y-4 font-mono text-sm">
+            <div className="space-y-4 text-sm">
               <p>IDENTIFY THE TARGET ENEMY IN <span className="text-white font-bold">5 ATTEMPTS</span>.</p>
 
               <div className="space-y-2">
