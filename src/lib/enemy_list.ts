@@ -66,7 +66,7 @@ export const enemies = [
     icon: ["https://ultrakill.wiki.gg/images/Ferryman.webp", "https://ultrakill.wiki.gg/images/Ferryman.webp"],
   },
     {
-    id: 63,
+    id: 69,
     name: "Malicious Spawn",
     icon: ["https://ultrakill.wiki.gg/images/Malicious_Face.webp"],
   },
