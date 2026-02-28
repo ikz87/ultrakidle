@@ -53,17 +53,17 @@ export const enemies = [
   { id: 54, name: "Virtue", icon: ["https://ultrakill.wiki.gg/images/Virtue.webp"] },
   { id: 59, name: "Ghost Drone", icon: ["https://ultrakill.wiki.gg/images/Drone.webp"] },
   {
-    id: 60,
+    id: 66,
     name: 'Swordsmachine "Tundra/Agony"',
     icon: ["https://ultrakill.wiki.gg/images/Swordsmachine_%22Tundra%22.webp", "https://ultrakill.wiki.gg/images/Swordsmachine_%22Agony%22.webp"],
   },
   {
-    id: 61,
+    id: 67,
     name: 'Insurrectionist "Angry/Rude"',
     icon: ["https://ultrakill.wiki.gg/images/Angry.png", "https://ultrakill.wiki.gg/images/Rude.png"],
   },
   {
-    id: 62,
+    id: 68,
     name: 'Ferryman "Rudraksha/Agonis"',
     icon: ["https://ultrakill.wiki.gg/images/Ferryman.webp", "https://ultrakill.wiki.gg/images/Ferryman.webp"],
   },
