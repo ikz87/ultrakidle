@@ -28,6 +28,7 @@ export function useGameInit() {
     const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
     const [streak, setStreak] = useState<number>(0);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [dailyChanged, setDailyChanged] = useState(false);
 
     const refresh = () => {
         setLoading(true);
@@ -91,6 +92,28 @@ export function useGameInit() {
 
         init();
     }, [refreshKey]);
+    useEffect(() => {
+        // Subscribe to changes in the current_daily_choice table
+        const channel = supabase
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen to INSERTs and UPDATEs
+                    schema: 'public',
+                    table: 'current_daily_choice',
+                },
+                (payload) => {
+                    console.log('Daily choice changed:', payload);
+                    setDailyChanged(true);
+                }
+            )
+            .subscribe();
 
-    return { loading, dailyId, guessHistory, dailyStats, streak, refresh };
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    return { loading, dailyId, guessHistory, dailyStats, streak, refresh, dailyChanged, setDailyChanged };
 }

@@ -2,15 +2,13 @@ import { useState } from 'react';
 import Button from '../components/ui/Button';
 import { usePlayHistory } from '../hooks/usePlayHistory';
 import { Typewriter } from '../components/Typewriter';
-import { enemies } from '../lib/enemy_list';
 
 const HistoryPage = () => {
-    const { loading, history: rawHistory } = usePlayHistory();
+    const { loading, history } = usePlayHistory();
     const [visibleCount, setVisibleCount] = useState(10);
 
-    const history = rawHistory.filter(h => h.won || h.guesses >= 5);
     const totalMissions = history.length;
-    const successfulMissions = history.filter(h => h.won).length;
+    const successfulMissions = history.filter(h => h.is_win).length;
     const successRate = totalMissions > 0 ? Math.round((successfulMissions / totalMissions) * 100) : 0;
 
     const visibleHistory = history.slice(0, visibleCount);
@@ -49,36 +47,41 @@ const HistoryPage = () => {
 
                     {!loading && history.length > 0 && (
                         <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                            {visibleHistory.map((entry) => (
-                                <div
-                                    key={entry.dailyId}
-                                    className="flex justify-between items-center bg-white/5 p-4 border border-white/10"
-                                >
-                                    <div className="flex flex-col gap-1">
-                                        <span className="opacity-50 text-sm">
-                                            {new Date(entry.date).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric'
-                                            })}
-                                        </span>
-                                        <span className="text-sm">
-                                            {enemies.find(e => e.id === entry.targetEnemyId)?.name || 'UNKNOWN_TARGET'}
-                                        </span>
-                                    </div>
+                            {visibleHistory.map((entry, index) => {
+                                const choice = entry.daily_choice;
+                                const enemyName = choice?.enemy?.name || 'UNKNOWN_TARGET';
 
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span
-                                            className={entry.won ? "text-green-500" : "text-red-500"}
-                                        >
-                                            {entry.won ? "TARGET IDENTIFIED" : "MISSION FAILED"}
-                                        </span>
-                                        <span className="opacity-50 text-sm">
-                                            ATTEMPTS: {Math.min(entry.guesses, 5)}/5
-                                        </span>
+                                return (
+                                    <div
+                                        key={index}
+                                        className="flex justify-between items-center bg-white/5 p-4 border border-white/10"
+                                    >
+                                        <div className="flex flex-col items-start gap-1">
+                                            <span className="opacity-50 text-sm">
+                                                {choice?.chosen_at ? new Date(choice.chosen_at).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                }) : 'UNKNOWN_DATE'}
+                                            </span>
+                                            <span className="text-sm">
+                                                {enemyName}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span
+                                                className={entry.is_win ? "text-green-500" : "text-red-500"}
+                                            >
+                                                {entry.is_win ? "TARGET IDENTIFIED" : "MISSION FAILED"}
+                                            </span>
+                                            <span className="opacity-50 text-sm">
+                                                ATTEMPTS: {entry.attempt_count}/5
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                             {history.length > visibleCount && (
                                 <div className="w-full flex justify-center mt-2 pb-2">
                                     <Button

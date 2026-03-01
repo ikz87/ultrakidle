@@ -39,18 +39,26 @@ const getCountdown = () => {
 };
 
 const HomePage = () => {
-  const { loading: gameLoading, guessHistory, dailyStats, streak, refresh } = useGameInit();
+  const { loading: gameLoading, guessHistory, dailyStats, streak, refresh, dailyChanged, setDailyChanged } = useGameInit();
   const navigate = useNavigate();
   const [titleFinished, setTitleFinished] = useState(false);
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
   const [countdown, setCountdown] = useState(getCountdown());
 
   useEffect(() => {
+    if (dailyChanged) {
+      setDailyChanged(false);
+      refresh();
+    }
+  }, [dailyChanged, setDailyChanged, refresh]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       const current = getCountdown();
       setCountdown(current);
 
-      // If the countdown reaches zero, refresh the game data
+      // If the countdown reaches zero, refresh is handled by the subscription now,
+      // but keeping this as a fallback won't hurt.
       if (current.hours === 0 && current.minutes === 0 && current.seconds === 0) {
         refresh();
       }

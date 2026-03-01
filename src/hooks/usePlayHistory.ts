@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-export interface HistorySummary {
-    dailyId: number;
-    date: string | Date;
-    guesses: number;
-    won: boolean;
-    targetEnemyId?: number;
+export interface HistoryItem {
+    is_win: boolean;
+    attempt_count: number;
+    daily_choice: {
+        chosen_at: string;
+        enemy: {
+            name: string;
+        }
+    }
 }
 
 export function usePlayHistory() {
     const [loading, setLoading] = useState(true);
-    const [history, setHistory] = useState<HistorySummary[]>([]);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
 
     useEffect(() => {
         async function fetchHistory() {
@@ -23,66 +26,38 @@ export function usePlayHistory() {
                     return;
                 }
 
-                // We fetch the join of user_guesses with daily_choices 
-                // to get the actual date of the challenge rather than just the guess created_at
                 const { data, error } = await supabase
-                    .from('user_guesses')
+                    .from('user_wins')
                     .select(`
-                        daily_choice_id,
-                        guess_enemy_id,
-                        hint_data,
-                        created_at,
-                        daily_choices ( chosen_at )
+                        is_win,
+                        attempt_count,
+                        daily_choice:daily_choices (
+                            chosen_at,
+                            enemy:ultrakill_enemies (
+                                name
+                            )
+                        )
                     `)
-                    .order('daily_choice_id', { ascending: false })
-                    .order('created_at', { ascending: true })
-                    .limit(2000); // larger limit for accurate client-side historical data
+                    .order('completed_at', { ascending: false });
 
                 if (error) throw error;
 
-                if (data && data.length > 0) {
-                    const grouped: Record<number, HistorySummary> = {};
+                console.log('Raw user_wins data:', JSON.stringify(data, null, 2));
 
-                    data.forEach(row => {
-                        const dailyId = row.daily_choice_id;
-
-                        if (!grouped[dailyId]) {
-                            // Extract date from related daily_choices if possible, fallback to guess created_at
-                            // Data shape of join might be an object or array depending on relation setup
-                            // Using type coercion any to bypass strict type checking for the join structure here
-                            const joinData = row.daily_choices as any;
-                            const choiceDate = joinData ? (Array.isArray(joinData) ? joinData[0]?.chosen_at : joinData.chosen_at) : null;
-                            const actualDate = choiceDate || row.created_at;
-
-                            grouped[dailyId] = {
-                                dailyId,
-                                date: new Date(actualDate),
-                                guesses: 0,
-                                won: false
-                            };
+                if (data) {
+                    // Supabase joins can sometimes return arrays for single relationships.
+                    // We map the data deeply to ensure consistent object structure.
+                    const mappedData = data.map((item: any) => {
+                        const daily_choice = Array.isArray(item.daily_choice) ? item.daily_choice[0] : item.daily_choice;
+                        if (daily_choice) {
+                            daily_choice.enemy = Array.isArray(daily_choice.enemy) ? daily_choice.enemy[0] : daily_choice.enemy;
                         }
-
-                        grouped[dailyId].guesses += 1;
-
-                        const hintData = row.hint_data as any;
-                        // Treat the whole daily challenge as won if any guess was correct
-                        if (hintData && hintData.correct === true) {
-                            grouped[dailyId].won = true;
-                            grouped[dailyId].targetEnemyId = row.guess_enemy_id;
-                        } else if (hintData && hintData.correct_id) {
-                            // If they lost and we got the correct_id on the last guess
-                            grouped[dailyId].targetEnemyId = hintData.correct_id;
-                        }
+                        return {
+                            ...item,
+                            daily_choice
+                        };
                     });
-
-                    // Convert map to array and sort newest to oldest
-                    const historyArray = Object.values(grouped).sort((a, b) => {
-                        const timeA = new Date(a.date).getTime();
-                        const timeB = new Date(b.date).getTime();
-                        return timeB - timeA;
-                    });
-
-                    setHistory(historyArray);
+                    setHistory(mappedData as HistoryItem[]);
                 }
 
             } catch (err) {

@@ -11,7 +11,7 @@ import { Typewriter } from '../components/Typewriter';
 import { motion } from 'framer-motion';
 
 const PlayPage = () => {
-    const { loading, guessHistory } = useGameInit();
+    const { loading, guessHistory, dailyChanged, setDailyChanged, refresh } = useGameInit();
     const [guesses, setGuesses] = useState<GuessResult[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [shouldFlash, setShouldFlash] = useState(false);
@@ -20,16 +20,20 @@ const PlayPage = () => {
 
     // Load initial guesses from history
     useEffect(() => {
-        if (!loading && guessHistory.length > 0) {
-            const initialGuesses: GuessResult[] = guessHistory.map(historyItem => {
-                const enemyData = enemies.find(e => e.id === historyItem.guess_enemy_id);
-                return {
-                    guess_id: historyItem.guess_enemy_id,
-                    enemy_name: enemyData ? enemyData.name : 'UNKNOWN',
-                    ...historyItem.hint_data
-                };
-            });
-            setGuesses(initialGuesses);
+        if (!loading) {
+            if (guessHistory.length > 0) {
+                const initialGuesses: GuessResult[] = guessHistory.map(historyItem => {
+                    const enemyData = enemies.find(e => e.id === historyItem.guess_enemy_id);
+                    return {
+                        guess_id: historyItem.guess_enemy_id,
+                        enemy_name: enemyData ? enemyData.name : 'UNKNOWN',
+                        ...historyItem.hint_data
+                    };
+                });
+                setGuesses(initialGuesses);
+            } else {
+                setGuesses([]);
+            }
         }
     }, [guessHistory, loading]);
 
@@ -193,20 +197,20 @@ const PlayPage = () => {
                                         delay={0.8}
                                     />
                                     <div className="flex items-center gap-2">
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.5 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 1.8, duration: 0.5 }}
-                                    >
-                                        <EnemyIcon icons={revealedEnemy.icon} size={32} className="" />
-                                    </motion.div>
-                                    <Typewriter
-                                        text={revealedEnemy.name}
-                                        className="animate-pulse"
-                                        speed={0.04}
-                                        delay={1.4}
-                                    />
-                                </div>
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: 1.8, duration: 0.5 }}
+                                        >
+                                            <EnemyIcon icons={revealedEnemy.icon} size={32} className="" />
+                                        </motion.div>
+                                        <Typewriter
+                                            text={revealedEnemy.name}
+                                            className="animate-pulse"
+                                            speed={0.04}
+                                            delay={1.4}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -273,13 +277,50 @@ const PlayPage = () => {
             {
                 (!hasWon && hasReachedLimit && (
                     <div className="-z-10 h-dvh w-dvw bg-black fixed top-0 left-0 flex items-center justify-center overflow-visible">
-                        <div className="w-1/2 h-1/2 overflow-visible">
+                        <div className="w-1/3 h-1/3 overflow-visible">
                             <img className="opacity-10 overflow-visible object-cover w-full h-full mx-auto " src="/images/ultrakill-death.gif" />
                         </div>
                     </div>)) || (
                     <div className="-z-10 h-dvh w-dvw bg-black/40 fixed top-0 left-0  overflow-visible">
                     </div>)
             }
+            {dailyChanged && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-zinc-900 border border-red-500/30 p-8 max-w-md w-full flex flex-col items-center gap-6"
+                    >
+                        <Typewriter
+                            text="TIME IS UP"
+                            className="text-3xl text-red-500 font-bold tracking-widest"
+                            speed={0.05}
+                        />
+                        <Typewriter
+                            text="A NEW DAILY CHALLENGE IS AVAILABLE"
+                            className="text-white/70 text-center"
+                            speed={0.03}
+                            delay={0.5}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.5 }}
+                        >
+                            <Button
+                                variant="primary"
+                                size="lg"
+                                onClick={() => {
+                                    setDailyChanged(false);
+                                    refresh();
+                                }}
+                            >
+                                START NEW MISSION
+                            </Button>
+                        </motion.div>
+                    </motion.div>
+                </div>
+            )}
         </>
     );
 };
