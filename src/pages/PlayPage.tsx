@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import { EnemySearch } from '../components/game/EnemySearch';
 import { GuessBoard } from '../components/game/GuessBoard';
 import type { GuessResult } from '../components/game/GuessBoard';
+import { EnemyIcon } from '../components/game/EnemyIcon';
 import { enemies } from '../lib/enemy_list';
 import { Typewriter } from '../components/Typewriter';
 import { motion } from 'framer-motion';
@@ -155,11 +156,26 @@ const PlayPage = () => {
                 <div className="mt-2 text-white flex flex-col items-start gap-1  font-bold uppercase tracking-wider">
                     <span className="opacity-50">GUESSES REMAINING: {Math.max(0, 5 - guesses.length)} / 5</span>
                     {hasWon && (
-                        <Typewriter
-                            text="STATUS: TARGET IDENTIFIED"
-                            className="text-green-500 opacity-50"
-                            speed={0.02}
-                        />
+                        <div className="flex items-center gap-4">
+                            <Typewriter
+                                text="STATUS: TARGET IDENTIFIED"
+                                className="text-green-500 opacity-50"
+                                speed={0.02}
+                            />
+                            {guesses.find(g => g.correct) && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.5 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.5, duration: 0.5 }}
+                                >
+                                    <EnemyIcon
+                                        icons={enemies.find(e => e.name === guesses.find(g => g.correct)?.enemy_name)?.icon || []}
+                                        size={32}
+                                        className="border border-green-500/20 p-0.5 bg-green-500/5"
+                                    />
+                                </motion.div>
+                            )}
+                        </div>
                     )}
                     {!hasWon && hasReachedLimit && (
                         <div className="flex flex-col gap-1 items-start">
@@ -169,19 +185,28 @@ const PlayPage = () => {
                                 speed={0.02}
                             />
                             {revealedEnemy && (
-                                <div className="text-white font-extrabold text-xl flex gap-2">
+                                <div className="flex flex-col gap-1 items-start">
                                     <Typewriter
                                         text="TARGET DESIGNATION: "
                                         className="opacity-50"
                                         speed={0.02}
                                         delay={0.8}
                                     />
+                                    <div className="flex items-center gap-2">
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.5 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: 1.8, duration: 0.5 }}
+                                    >
+                                        <EnemyIcon icons={revealedEnemy.icon} size={32} className="" />
+                                    </motion.div>
                                     <Typewriter
                                         text={revealedEnemy.name}
                                         className="animate-pulse"
                                         speed={0.04}
                                         delay={1.4}
                                     />
+                                </div>
                                 </div>
                             )}
                         </div>
