@@ -14,10 +14,10 @@ const HistoryPage = () => {
     const visibleHistory = history.slice(0, visibleCount);
 
     return (
-        <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
-            <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest text-white">
+        <div className="flex flex-col w-full h-full pt-4 shrink justify-start items-start overflow-hidden">
+            <div className="flex flex-col w-full h-[600px] max-h-full max-w-2xl bg-black/40 border-2 border-white/10 p-4 uppercase font-bold tracking-widest text-white overflow-hidden">
 
-                <div className="flex flex-col gap-2 pb-6 border-b border-white/10">
+                <div className="flex flex-col gap-2 pb-4 border-b border-white/10 flex-shrink-0">
                     <span className="text-xl opacity-50">SERVICE_RECORD</span>
 
                     {loading ? (
@@ -36,8 +36,8 @@ const HistoryPage = () => {
                     )}
                 </div>
 
-                <div className="flex flex-col gap-2">
-                    <span className="text-xl opacity-50 mb-4">MISSION_LOGS</span>
+                <div className="flex flex-col gap-2 mt-4 flex-1 min-h-0">
+                    <span className="text-xl opacity-50 mb-4 flex-shrink-0">MISSION_LOGS</span>
 
                     {!loading && history.length === 0 && (
                         <div className="opacity-50">
@@ -46,7 +46,7 @@ const HistoryPage = () => {
                     )}
 
                     {!loading && history.length > 0 && (
-                        <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
                             {visibleHistory.map((entry, index) => {
                                 const choice = entry.daily_choice;
                                 const enemyName = choice?.enemy?.name || 'UNKNOWN_TARGET';

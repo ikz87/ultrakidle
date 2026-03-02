@@ -84,8 +84,8 @@ const MainLayout = () => {
             </div>
           </Modal>
 
-          <div className="flex flex-col h-full min-h-0 w-full">
-            <div className="flex-1 min-h-0 overflow-auto pb-10">
+          <div className="flex flex-col flex-1 min-h-0 w-full">
+            <div className="flex-1 min-h-0 pb-10">
               <Outlet />
             </div>
             <div className="z-30  text-left lg:text-xl md:text-lg text-sm">
