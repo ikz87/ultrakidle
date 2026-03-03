@@ -139,7 +139,7 @@ const PlayPage = () => {
 
     return (
         <>
-            <div className="z-20  flex flex-col w-full pt-4  min-h-full justify-start items-start">
+            <div className="z-20 flex flex-col w-full pt-4 min-h-full justify-start items-start">
 
                 <div className="w-full z-10">
                     <EnemySearch
@@ -152,7 +152,7 @@ const PlayPage = () => {
                 <motion.div
                     animate={shouldFlash ? { backgroundColor: ["rgba(255, 255, 255, 0.6)", "rgba(255, 255, 255, 0)"] } : { backgroundColor: "rgba(255, 255, 255, 0)" }}
                     transition={shouldFlash ? { duration: 1.5, ease: "easeOut" } : { duration: 0 }}
-                    className="lg:w-1/2 w-full "
+                    className="lg:w-3/4 w-full "
                 >
                     <GuessBoard guesses={guesses} />
                 </motion.div>

@@ -46,7 +46,7 @@ const HistoryPage = () => {
                     )}
 
                     {!loading && history.length > 0 && (
-                        <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
+                        <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0 h-72">
                             {visibleHistory.map((entry, index) => {
                                 const choice = entry.daily_choice;
                                 const enemyName = choice?.enemy?.name || 'UNKNOWN_TARGET';

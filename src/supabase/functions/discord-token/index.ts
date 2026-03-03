@@ -51,6 +51,12 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      },
     );
 
     // Create a deterministic internal identity
@@ -86,12 +92,23 @@ Deno.serve(async (req) => {
       throw new Error("Could not establish a user session");
     }
 
-    // 1. Sync public profile (so others can see their name/avatar)
-    await supabaseAdmin.from('profiles').upsert({
-      id: authData.user.id,
-      discord_name: discordUser.global_name || discordUser.username,
-      avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
-    });
+    console.log("About to upsert profile for:", authData.user.id);
+
+    const { data: profileData, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .upsert({
+        id: authData.user.id,
+        discord_name: discordUser.global_name || discordUser.username,
+        avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
+      })
+      .select();
+
+    console.log("Profile result:", JSON.stringify({ profileData, profileError }));
+
+
+    if (profileError) {
+      console.error("Profile upsert failed:", profileError.message);
+    }
 
     // 2. Sync server membership (using the guild_id passed from frontend)
     if (guild_id) {

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { useGameInit } from '../hooks/useGameInit';
 import { Typewriter } from '../components/Typewriter';
+import { isRunningInDiscord, discordSdk } from '../lib/discord';
 
 const LoadingDots = () => {
   const [dotCount, setDotCount] = useState(1);
@@ -45,6 +46,13 @@ const HomePage = () => {
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
   const [countdown, setCountdown] = useState(getCountdown());
 
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+    if (isRunningInDiscord() && discordSdk) {
+      e.preventDefault();
+      discordSdk.commands.openExternalLink({ url });
+    }
+  };
+
   useEffect(() => {
     if (dailyChanged) {
       setDailyChanged(false);
@@ -85,7 +93,7 @@ const HomePage = () => {
   return (
     <div className="flex flex-col w-full h-full min-h-0">
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
-        <div className="flex flex-col gap-0 mt-2 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
+        <div className="flex flex-col gap-0  w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
           <div className="flex gap-1 items-baseline">
             <Typewriter
               text="DAILY_CHALLENGE "
@@ -237,7 +245,7 @@ const HomePage = () => {
               </div>
             )}
             <a
-              href='https://ko-fi.com/G2G41UYAX6' target='_blank'>
+              href='https://ko-fi.com/G2G41UYAX6' target='_blank' onClick={(e) => handleLinkClick(e, 'https://ko-fi.com/G2G41UYAX6')}>
               <Button
                 variant="ghost"
                 className="flex items-center"
@@ -245,7 +253,7 @@ const HomePage = () => {
                 Support me on ko-fi
                 <img
                   className="w-5 ml-2"
-                  src="https://cdn.prod.website-files.com/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png" />
+                  src="/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png" />
               </Button>
             </a>
           </motion.div>
