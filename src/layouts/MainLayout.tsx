@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
+import { isRunningInDiscord } from '../lib/discord';
+import { ServerActivityFeed } from '../components/game/ServerActivityFeed';
 
 const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
+  const [isServerFeedOpen, setIsServerFeedOpen] = useState(false);
 
   const isHome = location.pathname === '/';
   const isPlay = location.pathname === '/play';
+  const inDiscord = isRunningInDiscord();
 
   return (
     <div className="text-white overflow-hidden">
@@ -24,8 +28,8 @@ const MainLayout = () => {
               alt="Ultrakidle Logo"
             />
           </div>
-          {!isHome && (
-            <div className="flex flex-wrap items-center gap-2 mt-2 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2 mt-2 flex-shrink-0">
+            {!isHome && (
               <Button
                 variant="ghost"
                 size="md"
@@ -34,24 +38,35 @@ const MainLayout = () => {
               >
                 &lt; RETURN TO HOME
               </Button>
-              {isPlay && (
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={() => setIsHowToPlayOpen(true)}
-                  className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
-                >
-                  ? HOW TO PLAY
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+            {inDiscord && (
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => setIsServerFeedOpen(true)}
+                className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100 text-yellow-500"
+              >
+                # SERVER_FEED
+              </Button>
+            )}
+            {isPlay && (
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => setIsHowToPlayOpen(true)}
+                className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
+              >
+                ? HOW TO PLAY
+              </Button>
+            )}
+          </div>
 
           <Modal
             isOpen={isHowToPlayOpen}
             onClose={() => setIsHowToPlayOpen(false)}
             title="SYSTEM_GUIDE: HOW TO PLAY"
           >
+            {/* ... How To Play Content ... */}
             <div className="space-y-4 text-sm">
               <p>IDENTIFY THE TARGET ENEMY IN <span className="text-white font-bold">5 ATTEMPTS</span>.</p>
 
@@ -82,6 +97,14 @@ const MainLayout = () => {
                 </ul>
               </div>
             </div>
+          </Modal>
+
+          <Modal
+            isOpen={isServerFeedOpen}
+            onClose={() => setIsServerFeedOpen(false)}
+            title="SYSTEM_LOGS: SERVER_ACTIVITY"
+          >
+            <ServerActivityFeed />
           </Modal>
 
           <div className="flex flex-col flex-1 min-h-0 w-full">
