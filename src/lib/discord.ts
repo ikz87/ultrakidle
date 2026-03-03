@@ -16,13 +16,13 @@ export function getGuildId() {
 
 export async function setupDiscord() {
     if (!discordSdk) {
-        discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID_DEV);
+        discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
     }
 
     await discordSdk.ready();
     currentGuildId = discordSdk.guildId;
 
-    const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID_DEV;
+    const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
 
     // 1. Authorize: Get the OAuth2 code from the Discord Client
     const { code } = await discordSdk.commands.authorize({
