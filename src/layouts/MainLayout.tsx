@@ -77,7 +77,7 @@ const MainLayout = () => {
                   alt="Ultrakidle Logo"
                 />
               </div>
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mt-2 flex-shrink-0">
+              <div className="flex flex-wrap justify-start md:justify-start items-center gap-2 mt-2 flex-shrink-0">
                 {!isHome && (
                   <Button
                     variant="ghost"

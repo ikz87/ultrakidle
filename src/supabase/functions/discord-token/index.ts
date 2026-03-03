@@ -16,8 +16,8 @@ Deno.serve(async (req) => {
 
     // 1. Resolve which Client Secret to use based on the incoming Client ID
     let clientSecret = "";
-    if (client_id === Deno.env.get("DISCORD_CLIENT_ID_PROD")) {
-      clientSecret = Deno.env.get("DISCORD_CLIENT_SECRET_PROD")!;
+    if (client_id === Deno.env.get("DISCORD_CLIENT_ID")) {
+      clientSecret = Deno.env.get("DISCORD_CLIENT_SECRET")!;
     } else if (client_id === Deno.env.get("DISCORD_CLIENT_ID_DEV")) {
       clientSecret = Deno.env.get("DISCORD_CLIENT_SECRET_DEV")!;
     }
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     // Create a deterministic internal identity
     const email = `${discordUser.id}@discord.internal`;
-    const password = `discord_${discordUser.id}_${clientSecret.substring(0, 10)}`;
+	const password = `discord_${discordUser.id}_${Deno.env.get("USER_PASSWORD_SALT")}`;
 
     // 5. Sign in or Sign up the user in Supabase Auth
     let { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
