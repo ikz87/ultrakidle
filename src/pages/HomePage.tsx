@@ -5,6 +5,8 @@ import Button from '../components/ui/Button';
 import { useGameInit } from '../hooks/useGameInit';
 import { Typewriter } from '../components/Typewriter';
 import { isRunningInDiscord, discordSdk } from '../lib/discord';
+import { resolveExternalUrl } from '../lib/urls';
+
 
 const LoadingDots = () => {
   const [dotCount, setDotCount] = useState(1);
@@ -253,7 +255,7 @@ const HomePage = () => {
                 Support me on ko-fi
                 <img
                   className="w-5 ml-2"
-                  src="/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png" />
+                  src={resolveExternalUrl("/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png")} />
               </Button>
             </a>
           </motion.div>
