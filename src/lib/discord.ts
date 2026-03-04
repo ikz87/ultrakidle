@@ -1,5 +1,15 @@
 import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { useEffect } from "react";
 import { supabase } from "./supabaseClient";
+
+const DISCORD_URL = "https://discord.com/oauth2/authorize?client_id=1478255175926808696&permissions=182272&scope=bot";
+export const DiscordRedirect = () => {
+    useEffect(() => {
+        window.location.replace(DISCORD_URL);
+    }, []);
+
+    return null;
+};
 
 // Initialize Discord SDK lazily to avoid errors outside of Discord
 export let discordSdk: DiscordSDK | null = null;

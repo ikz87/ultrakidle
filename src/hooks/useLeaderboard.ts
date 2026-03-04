@@ -104,14 +104,20 @@ export const useLeaderboard = (guildId?: string | null) => {
 
                 if (winError) throw winError;
 
-                const profileMap = (profileData || []).reduce((acc: any, p) => {
+                interface Profile {
+                    id: string;
+                    discord_name: string;
+                    avatar_url: string | null;
+                }
+
+                const profileMap = (profileData as unknown as Profile[] || []).reduce((acc: Record<string, Profile>, p) => {
                     acc[p.id] = p;
                     return acc;
                 }, {});
 
                 const initialUsers: Record<string, UserState> = {};
 
-                guessData?.forEach((row: any) => {
+                guessData?.forEach((row) => {
                     if (!initialUsers[row.user_id]) {
                         const profile = profileMap[row.user_id];
                         initialUsers[row.user_id] = {
@@ -124,14 +130,14 @@ export const useLeaderboard = (guildId?: string | null) => {
                             last_guess_at: row.created_at || '',
                         };
                     }
-                    initialUsers[row.user_id].guesses.push(row.colors.map((c: string) => c.toLowerCase()));
+                    initialUsers[row.user_id].guesses.push((row.colors as string[]).map((c: string) => c.toLowerCase()));
                     initialUsers[row.user_id].attempt_count = initialUsers[row.user_id].guesses.length;
                     if (row.created_at) {
                         initialUsers[row.user_id].last_guess_at = row.created_at;
                     }
                 });
 
-                winData?.forEach((row: any) => {
+                winData?.forEach((row) => {
                     if (initialUsers[row.user_id]) {
                         initialUsers[row.user_id].status = row.is_win ? 'won' : 'lost';
                         initialUsers[row.user_id].attempt_count = row.attempt_count;
@@ -163,7 +169,7 @@ export const useLeaderboard = (guildId?: string | null) => {
                     filter: `daily_choice_id=eq.${dailyId}`,
                 },
                 (payload) => {
-                    const newGuess = payload.new as any;
+                    const newGuess = payload.new as { user_id: string; colors: string[]; created_at?: string };
 
                     // Filter by guild if active
                     if (allowedUserIds && !allowedUserIds.has(newGuess.user_id)) {
@@ -216,7 +222,7 @@ export const useLeaderboard = (guildId?: string | null) => {
                     filter: `daily_choice_id=eq.${dailyId}`,
                 },
                 (payload) => {
-                    const newWin = payload.new as any;
+                    const newWin = payload.new as { user_id: string; is_win: boolean; attempt_count: number; completed_at?: string };
 
                     // Filter by guild if active
                     if (allowedUserIds && !allowedUserIds.has(newWin.user_id)) {

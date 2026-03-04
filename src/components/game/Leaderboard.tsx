@@ -22,7 +22,7 @@ export const Leaderboard = ({ layout = 'vertical', users, loading }: Leaderboard
         return (a.last_guess_at || '').localeCompare(b.last_guess_at || '');
     });
 
-    const getRankColor = (_index: number) => {
+    const getRankColor = () => {
         return 'text-white/80';
     };
 
@@ -43,7 +43,7 @@ export const Leaderboard = ({ layout = 'vertical', users, loading }: Leaderboard
                         >
                             {/* Column 1: Rank, Avatar, Stats */}
                             <div className="flex flex-col items-center gap-1">
-                                <span className={`text-xs font-bold ${getRankColor(index)}`}>
+                                <span className={`text-xs font-bold ${getRankColor()}`}>
                                     #{index + 1}
                                 </span>
                                 <img
@@ -86,7 +86,7 @@ export const Leaderboard = ({ layout = 'vertical', users, loading }: Leaderboard
                                 'bg-white/5 border-white/10'
                             }`}
                     >
-                        <span className={`text-sm font-bold w-5 text-center flex-shrink-0 pt-0.5 ${getRankColor(index)}`}>
+                        <span className={`text-sm font-bold w-5 text-center flex-shrink-0 pt-0.5 ${getRankColor()}`}>
                             {index + 1}
                         </span>
                         <img

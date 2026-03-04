@@ -45,10 +45,13 @@ export function usePlayHistory() {
                 console.log('Raw user_wins data:', JSON.stringify(data, null, 2));
 
                 if (data) {
-                    // Supabase joins can sometimes return arrays for single relationships.
-                    // We map the data deeply to ensure consistent object structure.
-                    const mappedData = data.map((item: any) => {
-                        const daily_choice = Array.isArray(item.daily_choice) ? item.daily_choice[0] : item.daily_choice;
+                    interface RawWinData {
+                        is_win: boolean;
+                        attempt_count: number;
+                        daily_choice: unknown; // Allow any here temporarily or define complex join type
+                    }
+                    const mappedData = (data as unknown as RawWinData[]).map((item) => {
+                        const daily_choice = Array.isArray(item.daily_choice) ? (item.daily_choice[0] as Record<string, unknown>) : (item.daily_choice as Record<string, unknown>);
                         if (daily_choice) {
                             daily_choice.enemy = Array.isArray(daily_choice.enemy) ? daily_choice.enemy[0] : daily_choice.enemy;
                         }

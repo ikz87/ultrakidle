@@ -39,7 +39,7 @@ export function usePlayerPresence(dailyId: number | null) {
 
         // If channel is already joined (e.g. by another hook), track immediately
         // Otherwise, wait for SUBSCRIBED status
-        if ((presenceChannel as any).state === 'joined') {
+        if ((presenceChannel as unknown as { state: string }).state === 'joined') {
             console.log('[usePlayerPresence] Channel already joined, tracking now');
             trackPlayer();
         }

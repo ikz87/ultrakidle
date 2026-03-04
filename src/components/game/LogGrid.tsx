@@ -1,5 +1,16 @@
+interface HintData {
+    correct: boolean;
+    properties: {
+        enemy_type: { result: string };
+        weight_class: { result: string };
+        health: { result: string; color?: string };
+        is_boss: { result: string };
+        appearance: { result: string; color?: string };
+    };
+}
+
 interface LogGridProps {
-    hintData: any[]; // Array of guess results
+    hintData: (string[] | HintData)[]; // Array of guess results
     size?: 'sm' | 'md';
 }
 
@@ -12,7 +23,8 @@ export const LogGrid = ({ hintData, size = 'md' }: LogGridProps) => {
         if (Array.isArray(hint)) return hint;
 
         // Otherwise, extract from properties
-        if (!hint.properties) return ['red', 'red', 'red', 'red', 'red', 'red'];
+        const h = hint as HintData;
+        if (!h.properties) return ['red', 'red', 'red', 'red', 'red', 'red'];
 
         const getStatus = (result: string, color?: string) => {
             if (color === 'green' || result === 'correct') return 'green';
@@ -21,12 +33,12 @@ export const LogGrid = ({ hintData, size = 'md' }: LogGridProps) => {
         };
 
         return [
-            getStatus(hint.correct ? 'correct' : 'incorrect'), // Name
-            getStatus(hint.properties.enemy_type.result), // Type
-            getStatus(hint.properties.weight_class.result), // Weight
-            getStatus(hint.properties.health.result, hint.properties.health.color), // Health
-            getStatus(hint.properties.is_boss.result), // Boss
-            getStatus(hint.properties.appearance.result, hint.properties.appearance.color) // Appearance
+            getStatus(h.correct ? 'correct' : 'incorrect'), // Name
+            getStatus(h.properties.enemy_type.result), // Type
+            getStatus(h.properties.weight_class.result), // Weight
+            getStatus(h.properties.health.result, h.properties.health.color), // Health
+            getStatus(h.properties.is_boss.result), // Boss
+            getStatus(h.properties.appearance.result, h.properties.appearance.color) // Appearance
         ];
     });
 

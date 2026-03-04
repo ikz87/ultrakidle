@@ -61,10 +61,12 @@ Deno.serve(async (req) => {
     const password = `discord_${discordUser.id}_${Deno.env.get("USER_PASSWORD_SALT")}`;
 
     // 3. Sign in or Sign up logic
-    let { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+    const { data: signInData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
+
+    let authData = signInData;
 
     if (authError) {
       const { error: signUpError } = await supabaseAdmin.auth.admin.createUser({
@@ -96,7 +98,7 @@ Deno.serve(async (req) => {
     if (!authData?.user) throw new Error("Could not establish a user session");
 
     // 4. Sync Profile and Guild Membership
-    const avatarUrl = discordUser.avatar 
+    const avatarUrl = discordUser.avatar
       ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
       : null;
 
@@ -128,8 +130,9 @@ Deno.serve(async (req) => {
       }
     );
   } catch (err) {
-    console.error("discord-token error:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const error = err as Error;
+    console.error("discord-token error:", error.message);
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });
