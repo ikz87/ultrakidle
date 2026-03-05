@@ -19,9 +19,9 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
         return () => window.removeEventListener('keydown', handleEsc);
     }, [isOpen, onClose]);
 
-    return (
+    return createPortal(
         <AnimatePresence>
-            {isOpen && createPortal(
+            {isOpen && (
                 <>
                     {/* Backdrop */}
                     <motion.div
@@ -66,10 +66,10 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
                             </div>
                         </motion.div>
                     </div>
-                </>,
-                document.body
+                </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 

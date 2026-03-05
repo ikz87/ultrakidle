@@ -135,7 +135,7 @@ serve(async (req) => {
       return Response.json({
         type: 4,
         data: {
-          content: `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}\n\nhttps://ultrakidle.online/`,
+              content: `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}\n\nPlay at https://ultrakidle.online/ or use \`/ultrakidle\` to compete in this server's leaderboard`,
         },
       });
     }
