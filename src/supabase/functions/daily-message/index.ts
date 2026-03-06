@@ -65,11 +65,14 @@ async function generateResultsImage(
 
   const PAD = 24;
   const totalW = PAD * 2 + COLS * CARD_W + (COLS - 1) * CARD_GAP;
-  const totalH = PAD * 2 + totalRows * CARD_H + (totalRows - 1) * CARD_GAP;
+  const totalH =
+    PAD * 2 + totalRows * CARD_H + (totalRows - 1) * CARD_GAP;
 
   const avatars = await Promise.all(
     results.map((r) =>
-      r.avatar_url ? fetchAvatarBase64(r.avatar_url) : Promise.resolve("")
+      r.avatar_url
+        ? fetchAvatarBase64(r.avatar_url)
+        : Promise.resolve("")
     ),
   );
 
@@ -95,7 +98,6 @@ async function generateResultsImage(
       cards += `<circle cx="${ax}" cy="${ay}" r="${AVATAR_R}" fill="#444"/>`;
     }
 
-    
     cards += `<circle cx="${ax}" cy="${ay}" r="${AVATAR_R}" fill="none" stroke="#ffffff" stroke-width="2"/>`;
 
     const gridX = cx + CARD_PAD * 2 + AVATAR_R * 2;
@@ -130,7 +132,11 @@ async function generateResultsImage(
 
 function formatMessage(
   data: {
-    results: { name: string; is_win: boolean; attempts: number }[];
+    results: {
+      name: string;
+      is_win: boolean;
+      attempts: number;
+    }[];
     streak: number;
     day_number: number;
   },
@@ -163,15 +169,17 @@ function formatMessage(
   }
 
   return (
-    `🔴 ULTRAKIDLE #${data.day_number} has ended!\n ${streakLine}\nHere are yesterday's results:\n` +
+    `🔴 ULTRAKIDLE #${data.day_number} has ended!\n${streakLine}\nHere are yesterday's results:\n` +
     lines.join("\n") +
-    `\n\nA new enemy is waiting, play now at https://ultrakidle.online/ or use \`/ultrakidle\` to compete in this server's leaderboard!`
+    `\n\nA new enemy is waiting!`
   );
 }
 
 serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
-  if (authHeader !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
+  if (
+    authHeader !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+  ) {
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -220,6 +228,27 @@ serve(async (req) => {
         JSON.stringify({
           content: message,
           attachments: [{ id: 0, filename: "results.png" }],
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  style: 2,
+                  label: "Play on Discord",
+                  custom_id: "launch_activity",
+                  emoji: { name: "🎮" },
+                },
+                {
+                  type: 2,
+                  style: 5,
+                  label: "Open in browser",
+                  url: "https://ultrakidle.online/",
+                  emoji: { name: "🌐" },
+                },
+              ],
+            },
+          ],
         }),
       );
       form.append(

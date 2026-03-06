@@ -4,6 +4,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const DISCORD_PUBLIC_KEY = Deno.env.get("DISCORD_PUBLIC_KEY")!;
 
+const PLAY_BUTTONS = [
+  {
+    type: 1,
+    components: [
+      {
+        type: 2,
+        style: 2,
+        label: "Play on Discord",
+        custom_id: "launch_activity",
+        emoji: { name: "🎮" },
+      },
+      {
+        type: 2,
+        style: 5,
+        label: "Open in browser",
+        url: "https://ultrakidle.online/",
+        emoji: { name: "🌐" },
+      },
+    ],
+  },
+];
+
 serve(async (req) => {
   const signature = req.headers.get("x-signature-ed25519");
   const timestamp = req.headers.get("x-signature-timestamp");
@@ -52,7 +74,8 @@ serve(async (req) => {
         return Response.json({
           type: 4,
           data: {
-            content: "This channel doesn't have daily notifications enabled.",
+            content:
+              "This channel doesn't have daily notifications enabled.",
             flags: 64,
           },
         });
@@ -61,7 +84,8 @@ serve(async (req) => {
       return Response.json({
         type: 4,
         data: {
-          content: "🛑 Daily ULTRAKIDLE notifications have been disabled for this channel.",
+          content:
+            "🛑 Daily ULTRAKIDLE notifications have been disabled for this channel.",
         },
       });
     }
@@ -126,6 +150,7 @@ serve(async (req) => {
           data: {
             content: "You haven't completed today's ULTRAKIDLE yet!",
             flags: 64,
+            components: PLAY_BUTTONS,
           },
         });
       }
@@ -135,9 +160,16 @@ serve(async (req) => {
       return Response.json({
         type: 4,
         data: {
-              content: `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}\n\nPlay at https://ultrakidle.online/ or use \`/ultrakidle\` to compete in this server's leaderboard`,
+          content: `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}\n\u200b`,
+          components: PLAY_BUTTONS,
         },
       });
+    }
+  }
+
+  if (payload.type === 3) {
+    if (payload.data.custom_id === "launch_activity") {
+      return Response.json({ type: 12 });
     }
   }
 
