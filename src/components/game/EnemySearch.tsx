@@ -42,9 +42,17 @@ export const EnemySearch = ({ onGuess, disabled = false, excludeIds = [] }: Enem
         }
     };
 
+    const handleRandom = () => {
+        const availableEnemies = enemies.filter(enemy => !excludeIds.includes(enemy.id));
+        if (availableEnemies.length > 0) {
+            const randomIndex = Math.floor(Math.random() * availableEnemies.length);
+            handleSelect(availableEnemies[randomIndex].id);
+        }
+    };
+
     return (
         <div ref={wrapperRef} className="relative lg:text-xl text-base lg:w-1/2 w-full z-50">
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
                 <input
                     type="text"
                     value={query}
@@ -56,8 +64,19 @@ export const EnemySearch = ({ onGuess, disabled = false, excludeIds = [] }: Enem
                     onKeyDown={handleKeyDown}
                     disabled={disabled}
                     placeholder="ENTER ENEMY DESIGNATION..."
-                    className="w-full bg-black border-2 border-white/20 p-3 text-white uppercase font-bold focus:outline-none focus:border-red-500 transition-colors disabled:opacity-50"
+                    className="md:text-base text-sm w-full bg-black border-2 border-white/20 p-3 text-white uppercase font-bold focus:outline-none focus:border-red-500 transition-colors disabled:opacity-50"
                 />
+                <span className="md:text-base text-sm">
+                OR
+                </span>
+                <button
+                    onClick={handleRandom}
+                    disabled={disabled}
+                    title="RANDOM GUESS"
+                    className="hover:cursor-pointer bg-black border-2 border-white/20 p-3 text-white hover:border-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[3.5rem]"
+                >
+                    <img className="invert" src="/images/random-icon.svg"/>
+                </button>
             </div>
 
             {isOpen && (

@@ -90,6 +90,43 @@ serve(async (req) => {
       });
     }
 
+    if (payload.data.name === "random-enemy") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+
+      const { data: enemies } = await supabase
+        .from("ultrakill_enemies")
+        .select("name, icon_urls");
+
+      if (!enemies || enemies.length === 0) {
+        return Response.json({
+          type: 4,
+          data: { content: "No enemies found.", flags: 64 },
+        });
+      }
+
+      const enemy = enemies[Math.floor(Math.random() * enemies.length)];
+      const urls: string[] = enemy.icon_urls ?? [];
+
+      // First embed has the title, rest are image-only (Discord renders them as a gallery)
+      const embeds = urls.map((url: string, i: number) => ({
+        ...(i === 0 ? { title: enemy.name, color: 0xff0000 } : {}),
+        image: { url },
+        url: "https://ultrakidle.online",
+      }));
+
+      return Response.json({
+        type: 4,
+        data: {
+          embeds: embeds.length > 0 ? embeds : undefined,
+          content: embeds.length === 0 ? `**${enemy.name}**` : "",
+        },
+      });
+    }
+
     if (payload.data.name === "channel-subscribe") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
