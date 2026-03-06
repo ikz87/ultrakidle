@@ -127,6 +127,31 @@ serve(async (req) => {
       return Response.json({ type: 12 });
     }
 
+    if (payload.data.name === "how-to-play") {
+      return Response.json({
+        type: 4,
+        data: {
+          content: [
+            "## How to Play",
+            "Identify the target enemy in **5 attempts**.",
+            "",
+            "### Color Indicators",
+            "🟩 Correct property match",
+            "🟨 Partial property match",
+            "🟥 Incorrect property match",
+            "",
+            "### Properties Tracked",
+            "- **Type:** ???, Demon, Machine, Husk, Angel, or Prime Soul",
+            "- **Weight:** Light, Medium, Heavy, or Superheavy",
+            "- **Health:** Numeric comparison. Target can be higher ▲ or lower ▼. Yellow means the value is within 10 HP of the target. For enemies with multiple variants, the highest variant's health is used. For enemies with multiple phases, health is the sum of all phases.",
+            "- **Is Boss:** Any enemy that has appeared with a visible health bar.",
+            "- **Registered At:** Level of first encounter. Target can be later ▲ or earlier ▼ (ordered according to [speedrun.com](https://www.speedrun.com/ultrakill/levels)). Yellow means the target enemy also appears in this level.",
+          ].join("\n"),
+          components: PLAY_BUTTONS,
+        },
+      });
+    }
+
     if (payload.data.name === "share") {
       const discordId = payload.member.user.id;
       const displayName =
