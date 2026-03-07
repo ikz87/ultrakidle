@@ -51,7 +51,7 @@ export const EnemySearch = ({ onGuess, disabled = false, excludeIds = [] }: Enem
     };
 
     return (
-        <div ref={wrapperRef} className="relative lg:text-xl text-base lg:w-1/2 w-full z-50">
+        <div ref={wrapperRef} className="relative lg:text-xl text-base md:max-w-[1000px] w-full z-50">
             <div className="flex items-center gap-2">
                 <input
                     type="text"

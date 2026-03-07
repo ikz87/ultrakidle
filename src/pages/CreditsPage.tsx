@@ -5,6 +5,12 @@ const CreditsPage = () => {
                 <div className="flex flex-col gap-2">
                     <span className="text-xl opacity-50">DEVELOPED_BY</span>
                     <span className="text-4xl text-white">ikz87</span>
+                    <a
+                        href="mailto:iikz87ii@gmail.com"
+                        className="text-lg text-indigo-500 hover:text-red-400 transition-colors underline lowercase tracking-normal"
+                    >
+                        iikz87ii@gmail.com
+                    </a>
                 </div>
 
                 <div className="flex flex-col gap-2">

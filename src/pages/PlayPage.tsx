@@ -155,7 +155,7 @@ const PlayPage = () => {
                 <motion.div
                     animate={shouldFlash ? { backgroundColor: ["rgba(255, 255, 255, 0.6)", "rgba(255, 255, 255, 0)"] } : { backgroundColor: "rgba(255, 255, 255, 0)" }}
                     transition={shouldFlash ? { duration: 1.5, ease: "easeOut" } : { duration: 0 }}
-                    className="lg:w-3/4 w-full "
+                    className="md:max-w-[1000px] w-full "
                 >
                     <GuessBoard guesses={guesses} />
                 </motion.div>
