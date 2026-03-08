@@ -107,7 +107,7 @@ const PlayPage = () => {
             getStatus(g.properties.enemy_type.result), // Type
             getStatus(g.properties.weight_class.result), // Weight
             getStatus(g.properties.health.result, g.properties.health.color), // Health
-            getStatus(g.properties.is_boss.result), // Boss
+            getStatus(g.properties.level_count.result, g.properties.level_count.color), // Level Count
             getStatus(g.properties.appearance.result, g.properties.appearance.color) // Appearance
         ];
     });

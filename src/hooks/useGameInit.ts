@@ -10,7 +10,7 @@ export interface GuessHistoryEntry {
             enemy_type: { value: string; result: 'correct' | 'incorrect' };
             weight_class: { value: string; result: 'correct' | 'incorrect' };
             health: { value: number; result: 'correct' | 'higher' | 'lower' };
-            is_boss: { value: boolean; result: 'correct' | 'incorrect' };
+            level_count: { value: number; result: 'correct' | 'higher' | 'lower'; color?: 'green' | 'yellow' | 'red' };
             appearance: { value: string; result: 'correct' | 'incorrect' };
         };
     };

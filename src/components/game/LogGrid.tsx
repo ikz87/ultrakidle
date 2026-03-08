@@ -6,7 +6,7 @@ interface HintData {
         enemy_type: { result: string };
         weight_class: { result: string };
         health: { result: string; color?: string };
-        is_boss: { result: string };
+        level_count: { result: string; color?: string };
         appearance: { result: string; color?: string };
     };
 }
@@ -51,7 +51,7 @@ export const LogGrid = ({ hintData, size = 'md', typewriter = false }: LogGridPr
             getStatus(h.properties.enemy_type.result), // Type
             getStatus(h.properties.weight_class.result), // Weight
             getStatus(h.properties.health.result, h.properties.health.color), // Health
-            getStatus(h.properties.is_boss.result), // Boss
+            getStatus(h.properties.level_count.result, h.properties.level_count.color), // Level Count
             getStatus(h.properties.appearance.result, h.properties.appearance.color) // Appearance
         ];
     });

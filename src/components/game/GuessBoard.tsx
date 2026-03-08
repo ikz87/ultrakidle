@@ -14,7 +14,11 @@ export interface GuessResult {
             result: 'correct' | 'higher' | 'lower';
             color?: 'green' | 'yellow' | 'red';
         };
-        is_boss: { value: boolean; result: 'correct' | 'incorrect' };
+        level_count: {
+            value: number;
+            result: 'correct' | 'higher' | 'lower';
+            color?: 'green' | 'yellow' | 'red';
+        };
         appearance: {
             value: string;
             result: 'correct' | 'incorrect' | 'later' | 'earlier';
@@ -49,7 +53,7 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                         <th className="px-4 py-3">Type</th>
                         <th className="px-4 py-3">Weight</th>
                         <th className="px-4 py-3">Health</th>
-                        <th className="px-4 py-3">Is Boss</th>
+                        <th className="px-4 py-3">Total Levels</th>
                         <th className="px-4 py-3">Registered at</th>
                     </tr>
                 </thead>
@@ -85,9 +89,13 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                                     </div>
                                 </td>
 
-                                {/* Is Boss */}
-                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.is_boss.result)}`}>
-                                    {guess.properties.is_boss.value ? 'YES' : 'NO'}
+                                {/* Levels */}
+                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.level_count.result, guess.properties.level_count.color)}`}>
+                                    <div className="flex items-center gap-2 h-full">
+                                        {guess.properties.level_count.value}
+                                        {guess.properties.level_count.result === 'higher' && <span className="text-lg">▲</span>}
+                                        {guess.properties.level_count.result === 'lower' && <span className="text-lg">▼</span>}
+                                    </div>
                                 </td>
 
                                 {/* Appearance */}
