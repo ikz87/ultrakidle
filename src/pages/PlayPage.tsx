@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { CURRENT_VERSION, useVersion } from '../context/VersionContext';
 import { useGameInit } from '../hooks/useGameInit';
 import Button from '../components/ui/Button';
 import { EnemySearch } from '../components/game/EnemySearch';
@@ -13,6 +14,7 @@ import { copyToClipboard } from '../lib/clipboard';
 
 const PlayPage = () => {
     const { loading, guessHistory, dailyChanged, setDailyChanged, refresh } = useGameInit();
+    const { setUpdateAvailable } = useVersion();
     const [guesses, setGuesses] = useState<GuessResult[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [shouldFlash, setShouldFlash] = useState(false);
@@ -47,11 +49,15 @@ const PlayPage = () => {
         setIsSubmitting(true);
         try {
             const { data, error } = await supabase.rpc('submit_daily_guess', {
-                guess_id: enemyId
+                guess_id: enemyId,
+                version: CURRENT_VERSION
             });
 
             if (error) {
                 console.error('Submit guess error:', error.message);
+                if (error.message.includes('CLIENT_OUTDATED')) {
+                    setUpdateAvailable(true);
+                }
                 return;
             }
 

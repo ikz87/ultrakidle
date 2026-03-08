@@ -90,6 +90,67 @@ serve(async (req) => {
       });
     }
 
+    if (payload.data.name === "stats") {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+
+  const { data: stats, error } = await supabase.rpc("get_daily_stats");
+
+    if (error || !stats) {
+      return Response.json({
+        type: 4,
+        data: { content: "Failed to fetch stats.", flags: 64 },
+      });
+    }
+
+    // Next reset: midnight Nicaragua (UTC-6)
+    const now = new Date();
+    const nicaraguaNow = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/Managua" }),
+    );
+    const nextMidnight = new Date(nicaraguaNow);
+    nextMidnight.setDate(nextMidnight.getDate() + 1);
+    nextMidnight.setHours(0, 0, 0, 0);
+    const msLeft = nextMidnight.getTime() - nicaraguaNow.getTime();
+
+    const hours = Math.floor(msLeft / 3_600_000);
+    const minutes = Math.floor((msLeft % 3_600_000) / 60_000);
+
+    const winPct =
+      stats.total_players > 0
+        ? Math.round((stats.total_wins / stats.total_players) * 100)
+        : 0;
+
+    const lossPct =
+      stats.total_players > 0
+        ? Math.round((stats.total_losses / stats.total_players) * 100)
+        : 0;
+
+    return Response.json({
+      type: 4,
+      data: {
+          embeds: [
+            {
+              title: "📊 Today's ULTRAKIDLE",
+              color: 0xff0000,
+              description: [
+                "```",
+                `Players    ${stats.total_players}`,
+                `Wins       ${stats.total_wins} (${winPct}%)`,
+                `Losses     ${stats.total_losses} (${lossPct}%)`,
+                "```",
+                `Next enemy in **${hours}h ${minutes}m**`,
+              ].join("\n"),
+            },
+          ],
+        components: PLAY_BUTTONS,
+      },
+    });
+  }
+
     if (payload.data.name === "random-enemy") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
