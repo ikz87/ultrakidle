@@ -257,7 +257,7 @@ serve(async (req) => {
         "results.png",
       );
 
-      return fetch(
+      const res = await fetch(
         `https://discord.com/api/v10/channels/${row.channel_id}/messages`,
         {
           method: "POST",
@@ -265,6 +265,13 @@ serve(async (req) => {
           body: form,
         },
       );
+
+      const text = await res.text();
+      console.log(
+        `[${row.channel_id}] ${res.status}: ${text}`,
+      );
+
+      return res;
     }),
   );
 
