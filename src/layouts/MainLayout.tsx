@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { isRunningInDiscord, discordSdk, getGuildId } from '../lib/discord';
+import { supabase } from '../lib/supabaseClient';
 import { Leaderboard } from '../components/game/Leaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderboard } from '../hooks/useLeaderboard';
@@ -14,6 +15,45 @@ const MainLayout = () => {
   const { users, loading } = useLeaderboard(guildId);
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(true);
+  const [isNewPlayer, setIsNewPlayer] = useState(false);
+
+  useEffect(() => {
+    const checkNewPlayer = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[MainLayout] Session check:", session?.user?.id);
+
+      if (session?.user) {
+        const { data, error } = await supabase
+          .from('user_guesses')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .limit(1);
+
+        console.log("[MainLayout] Query result:", data, "Error:", error);
+
+        if (!error && (!data || data.length === 0)) {
+          console.log("[MainLayout] Setting isNewPlayer to true");
+          setIsNewPlayer(true);
+        } else {
+          setIsNewPlayer(false);
+        }
+      } else {
+        console.log("[MainLayout] No session, cannot check guesses");
+      }
+    };
+
+    checkNewPlayer();
+
+    // Listen for auth changes (e.g., anonymous sign-in from child components)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("[MainLayout] Auth state changed:", _event, session?.user?.id);
+      checkNewPlayer();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const isHome = location.pathname === '/';
   const isPlay = location.pathname === '/play';
@@ -92,14 +132,24 @@ const MainLayout = () => {
                   </Button>
                 )}
                 {isPlay && (
-                  <Button
-                    variant="ghost"
-                    size="md"
-                    onClick={() => setIsHowToPlayOpen(true)}
-                    className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
-                  >
-                    ? HOW TO PLAY
-                  </Button>
+                  <div className="relative inline-flex items-center">
+                    <Button
+                      variant="ghost"
+                      size="md"
+                      onClick={() => setIsHowToPlayOpen(true)}
+                      className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
+                    >
+                      ? HOW TO PLAY
+                    </Button>
+                    {isNewPlayer && (
+                      <div className="absolute top-0 right-0 z-30 pointer-events-none">
+                        <div className="relative w-3 h-3 translate-x-1/4 -translate-y-1/4">
+                          <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full" />
+                          <div className="absolute inset-0 w-3 h-3 scale-[1.5] animate-ping bg-green-500 rounded-full" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
