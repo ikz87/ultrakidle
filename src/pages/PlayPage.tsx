@@ -130,7 +130,7 @@ const PlayPage = () => {
 
     const copyMissionLog = async () => {
         const attempts = hasWon ? guesses.length : (hasReachedLimit ? 'X' : guesses.length);
-        const header = `ULTRAKIDLE ${dailyId || ''} ${attempts}/5\n\n`;
+        const header = `ULTRAKIDLE #${dailyId || ''} ${attempts}/5\n\n`;
         const success = await copyToClipboard(`${header}${emojiGrid}\n\nhttps://ultrakidle.online/`);
         if (success) {
             setCopySuccess(true);
