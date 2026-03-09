@@ -16,6 +16,9 @@ const MainLayout = () => {
   const [isHowToPlayOpen, setIsHowToPlayOpen] = useState(false);
   const [isRankingOpen, setIsRankingOpen] = useState(true);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
+  const [hasOpenedHowToPlay, setHasOpenedHowToPlay] = useState(() => {
+    return localStorage.getItem('ultrakilldle_seen_how_to_play') === 'true';
+  });
 
   useEffect(() => {
     const checkNewPlayer = async () => {
@@ -136,12 +139,18 @@ const MainLayout = () => {
                     <Button
                       variant="ghost"
                       size="md"
-                      onClick={() => setIsHowToPlayOpen(true)}
+                      onClick={() => {
+                        setIsHowToPlayOpen(true);
+                        if (!hasOpenedHowToPlay) {
+                          setHasOpenedHowToPlay(true);
+                          localStorage.setItem('ultrakilldle_seen_how_to_play', 'true');
+                        }
+                      }}
                       className="text-xl flex items-center gap-2 opacity-50 hover:opacity-100"
                     >
                       ? HOW TO PLAY
                     </Button>
-                    {isNewPlayer && (
+                    {isNewPlayer && !hasOpenedHowToPlay && (
                       <div className="absolute top-0 right-0 z-30 pointer-events-none">
                         <div className="relative w-3 h-3 translate-x-1/4 -translate-y-1/4">
                           <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full" />
