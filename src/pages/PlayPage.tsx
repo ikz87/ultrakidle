@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import { copyToClipboard } from '../lib/clipboard';
 
 const PlayPage = () => {
-    const { loading, guessHistory, dailyChanged, setDailyChanged, refresh } = useGameInit();
+    const { loading, dailyId, guessHistory, dailyChanged, setDailyChanged, refresh } = useGameInit();
     const { setUpdateAvailable } = useVersion();
     const [guesses, setGuesses] = useState<GuessResult[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -129,7 +129,9 @@ const PlayPage = () => {
     ).join('\n');
 
     const copyMissionLog = async () => {
-        const success = await copyToClipboard(`${emojiGrid}\n\nhttps://ultrakidle.online/`);
+        const attempts = hasWon ? guesses.length : (hasReachedLimit ? 'X' : guesses.length);
+        const header = `Ultrakidle ${dailyId || ''} ${attempts}/5\n\n`;
+        const success = await copyToClipboard(`${header}${emojiGrid}\n\nhttps://ultrakidle.online/`);
         if (success) {
             setCopySuccess(true);
             setTimeout(() => setCopySuccess(false), 2000);
