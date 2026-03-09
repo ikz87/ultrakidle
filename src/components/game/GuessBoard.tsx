@@ -31,7 +31,9 @@ interface GuessBoardProps {
     guesses: GuessResult[];
 }
 
-const getResultColorClass = (result: 'correct' | 'incorrect' | string, color?: 'green' | 'yellow' | 'red') => {
+const getResultColorClass = (result: 'correct' | 'incorrect' | 'gray' | string, color?: 'green' | 'yellow' | 'red') => {
+    if (result === 'gray') return 'bg-zinc-800/20 border-zinc-500/30 text-zinc-500/50';
+
     if (color) {
         if (color === 'green') return 'bg-green-600/20 border-green-500 text-green-500';
         if (color === 'yellow') return 'bg-yellow-600/20 border-yellow-500 text-yellow-500';
@@ -71,39 +73,39 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                                 </td>
 
                                 {/* Enemy Type */}
-                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.enemy_type.result)}`}>
-                                    {guess.properties.enemy_type.value || 'UNKNOWN'}
+                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.enemy_type.value ? guess.properties.enemy_type.result : 'gray')}`}>
+                                    {guess.properties.enemy_type.value || '???'}
                                 </td>
 
                                 {/* Weight Class */}
-                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.weight_class.result)}`}>
-                                    {guess.properties.weight_class.value || 'UNKNOWN'}
+                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.weight_class.value ? guess.properties.weight_class.result : 'gray')}`}>
+                                    {guess.properties.weight_class.value || '???'}
                                 </td>
 
                                 {/* Health */}
-                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.health.result, guess.properties.health.color)}`}>
+                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.health.value !== undefined ? guess.properties.health.result : 'gray', guess.properties.health.value !== undefined ? guess.properties.health.color : undefined)}`}>
                                     <div className="flex items-center gap-2 h-full">
-                                        {guess.properties.health.value}
-                                        {guess.properties.health.result === 'higher' && <span className="text-lg">▲</span>}
-                                        {guess.properties.health.result === 'lower' && <span className="text-lg">▼</span>}
+                                        {guess.properties.health.value !== undefined ? guess.properties.health.value : '???'}
+                                        {guess.properties.health.value !== undefined && guess.properties.health.result === 'higher' && <span className="text-lg">▲</span>}
+                                        {guess.properties.health.value !== undefined && guess.properties.health.result === 'lower' && <span className="text-lg">▼</span>}
                                     </div>
                                 </td>
 
                                 {/* Levels */}
-                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.level_count.result, guess.properties.level_count.color)}`}>
+                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.level_count.value !== undefined ? guess.properties.level_count.result : 'gray', guess.properties.level_count.value !== undefined ? guess.properties.level_count.color : undefined)}`}>
                                     <div className="flex items-center gap-2 h-full">
-                                        {guess.properties.level_count.value}
-                                        {guess.properties.level_count.result === 'higher' && <span className="text-lg">▲</span>}
-                                        {guess.properties.level_count.result === 'lower' && <span className="text-lg">▼</span>}
+                                        {guess.properties.level_count.value !== undefined ? guess.properties.level_count.value : '???'}
+                                        {guess.properties.level_count.value !== undefined && guess.properties.level_count.result === 'higher' && <span className="text-lg">▲</span>}
+                                        {guess.properties.level_count.value !== undefined && guess.properties.level_count.result === 'lower' && <span className="text-lg">▼</span>}
                                     </div>
                                 </td>
 
                                 {/* Appearance */}
-                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.appearance.result, guess.properties.appearance.color)}`}>
+                                <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.appearance.value ? guess.properties.appearance.result : 'gray', guess.properties.appearance.value ? guess.properties.appearance.color : undefined)}`}>
                                     <div className="flex items-center gap-2 h-full">
-                                        {guess.properties.appearance.value || 'UNKNOWN'}
-                                        {guess.properties.appearance.result === 'later' && <span className="text-lg">▲</span>}
-                                        {guess.properties.appearance.result === 'earlier' && <span className="text-lg">▼</span>}
+                                        {guess.properties.appearance.value || '???'}
+                                        {guess.properties.appearance.value && guess.properties.appearance.result === 'later' && <span className="text-lg">▲</span>}
+                                        {guess.properties.appearance.value && guess.properties.appearance.result === 'earlier' && <span className="text-lg">▼</span>}
                                     </div>
                                 </td>
                             </tr>

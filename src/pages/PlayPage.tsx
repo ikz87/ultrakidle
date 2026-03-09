@@ -102,19 +102,20 @@ const PlayPage = () => {
     const revealedEnemy = revealedId ? enemies.find(e => e.id === revealedId) : null;
 
     const guessGridData = guesses.map(g => {
-        const getStatus = (result: string, color?: string) => {
+        const getStatus = (value: any, result: string, color?: string) => {
+            if (value === undefined || value === null) return 'gray';
             if (color === 'green' || result === 'correct') return 'green';
             if (color === 'yellow') return 'yellow';
             return 'red';
         };
 
         return [
-            getStatus(g.correct ? 'correct' : 'incorrect'), // Name
-            getStatus(g.properties.enemy_type.result), // Type
-            getStatus(g.properties.weight_class.result), // Weight
-            getStatus(g.properties.health.result, g.properties.health.color), // Health
-            getStatus(g.properties.level_count.result, g.properties.level_count.color), // Level Count
-            getStatus(g.properties.appearance.result, g.properties.appearance.color) // Appearance
+            getStatus(true, g.correct ? 'correct' : 'incorrect'), // Name (always present if it's a guess)
+            getStatus(g.properties.enemy_type.value, g.properties.enemy_type.result), // Type
+            getStatus(g.properties.weight_class.value, g.properties.weight_class.result), // Weight
+            getStatus(g.properties.health.value, g.properties.health.result, g.properties.health.color), // Health
+            getStatus(g.properties.level_count.value, g.properties.level_count.result, g.properties.level_count.color), // Level Count
+            getStatus(g.properties.appearance.value, g.properties.appearance.result, g.properties.appearance.color) // Appearance
         ];
     });
 
@@ -122,6 +123,7 @@ const PlayPage = () => {
         row.map(status => {
             if (status === 'green') return '🟩';
             if (status === 'yellow') return '🟧';
+            if (status === 'gray') return '⬛';
             return '🟥';
         }).join('')
     ).join('\n');
