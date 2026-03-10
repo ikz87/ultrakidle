@@ -6,6 +6,8 @@ import { useGameInit } from '../hooks/useGameInit';
 import { Typewriter } from '../components/Typewriter';
 import { isRunningInDiscord, discordSdk } from '../lib/discord';
 import { resolveExternalUrl } from '../lib/urls';
+import { useMessages } from '../context/MessagesContext';
+import MessagesModal from '../components/MessagesModal';
 
 
 const LoadingDots = () => {
@@ -47,6 +49,8 @@ const HomePage = () => {
   const [titleFinished, setTitleFinished] = useState(false);
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
   const [countdown, setCountdown] = useState(getCountdown());
+  const { hasUnread } = useMessages();
+  const [messagesOpen, setMessagesOpen] = useState(false);
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
     if (isRunningInDiscord() && discordSdk) {
@@ -94,6 +98,7 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col w-full h-full min-h-0">
+      <MessagesModal isOpen={messagesOpen} onClose={() => setMessagesOpen(false)} />
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
         <div className="flex flex-col gap-0  w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
           <div className="flex gap-1 items-baseline">
@@ -183,7 +188,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col gap-4 w-full max-w-[450px] overflow-auto min-h-0 pb-4"
+            className="flex flex-col gap-4 w-full max-w-[450px] overflow-show min-h-0 pb-4"
           >
             {isGameOver ? (
               <div className="flex flex-col gap-2">
@@ -213,13 +218,43 @@ const HomePage = () => {
                 >
                   CREDITS
                 </Button>
-                <Button
-                  variant="outline"
-                  size="xl"
-                  onClick={() => navigate('/history')}
-                >
-                  LOGS
-                </Button>
+                <div className="flex h-fit gap-2 flex-row">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    size="xl"
+                    onClick={() => navigate('/history')}
+                  >
+                    LOGS
+                  </Button>
+                  <div className="relative overflow-visible h-full aspect-square">
+                    <Button
+                      variant="outline"
+                      className="h-full w-full"
+                      px="px-2"
+                      py="py-2"
+                      size="xl"
+                      onClick={() => setMessagesOpen(true)}
+                    >
+                      <svg className="h-full w-full lucide lucide-mail-icon lucide-mail" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
+                    </Button>
+                    <AnimatePresence>
+                      {hasUnread && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          className="absolute top-0 right-0 z-30 pointer-events-none"
+                        >
+                          <div className="relative w-3 h-3 ">
+                            <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full" />
+                            <div className="absolute inset-0 w-3 h-3 scale-[1.5] animate-ping bg-green-500 rounded-full" />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -237,16 +272,46 @@ const HomePage = () => {
                 >
                   CREDITS
                 </Button>
-                <Button
-                  variant="outline"
-                  size="xl"
-                  onClick={() => navigate('/history')}
-                >
-                  LOGS
-                </Button>
+                <div className="flex h-fit gap-2 flex-row">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    size="xl"
+                    onClick={() => navigate('/history')}
+                  >
+                    LOGS
+                  </Button>
+                  <div className="relative overflow-visible h-full aspect-square">
+                    <Button
+                      variant="outline"
+                      className="h-full w-full"
+                      px="px-2"
+                      py="py-2"
+                      size="xl"
+                      onClick={() => setMessagesOpen(true)}
+                    >
+                      <svg className="h-full w-full lucide lucide-mail-icon lucide-mail" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
+                    </Button>
+                    <AnimatePresence>
+                      {hasUnread && (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          className="absolute top-0 right-0 z-30 pointer-events-none"
+                        >
+                          <div className="relative w-3 h-3 ">
+                            <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full" />
+                            <div className="absolute inset-0 w-3 h-3 scale-[1.5] animate-ping bg-green-500 rounded-full" />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
               </div>
             )}
-            <div className={`grid grid-cols-1 ${isRunningInDiscord()? "" : "md:grid-cols-2"} gap-2`}>
+            <div className={`grid grid-cols-1 ${isRunningInDiscord() ? "" : "md:grid-cols-2"} gap-2`}>
               {!isRunningInDiscord() && (
                 <Button
                   variant="ghost"
@@ -261,28 +326,28 @@ const HomePage = () => {
                   />
                 </Button>
               )}
-              <div 
+              <div
                 className="w-full"
               >
-              <a
-                href='https://ko-fi.com/G2G41UYAX6'
-                target='_blank'
-                onClick={(e) => handleLinkClick(e, 'https://ko-fi.com/G2G41UYAX6')}
-                className="w-full"
-              >
-                <Button
-                  variant="ghost"
-                  className="flex w-full items-center"
+                <a
+                  href='https://ko-fi.com/G2G41UYAX6'
+                  target='_blank'
+                  onClick={(e) => handleLinkClick(e, 'https://ko-fi.com/G2G41UYAX6')}
+                  className="w-full"
                 >
-                  Support me on ko-fi
-                  <img
-                    className={`w-5 ml-2`}
-                    src={resolveExternalUrl("/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png")}
-                    alt="Ko-fi"
-                  />
-                </Button>
-              </a>
-            </div>
+                  <Button
+                    variant="ghost"
+                    className="flex w-full items-center"
+                  >
+                    Support me on ko-fi
+                    <img
+                      className={`w-5 ml-2`}
+                      src={resolveExternalUrl("/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png")}
+                      alt="Ko-fi"
+                    />
+                  </Button>
+                </a>
+              </div>
             </div>
           </motion.div>
         )}

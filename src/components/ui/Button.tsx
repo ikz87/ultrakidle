@@ -5,11 +5,13 @@ import type { HTMLMotionProps } from 'framer-motion';
 interface ButtonProps extends HTMLMotionProps<"button"> {
     variant?: 'primary' | 'outline' | 'ghost' | 'danger';
     size?: 'sm' | 'md' | 'lg' | 'xl';
+    px?: string;
+    py?: string;
     className?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className = '', variant = 'primary', size = 'md', children, ...props }, ref) => {
+    ({ className = '', variant = 'primary', size = 'md', px, py, children, ...props }, ref) => {
         // Shared clip-paths for different sizes
         const polygons = {
             sm: '[clip-path:polygon(2px_0,calc(100%-2px)_0,100%_2px,100%_calc(100%-2px),calc(100%-2px)_100%,2px_100%,0_calc(100%-2px),0_2px)]',
@@ -61,6 +63,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             xl: 'px-8 py-3 md:px-10 md:py-4 lg:px-14 lg:py-5',
         };
 
+        const currentInnerPadding = `${px || innerPadding[size].split(' ')[0]} ${py || innerPadding[size].split(' ')[1]}`;
+
         // Motion variants logic
         const getMotionProps = () => {
             if (variant === 'primary') {
@@ -108,7 +112,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 {...props as HTMLMotionProps<"button">}
             >
                 <motion.div
-                    className={`w-full h-full flex items-center justify-center ${poly} ${variants[variant].inner} ${sizes[size]} ${innerPadding[size]}`}
+                    className={`w-full h-full flex items-center justify-center ${poly} ${variants[variant].inner} ${sizes[size]} ${currentInnerPadding}`}
                     {...getInnerMotionProps()}
                 >
                     {children}

@@ -51,7 +51,9 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: true,
-      hmr: { clientPort: 443 },
+      hmr: env.VITE_HMR_CLIENT_PORT
+        ? { clientPort: parseInt(env.VITE_HMR_CLIENT_PORT) }
+        : true,
       allowedHosts: [
         'localhost',
         '.discordsays.com',

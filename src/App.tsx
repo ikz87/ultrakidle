@@ -14,6 +14,7 @@ import './App.css';
 
 import { VersionProvider, useVersion } from './context/VersionContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { MessagesProvider } from './context/MessagesContext';
 import VersionUpdateModal from './components/VersionUpdateModal';
 
 function AppContent() {
@@ -51,7 +52,9 @@ function App() {
     <BrowserRouter>
       <VersionProvider>
         <SettingsProvider>
-          <AppContent />
+          <MessagesProvider>
+            <AppContent />
+          </MessagesProvider>
         </SettingsProvider>
       </VersionProvider>
     </BrowserRouter>

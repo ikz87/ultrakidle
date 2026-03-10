@@ -10,6 +10,7 @@ interface ModalProps {
     showCloseButton?: boolean;
     allowBackdropClose?: boolean;
     showFooterButton?: boolean;
+    footerButtonText?: string;
 }
 
 const Modal = ({
@@ -19,7 +20,8 @@ const Modal = ({
     children,
     showCloseButton = true,
     allowBackdropClose = true,
-    showFooterButton = true
+    showFooterButton = true,
+    footerButtonText = "Understood"
 }: ModalProps) => {
     // Close on ESC key
     useEffect(() => {
@@ -75,7 +77,7 @@ const Modal = ({
                                         onClick={onClose}
                                         className="w-full cursor-pointer bg-white text-black font-bold py-3 uppercase hover:bg-zinc-200 transition-colors"
                                     >
-                                        Understood
+                                        {footerButtonText}
                                     </button>
                                 </div>
                             )}
