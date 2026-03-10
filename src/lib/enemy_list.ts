@@ -63,7 +63,7 @@ export const enemies = [
   {
     id: 68,
     name: 'Ferryman "Rudraksha/Agonis"',
-    icon: ["/external/wiki/images/Ferryman.webp", "/external/wiki/images/Ferryman.webp"],
+    icon: ["/external/wiki/images/Rudraksha.png", "/external/wiki/images/Agonis.png"],
   },
   {
     id: 69,
