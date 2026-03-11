@@ -1,8 +1,11 @@
+import SEO from '../components/SEO';
+
 const AboutPage = () => {
     return (
         <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
+            <SEO title="About" description="Learn more about ULTRAKIDLE, the daily character guessing game for fans of ULTRAKILL." />
             <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest">
-                <span className="text-3xl text-white">ABOUT_ULTRAKIDLE</span>
+                <h1 className="text-3xl text-white">ABOUT_ULTRAKIDLE</h1>
                 <div className="flex flex-col gap-4 opacity-70 font-normal text-left normal-case tracking-normal">
                     <p>
                         ULTRAKIDLE is a daily web-based game inspired by <a className="underline" href="https://www.nytimes.com/games/wordle/index.html">Wordle</a> and similar websites like <a className="underline" href="https://silksongdle.com/">Silksongdle</a>.
@@ -13,7 +16,7 @@ const AboutPage = () => {
                     <p className="font-bold uppercase">Our Mission</p>
                     <p>
                         The goal of this project is to provide a fun, community-driven experience for fans
-                        of ULTRAKILL. 
+                        of ULTRAKILL.
                     </p>
 
                     <p className="font-bold uppercase">How It Works</p>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SEO from '../components/SEO';
 import Button from '../components/ui/Button';
 import { usePlayHistory } from '../hooks/usePlayHistory';
 import { Typewriter } from '../components/Typewriter';
@@ -15,10 +16,11 @@ const HistoryPage = () => {
 
     return (
         <div className="flex flex-col w-full h-full pt-4 shrink justify-start items-start overflow-hidden">
+            <SEO title="Service Record" description="View your previous mission logs and success rate in ULTRAKIDLE." />
             <div className="flex flex-col w-full h-[600px] max-h-full max-w-2xl bg-black/40 border-2 border-white/10 p-4 uppercase font-bold tracking-widest text-white overflow-hidden">
 
                 <div className="flex flex-col gap-2 pb-4 border-b border-white/10 flex-shrink-0">
-                    <span className="text-xl opacity-50">SERVICE_RECORD</span>
+                    <h1 className="text-xl opacity-50">SERVICE_RECORD</h1>
 
                     {loading ? (
                         <div className="text-2xl animate-pulse mt-2">ACCESSING ARCHIVES...</div>

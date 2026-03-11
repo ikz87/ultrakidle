@@ -1,9 +1,12 @@
+import SEO from '../components/SEO';
+
 const CreditsPage = () => {
     return (
         <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
+            <SEO title="Credits" description="Credits and attributions for the ULTRAKIDLE project." />
             <div className="flex flex-col gap-8 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest">
                 <div className="flex flex-col gap-2">
-                    <span className="text-xl opacity-50">DEVELOPED_BY</span>
+                    <h1 className="text-xl opacity-50">DEVELOPED_BY</h1>
                     <span className="text-4xl text-white">ikz87</span>
                     <a
                         href="mailto:iikz87ii@gmail.com"

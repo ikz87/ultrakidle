@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import SEO from '../components/SEO';
 import { CURRENT_VERSION, useVersion } from '../context/VersionContext';
 import { useGameInit } from '../hooks/useGameInit';
 import { useSettings } from '../context/SettingsContext';
@@ -155,6 +156,13 @@ const PlayPage = () => {
     return (
         <>
             <div className="z-20 flex flex-col w-full pt-4 min-h-full justify-start items-start">
+                <SEO title="Daily Mission" description="Identify the target enemy in the standard daily guessing mode." />
+
+                <div className="flex flex-col gap-0 mb-4 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
+                    <div className="flex gap-2 items-baseline">
+                        <h1 className="tracking-widest flex-1">DAILY_ENEMY</h1>
+                    </div>
+                </div>
 
                 <div className="w-full z-10">
                     <EnemySearch

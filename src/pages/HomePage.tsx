@@ -7,7 +7,7 @@ import { Typewriter } from '../components/Typewriter';
 import { isRunningInDiscord, discordSdk } from '../lib/discord';
 import { resolveExternalUrl } from '../lib/urls';
 import { useMessages } from '../context/MessagesContext';
-import MessagesModal from '../components/MessagesModal';
+import SEO from '../components/SEO';
 
 
 const LoadingDots = () => {
@@ -50,7 +50,6 @@ const HomePage = () => {
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
   const [countdown, setCountdown] = useState(getCountdown());
   const { hasUnread } = useMessages();
-  const [messagesOpen, setMessagesOpen] = useState(false);
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
     if (isRunningInDiscord() && discordSdk) {
@@ -98,15 +97,20 @@ const HomePage = () => {
 
   return (
     <div className="flex flex-col w-full h-full min-h-0">
-      <MessagesModal isOpen={messagesOpen} onClose={() => setMessagesOpen(false)} />
+      <SEO
+        title="Home"
+        description="ULTRAKIDLE - The daily character guessing game for ULTRAKILL players. Test your knowledge of enemies, levels, and more."
+      />
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
         <div className="flex flex-col gap-0  w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
           <div className="flex gap-1 items-baseline">
-            <Typewriter
-              text="DAILY_CHALLENGE "
-              speed={0.03}
-              onComplete={() => setTitleFinished(true)}
-            />
+            <h1 className="contents">
+              <Typewriter
+                text="DAILY_CHALLENGE "
+                speed={0.03}
+                onComplete={() => setTitleFinished(true)}
+              />
+            </h1>
             <AnimatePresence mode="wait">
               {titleFinished && gameLoading && (
                 <motion.div
@@ -242,7 +246,7 @@ const HomePage = () => {
                       px="px-2"
                       py="py-2"
                       size="xl"
-                      onClick={() => setMessagesOpen(true)}
+                      onClick={() => navigate('/messages')}
                     >
                       <svg className="h-full w-full lucide lucide-mail-icon lucide-mail" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
                     </Button>
@@ -303,7 +307,7 @@ const HomePage = () => {
                       px="px-2"
                       py="py-2"
                       size="xl"
-                      onClick={() => setMessagesOpen(true)}
+                      onClick={() => navigate('/messages')}
                     >
                       <svg className="h-full w-full lucide lucide-mail-icon lucide-mail" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
                     </Button>

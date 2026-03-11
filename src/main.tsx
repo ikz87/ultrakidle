@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import './index.css'
 import ReactGA from 'react-ga4'
 import { setupDiscord, isRunningInDiscord } from './lib/discord'
@@ -26,11 +26,19 @@ async function bootstrap() {
     ReactGA.initialize("G-MY639QH9M5");
   }
 
-  createRoot(document.getElementById('root')!).render(
+  const rootElement = document.getElementById('root')!;
+  const app = (
     <StrictMode>
       <App />
-    </StrictMode>,
+    </StrictMode>
   );
+
+  // If the root has pre-rendered content, hydrate instead of replacing
+  if (rootElement.children.length > 1) {
+    hydrateRoot(rootElement, app);
+  } else {
+    createRoot(rootElement).render(app);
+  }
 }
 
 bootstrap();

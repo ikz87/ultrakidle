@@ -117,12 +117,10 @@ const MainLayout = () => {
           <div className="flex-1 min-w-0 flex flex-col overflow-y-auto overflow-x-hidden custom-scrollbar pointer-events-auto items-center lg:items-stretch lg:px-10 px-5 lg:py-12 py-5">
             <div className="md:w-full flex flex-col min-h-full max-w-[800px] lg:max-w-none mx-auto w-full">
               <div className="z-20 max-w-[600px] flex-shrink-0">
-                <h1 className="sr-only">Ultrakidle</h1>
-                <div className="sr-only">wordle, ultrakilldle, ultrakidle, daily game, character guesser</div>
                 <img
                   className=" mx-auto lg:mx-0"
                   src={`${import.meta.env.BASE_URL}images/ultrakidle-logo.png`}
-                  alt="Ultrakidle Logo"
+                  alt="ULTRAKIDLE - The Daily ULTRAKILL Guessing Game"
                 />
               </div>
               <div className="flex flex-wrap justify-start md:justify-start items-center gap-2 mt-2 flex-shrink-0">
