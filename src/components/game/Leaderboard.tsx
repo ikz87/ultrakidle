@@ -81,7 +81,7 @@ export const Leaderboard = ({ layout = 'vertical', users, loading }: Leaderboard
                         key={user.user_id}
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`flex items-start w-full justify-center gap-1 p-2 border transition-colors ${user.status === 'won' ? 'bg-green-500/10 border-green-500/30' :
+                        className={`flex items-start w-[135px] justify-center gap-1 p-2 border transition-colors ${user.status === 'won' ? 'bg-green-500/10 border-green-500/30' :
                             user.status === 'lost' ? 'bg-red-500/10 border-red-500/30' :
                                 'bg-white/5 border-white/10'
                             }`}
