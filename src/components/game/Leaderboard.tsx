@@ -42,7 +42,7 @@ export const Leaderboard = ({ layout = 'vertical', users, loading }: Leaderboard
                                 }`}
                         >
                             {/* Column 1: Rank, Avatar, Stats */}
-                            <div className="flex flex-col items-center gap-1">
+                            <div className="flex flex-col items-center gap-1 flex-shrink-0">
                                 <span className={`text-xs font-bold ${getRankColor()}`}>
                                     #{index + 1}
                                 </span>
@@ -87,7 +87,7 @@ export const Leaderboard = ({ layout = 'vertical', users, loading }: Leaderboard
                             }`}
                     >
                         {/* Column 1: Rank, Avatar */}
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-1 flex-shrink-0">
                             <span className={`text-xs font-bold ${getRankColor()}`}>
                                 #{index + 1}
                             </span>
