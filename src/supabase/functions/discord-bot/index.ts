@@ -151,6 +151,45 @@ serve(async (req) => {
     });
   }
 
+    if (payload.data.name === "random-level") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+
+      const { data: levels } = await supabase
+        .from("levels")
+        .select("level_number, level_name, thumbnail_url, wiki_url");
+
+      if (!levels || levels.length === 0) {
+        return Response.json({
+          type: 4,
+          data: { content: "No levels found.", flags: 64 },
+        });
+      }
+
+      const level = levels[Math.floor(Math.random() * levels.length)];
+      const title = `${level.level_number}: ${level.level_name}`;
+      const wikiUrl = level.wiki_url ?? "https://ultrakidle.online";
+
+      return Response.json({
+        type: 4,
+        data: {
+          embeds: [
+            {
+              title: title,
+              color: 0xff0000,
+              url: wikiUrl,
+              image: level.thumbnail_url
+                ? { url: level.thumbnail_url }
+                : undefined,
+            },
+          ],
+        },
+      });
+    }
+
     if (payload.data.name === "random-enemy") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,

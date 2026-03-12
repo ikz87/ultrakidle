@@ -27,6 +27,7 @@ const ROUTES = [
     '/tos',
     '/privacy',
     '/messages',
+    '/levels',
 ];
 
 /** Bare-bones static file server for the dist folder */

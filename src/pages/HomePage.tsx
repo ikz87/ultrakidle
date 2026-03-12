@@ -225,6 +225,14 @@ const HomePage = () => {
                 <Button
                   variant="outline"
                   size="xl"
+                  onClick={() => navigate('/levels')}
+                  className="mt-2"
+                >
+                  LEVELS
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
                   onClick={() => navigate('/credits')}
                   className="mt-2"
                 >
@@ -283,6 +291,13 @@ const HomePage = () => {
                   onClick={() => navigate('/enemies')}
                 >
                   ENEMIES
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate('/levels')}
+                >
+                  LEVELS
                 </Button>
                 <Button
                   variant="outline"
