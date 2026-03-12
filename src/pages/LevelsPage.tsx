@@ -15,7 +15,7 @@ const LevelsPage = () => {
         <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
             <SEO title="Levels Catalog" description="A complete list of levels in ULTRAKILL with links to their official wiki entries." />
             <div className="flex flex-col gap-6 w-full max-w-4xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest">
-                <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                <div className="flex justify-between flex-wrap items-center border-b border-white/10 pb-4">
                     <h1 className="text-3xl text-white">LEVELS_CATALOG</h1>
                     <span className="text-sm opacity-50 tracking-normal normal-case font-normal">
                         {levels.length} ENTRIES FOUND
