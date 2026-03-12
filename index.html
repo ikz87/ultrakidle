@@ -20,84 +20,77 @@
 </head>
 
 <body>
-  <div id="root">
-    <!-- Pre-React loading splash (replaced when React mounts) -->
-    <style>
-      @font-face {
-        font-family: 'VCR OSD Mono';
-        src: url('/fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
-      }
+  <style>
+    @font-face {
+      font-family: 'VCR OSD Mono';
+      src: url('/fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
+    }
 
-      #splash-loader {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100dvh;
-        width: 100%;
-        background: #000;
-        gap: 1.5rem;
-      }
+    #splash-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      width: 100%;
+      background: #000;
+      gap: 1.5rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+    }
 
-      #splash-loader img {
-        max-width: 320px;
-        width: 80%;
-      }
+    #splash-loader img {
+      max-width: 320px;
+      width: 80%;
+    }
 
-      #splash-loader .splash-text {
-        font-family: 'VCR OSD Mono', monospace;
-        color: #fff;
-        font-size: 1rem;
-        opacity: 0.5;
-        letter-spacing: 0.1em;
-      }
+    #splash-loader .splash-text {
+      font-family: 'VCR OSD Mono', monospace;
+      color: #fff;
+      font-size: 1rem;
+      opacity: 0.5;
+      letter-spacing: 0.1em;
+    }
 
-      #splash-loader .splash-dots {
-        display: inline-block;
-        width: 3ch;
-        text-align: left;
-        animation: cycle-dots 1.2s steps(1) infinite;
-      }
+    #splash-loader .splash-dots {
+      display: inline-block;
+      width: 3ch;
+      text-align: left;
+    }
 
-      @keyframes cycle-dots {
-        0% {
-          content: '.';
-        }
+    /* CSS content trick doesn't work on spans, so we animate with pseudo-element */
+    #splash-loader .splash-dots::after {
+      content: '.';
+      animation: dot-cycle 1.2s steps(1) infinite;
+    }
 
-        33% {
-          content: '..';
-        }
+    #splash-loader.fade-out {
+      opacity: 0;
+      transition: opacity 0.5s ease-out;
+      pointer-events: none;
+    }
 
-        66% {
-          content: '...';
-        }
-      }
-
-      /* CSS content trick doesn't work on spans, so we animate with pseudo-element */
-      #splash-loader .splash-dots::after {
+    @keyframes dot-cycle {
+      0% {
         content: '.';
-        animation: dot-cycle 1.2s steps(1) infinite;
       }
 
-      @keyframes dot-cycle {
-        0% {
-          content: '.';
-        }
-
-        33% {
-          content: '..';
-        }
-
-        66% {
-          content: '...';
-        }
+      33% {
+        content: '..';
       }
-    </style>
-    <div id="splash-loader">
-      <img src="/images/ultrakidle-logo.png" alt="ULTRAKIDLE" />
-      <span class="splash-text">LOADING<span class="splash-dots"></span></span>
-    </div>
+
+      66% {
+        content: '...';
+      }
+    }
+  </style>
+  <div id="splash-loader">
+    <img src="/images/ultrakidle-logo.png" alt="ULTRAKIDLE" />
+    <span class="splash-text">LOADING<span class="splash-dots"></span></span>
   </div>
+  <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

@@ -22,8 +22,8 @@ export default function MessagesPage() {
     return (
         <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
             <SEO title="V-MAIL Terminal" description="Check your mission updates and logs in the V-MAIL Terminal." />
-            <div className="flex flex-col gap-6 w-full max-w-4xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest">
-                <div className="flex justify-between items-center border-b border-white/10 pb-4">
+            <div className="flex flex-col gap-6 w-full max-w-4xl bg-black/40 border-2 border-white/10 p-4 uppercase font-bold tracking-widest">
+                <div className="flex flex-wrap justify-between items-center border-b border-white/10 pb-4">
                     <h1 className="text-3xl text-white">V-MAIL_TERMINAL</h1>
                     {unreadMessages.length > 0 && (
                         <button
@@ -48,7 +48,7 @@ export default function MessagesPage() {
                                         {msg.content}
                                     </div>
                                     {msg.date && (
-                                        <div className="mt-2 text-[10px] text-white/30 font-mono uppercase">
+                                        <div className="mt-2 text-[10px] text-white/30 uppercase">
                                             RECEIVED: {msg.date}
                                         </div>
                                     )}

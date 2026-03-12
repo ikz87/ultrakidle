@@ -34,11 +34,22 @@ async function bootstrap() {
   );
 
   // If the root has pre-rendered content, hydrate instead of replacing
-  if (rootElement.children.length > 1) {
+  // Check innerHTML instead of children count as pre-rendering might just be text or a single component
+  if (rootElement.innerHTML.trim() !== '') {
     hydrateRoot(rootElement, app);
   } else {
     createRoot(rootElement).render(app);
   }
+
+  // Remove the splash loader once React has started mounting/hydrating
+  // We do this in a requestAnimationFrame to ensure it doesn't flicker before the first paint
+  requestAnimationFrame(() => {
+    const loader = document.getElementById('splash-loader');
+    if (loader) {
+      loader.classList.add('fade-out'); // Optional transition
+      setTimeout(() => loader.remove(), 500);
+    }
+  });
 }
 
 bootstrap();

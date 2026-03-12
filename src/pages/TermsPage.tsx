@@ -4,7 +4,7 @@ const TermsPage = () => {
   return (
     <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
       <SEO title="Terms of Service" description="Terms of service for ULTRAKIDLE." />
-      <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest">
+      <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-4 text-justify uppercase font-bold tracking-widest">
         <h1 className="text-3xl text-white">TERMS_OF_SERVICE</h1>
         <div className="flex text-left flex-col gap-4 opacity-70 font-normal normal-case tracking-normal">
           <p>Last updated: March 8, 2026</p>

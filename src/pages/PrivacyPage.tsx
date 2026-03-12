@@ -4,7 +4,7 @@ const PrivacyPage = () => {
   return (
     <div className="flex flex-col w-full pt-4 h-full justify-start items-start">
       <SEO title="Privacy Policy" description="Privacy policy for ULTRAKIDLE." />
-      <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-8 uppercase font-bold tracking-widest">
+      <div className="flex flex-col gap-6 w-full max-w-2xl bg-black/40 border-2 border-white/10 p-4 uppercase font-bold tracking-widest">
         <h1 className="text-3xl text-white">PRIVACY_POLICY</h1>
         <div className="flex flex-col gap-4 opacity-70 font-normal text-left normal-case tracking-normal">
           <p>Last updated: March 8, 2026</p>
