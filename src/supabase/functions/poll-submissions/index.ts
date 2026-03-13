@@ -4,7 +4,9 @@ import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const BOT_TOKEN = Deno.env.get("DISCORD_AUTOMATION_BOT_TOKEN")!;
 const BOT_USER_ID = Deno.env.get("DISCORD_AUTOMATION_BOT_ID")!;
-const REACTION_THRESHOLD = 5;
+const REACTION_THRESHOLD = 3;
+const INGEST_BATCH_SIZE = 200;
+const RESOLVE_BATCH_SIZE = 200;
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -209,7 +211,7 @@ serve(async (req) => {
 
   const { data: levels } = await supabase
     .from("levels")
-    .select("id, level_number");
+    .select("id, level_number, level_name");
 
   if (!levels?.length) {
     console.error("[init] No levels found in database");
@@ -235,6 +237,7 @@ serve(async (req) => {
 
   let totalIngested = 0;
   let totalResolved = 0;
+  let totalApprovedThisCycle = 0;
 
   // --- PHASE 1: Ingest new forum posts ---
   for (const forum of forums) {
@@ -270,15 +273,20 @@ serve(async (req) => {
       rejected?.map((r) => r.thread_id) ?? [],
     );
 
-    const newThreads = activeThreads.filter(
-      (t) => !existingIds.has(t.id) && !rejectedIds.has(t.id),
-    );
+    const newThreads = activeThreads
+      .filter(
+        (t) => !existingIds.has(t.id) && !rejectedIds.has(t.id),
+      )
+      .slice(0, INGEST_BATCH_SIZE);
+
     console.log(
-      `[ingest] ${newThreads.length} new thread(s) to process`,
+      `[ingest] ${newThreads.length} new thread(s) to process (batch limit ${INGEST_BATCH_SIZE})`,
     );
 
     for (const thread of newThreads) {
       try {
+        await new Promise((r) => setTimeout(r, 1000));
+
         const title = (thread.name ?? "").trim();
         const levelMatch = title.match(LEVEL_PATTERN);
         if (!levelMatch) {
@@ -424,19 +432,23 @@ serve(async (req) => {
     }
   }
 
-  // --- PHASE 2: Resolve pending submissions ---
+  // --- PHASE 2: Resolve pending submissions (batched) ---
   const { data: pending } = await supabase
     .from("image_submissions")
     .select("*")
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(RESOLVE_BATCH_SIZE);
 
   console.log(
-    `[resolve] ${pending?.length ?? 0} pending submission(s) to check`,
+    `[resolve] ${pending?.length ?? 0} pending submission(s) to check (batch limit ${RESOLVE_BATCH_SIZE})`,
   );
 
   if (pending?.length) {
     for (const sub of pending) {
       try {
+        await new Promise((r) => setTimeout(r, 1000));
+
         const threadRes = await discordFetch(
           `${DISCORD_API}/channels/${sub.channel_id}`,
           { headers },
@@ -500,10 +512,40 @@ serve(async (req) => {
           .update({ thumbs_up: up, thumbs_down: down })
           .eq("id", sub.id);
 
-        if (total < REACTION_THRESHOLD) continue;
+        if (up < REACTION_THRESHOLD && down < REACTION_THRESHOLD) {
+          console.log(
+           `[resolve] #${sub.id} — ${up}👍 ${down}👎 (need ${REACTION_THRESHOLD} of either), skipping`,
+          );
+          continue;
+        }
 
         if (up > down) {
-          const imageData = await downloadImage(sub.image_url);
+         const freshMsg = await getStarterMessage(sub.channel_id);
+         const freshAttachment = freshMsg?.attachments?.find(
+           (a: any) =>
+             a.content_type?.startsWith("image/") ||
+             /\.(png|jpe?g|webp|gif)$/i.test(a.filename ?? ""),
+         );
+         if (!freshAttachment) {
+           console.error(
+             `[resolve] #${sub.id} — image no longer available`,
+           );
+           await rejectThread(
+             sub.channel_id,
+             sub.message_id,
+             "Original image is no longer available.",
+           );
+           await supabase
+             .from("image_submissions")
+             .update({
+               status: "rejected",
+               resolved_at: new Date().toISOString(),
+             })
+             .eq("id", sub.id);
+           totalResolved++;
+           continue;
+         }
+         const imageData = await downloadImage(freshAttachment.url);
           const decoded = await Image.decode(imageData);
           const resized = decoded.resize(TARGET_WIDTH, TARGET_HEIGHT);
           const jpegData = await resized.encodeJPEG(90);
@@ -545,6 +587,10 @@ serve(async (req) => {
           );
           await closeThread(sub.channel_id);
           totalResolved++;
+          totalApprovedThisCycle++;
++         console.log(
+           `[resolve] ✓ Approved #${sub.id} — ${up}👍 ${down}👎`,
+         );
         } else {
           await supabase
             .from("image_submissions")
@@ -562,6 +608,9 @@ serve(async (req) => {
           );
           await closeThread(sub.channel_id);
           totalResolved++;
++         console.log(
+           `[resolve] ✗ Rejected #${sub.id} — ${up}👍 ${down}👎`,
+         );
         }
       } catch (e) {
         console.error(
@@ -584,6 +633,110 @@ serve(async (req) => {
       }
     }
   }
+
+  // --- PHASE 3: Send cycle summary ---
+const REPORT_CHANNEL_ID = "1481872631144775680";
+
+const { data: approvedSubs } = await supabase
+  .from("image_submissions")
+  .select("id, level_id, discord_user_id")
+  .eq("status", "approved");
+
+if (approvedSubs?.length) {
+  const totalApproved = approvedSubs.length;
+
+  const levelCounts = new Map<string, number>();
+  const userCounts = new Map<string, number>();
+  for (const s of approvedSubs) {
+    levelCounts.set(
+      s.level_id,
+      (levelCounts.get(s.level_id) ?? 0) + 1,
+    );
+    userCounts.set(
+      s.discord_user_id,
+      (userCounts.get(s.discord_user_id) ?? 0) + 1,
+    );
+  }
+
+  // Include levels with 0 submissions
+  const levelStats = levels!.map((l) => ({
+    level_number: l.level_number,
+    name: l.level_name,
+    count: levelCounts.get(l.id) ?? 0,
+  }));
+
+  const sortedAsc = [...levelStats].sort(
+    (a, b) => a.count - b.count,
+  );
+  const sortedDesc = [...levelStats].sort(
+    (a, b) => b.count - a.count,
+  );
+
+  const least5 = sortedAsc.slice(0, 5);
+  const most5 = sortedDesc.slice(0, 5);
+
+  const topUsers = [...userCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const userNames = new Map<string, string>();
+  for (const [userId] of topUsers) {
+    try {
+      const res = await discordFetch(
+        `${DISCORD_API}/users/${userId}`,
+        { headers },
+      );
+      if (res.ok) {
+        const user = await res.json();
+        userNames.set(userId, user.global_name || user.username);
+      } else {
+        userNames.set(userId, `Unknown User (${userId})`);
+      }
+    } catch {
+      userNames.set(userId, `Unknown User (${userId})`);
+    }
+  }
+
+  const fmt = (
+    list: { level_number: string; name: string; count: number }[],
+  ) =>
+    list
+      .map(
+        (l, i) =>
+          `${i + 1}. **${l.level_number}** — ${l.name} (${l.count})`,
+      )
+      .join("\n");
+
+  const fmtUsers = topUsers
+    .map(
+      ([uid, count], i) =>
+        `${i + 1}. **${userNames.get(uid)}** — ${count} approved submission{count !== 1 ? "s" : ""}`,
+    )
+    .join("\n");
+
+  const summary = [
+    `📊 **Submission Summary**`,
+    ``,
+    `**Approved this cycle:** ${totalApprovedThisCycle}`,
+    `**Total approved:** ${totalApproved}`,
+    ``,
+    `📉 **Levels with fewest submissions:**`,
+    fmt(least5),
+    ``,
+    `📈 **Levels with most submissions:**`,
+    fmt(most5),
+    ``,
+    `🏆 **Top contributors:**`,
+    fmtUsers,
+  ].join("\n");
+
+  await sendMessage(REPORT_CHANNEL_ID, summary);
+} else {
+  await sendMessage(
+    REPORT_CHANNEL_ID,
+    "📊 **Submission Summary** — No approved submissions yet.",
+  );
+}
 
   const elapsed = (performance.now() - start).toFixed(0);
   console.log(
