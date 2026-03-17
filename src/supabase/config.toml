@@ -64,3 +64,25 @@ entrypoint = "./functions/kofi-webhook/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/kofi-webhook/*.html" ]
+
+[functions.dispatch-daily]
+enabled = true
+verify_jwt = true
+import_map = "./functions/dispatch-daily/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/dispatch-daily/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/dispatch-daily/*.html" ]
+
+[functions.send-daily-result]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-daily-result/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-daily-result/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-daily-result/*.html" ]
