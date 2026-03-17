@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import Button from '../components/ui/Button';
-import { useGameInit } from '../hooks/useGameInit';
-import { Typewriter } from '../components/Typewriter';
-import { isRunningInDiscord, discordSdk } from '../lib/discord';
-import { resolveExternalUrl } from '../lib/urls';
-import { useMessages } from '../context/MessagesContext';
-import SEO from '../components/SEO';
-
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Button from "../components/ui/Button";
+import { useGameInit } from "../hooks/useGameInit";
+import { Typewriter } from "../components/Typewriter";
+import { isRunningInDiscord, discordSdk } from "../lib/discord";
+import { resolveExternalUrl } from "../lib/urls";
+import { useMessages } from "../context/MessagesContext";
+import SEO from "../components/SEO";
 
 const LoadingDots = () => {
   const [dotCount, setDotCount] = useState(1);
@@ -20,22 +19,19 @@ const LoadingDots = () => {
     return () => clearInterval(interval);
   }, []);
 
-  return <span className="inline-block w-[3ch] text-left">{'.'.repeat(dotCount)}</span>;
+  return (
+    <span className="inline-block w-[3ch] text-left">{".".repeat(dotCount)}</span>
+  );
 };
 
 const getCountdown = () => {
   const now = new Date();
-
-  // Get current time string in Nicaragua Time
   const etStr = now.toLocaleString("en-US", { timeZone: "America/Managua" });
   const etNow = new Date(etStr);
-
-  // Get next midnight in Eastern Time
   const etMidnight = new Date(etStr);
   etMidnight.setHours(24, 0, 0, 0);
 
   const msDiff = etMidnight.getTime() - etNow.getTime();
-
   const hours = Math.floor(msDiff / (1000 * 60 * 60));
   const minutes = Math.floor((msDiff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((msDiff % (1000 * 60)) / 1000);
@@ -43,8 +39,74 @@ const getCountdown = () => {
   return { hours, minutes, seconds };
 };
 
+const DonorsBoard = ({
+  donors,
+  rates,
+}: {
+  donors: any[];
+  rates: Record<string, number>;
+}) => {
+  const processedDonors = (donors || [])
+    .map((d) => {
+      const currency = d.currency.toUpperCase();
+      const rate = rates[currency] || 1;
+      const amountInUsd = currency === "USD" ? d.amount : d.amount / rate;
+      return { ...d, amountInUsd };
+    })
+    .sort((a, b) => {
+      if (b.amountInUsd !== a.amountInUsd)
+        return b.amountInUsd - a.amountInUsd;
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    });
+
+  return (
+    <div className="flex flex-col gap-2 p-3 border border-white/10 bg-white/5 rounded-sm mb-2">
+      <div className="text-xs uppercase opacity-50 font-bold tracking-widest border-b border-white/10 pb-1 mb-1">
+        RECENT_SUPPORTERS
+      </div>
+      <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
+        {processedDonors.length > 0 ? (
+          processedDonors.map((donor, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center flex-shrink-0 gap-1 px-3 py-2 border border-white/10 rounded-sm bg-white/5 min-w-[80px]"
+            >
+              <span className="text-xs md:text-sm uppercase truncate max-w-[100px]">
+                {donor.name || "ANONYMOUS"}
+              </span>
+              <span className="text-green-500 font-mono text-xs">
+                $
+                {donor.amountInUsd.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          ))
+        ) : (
+          <span className="text-xs opacity-40 py-2">
+            No recent supporters found
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const HomePage = () => {
-  const { loading: gameLoading, guessHistory, dailyStats, streak, refresh, dailyChanged, setDailyChanged } = useGameInit();
+  const {
+    loading: gameLoading,
+    guessHistory,
+    dailyStats,
+    streak,
+    donors,
+    rates,
+    refresh,
+    dailyChanged,
+    setDailyChanged,
+  } = useGameInit();
   const navigate = useNavigate();
   const [titleFinished, setTitleFinished] = useState(false);
   const [diagnosticsStarted, setDiagnosticsStarted] = useState(false);
@@ -62,40 +124,47 @@ const HomePage = () => {
     const timer = setInterval(() => {
       const current = getCountdown();
       setCountdown(current);
-
-      // If the countdown reaches zero, refresh is handled by the subscription now,
-      // but keeping this as a fallback won't hurt.
-      if (current.hours === 0 && current.minutes === 0 && current.seconds === 0) {
+      if (
+        current.hours === 0 &&
+        current.minutes === 0 &&
+        current.seconds === 0
+      ) {
         refresh();
       }
     }, 1000);
     return () => clearInterval(timer);
   }, [refresh]);
 
-  // Diagnostics should only start once loading is finished AND the title has finished typing
   useEffect(() => {
     if (!gameLoading && titleFinished) {
-      // Small delay before starting the rest of the text
       const timer = setTimeout(() => setDiagnosticsStarted(true), 200);
       return () => clearTimeout(timer);
     }
   }, [gameLoading, titleFinished]);
 
-  const hasWon = guessHistory.some(g => g.hint_data?.correct);
+  const hasWon = guessHistory.some((g) => g.hint_data?.correct);
   const hasReachedLimit = guessHistory.length >= 5;
   const isGameOver = hasWon || hasReachedLimit;
 
-  const statusText = hasWon ? "COMPLETED" : hasReachedLimit ? "FAILED" : "READY";
-  const statusColor = hasWon ? "text-green-500" : hasReachedLimit ? "text-red-500" : "";
+  const statusText = hasWon
+    ? "COMPLETED"
+    : hasReachedLimit
+      ? "FAILED"
+      : "READY";
+  const statusColor = hasWon
+    ? "text-green-500"
+    : hasReachedLimit
+      ? "text-red-500"
+      : "";
 
   return (
     <div className="flex flex-col w-full h-full min-h-0">
       <SEO
         title="Home"
-        description="ULTRAKIDLE - The daily character guessing game for ULTRAKILL players. Test your knowledge of enemies, levels, and more."
+        description="ULTRAKIDLE - The daily character guessing game for ULTRAKILL players."
       />
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
-        <div className="flex flex-col gap-0  w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
+        <div className="flex flex-col gap-0 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
           <div className="flex gap-1 items-baseline">
             <h1 className="contents">
               <Typewriter
@@ -108,9 +177,9 @@ const HomePage = () => {
               {titleFinished && gameLoading && (
                 <motion.div
                   key="dots"
-                  initial={{ display: 'none' }}
-                  animate={{ display: 'inline-block' }}
-                  exit={{ display: 'none' }}
+                  initial={{ display: "none" }}
+                  animate={{ display: "inline-block" }}
+                  exit={{ display: "none" }}
                 >
                   <LoadingDots />
                 </motion.div>
@@ -135,7 +204,7 @@ const HomePage = () => {
 
           {diagnosticsStarted && (
             <>
-              <div className="">
+              <div>
                 <Typewriter
                   text={`CURRENT_STREAK ${streak}`}
                   speed={0.03}
@@ -157,24 +226,12 @@ const HomePage = () => {
                 delay={1.4}
                 className="mt-5"
               />
-              <Typewriter
-                text="DIAGNOSTICS... OK"
-                speed={0.02}
-                delay={1.8}
-              />
+              <Typewriter text="DIAGNOSTICS... OK" speed={0.02} delay={1.8} />
 
               {isGameOver ? (
-                <Typewriter
-                  text="NEXT CHALLENGE IN:"
-                  speed={0.02}
-                  delay={2.3}
-                />
+                <Typewriter text="NEXT CHALLENGE IN:" speed={0.02} delay={2.3} />
               ) : (
-                <Typewriter
-                  text="STANDBY - WAIT FOR WAKE"
-                  speed={0.02}
-                  delay={2.3}
-                />
+                <Typewriter text="STANDBY - WAIT FOR WAKE" speed={0.02} delay={2.3} />
               )}
             </>
           )}
@@ -187,6 +244,8 @@ const HomePage = () => {
             transition={{ duration: 0.5 }}
             className="flex flex-col gap-4 w-full max-w-[450px] overflow-show min-h-0 pb-4"
           >
+            <DonorsBoard donors={donors} rates={rates} />
+
             {isGameOver ? (
               <div className="flex flex-col gap-2">
                 <Button
@@ -195,14 +254,14 @@ const HomePage = () => {
                   disabled
                   className="cursor-default"
                 >
-                  {String(countdown.hours).padStart(2, '0')}:
-                  {String(countdown.minutes).padStart(2, '0')}:
-                  {String(countdown.seconds).padStart(2, '0')}
+                  {String(countdown.hours).padStart(2, "0")}:
+                  {String(countdown.minutes).padStart(2, "0")}:
+                  {String(countdown.seconds).padStart(2, "0")}
                 </Button>
                 <Button
                   variant="ghost"
                   size="md"
-                  onClick={() => navigate('/play')}
+                  onClick={() => navigate("/play")}
                   className="opacity-50 hover:opacity-100"
                 >
                   VIEW BOARD
@@ -210,7 +269,7 @@ const HomePage = () => {
                 <Button
                   variant="outline"
                   size="xl"
-                  onClick={() => navigate('/enemies')}
+                  onClick={() => navigate("/enemies")}
                   className="mt-2"
                 >
                   ENEMIES
@@ -218,7 +277,7 @@ const HomePage = () => {
                 <Button
                   variant="outline"
                   size="xl"
-                  onClick={() => navigate('/levels')}
+                  onClick={() => navigate("/levels")}
                   className="mt-2"
                 >
                   LEVELS
@@ -226,7 +285,7 @@ const HomePage = () => {
                 <Button
                   variant="outline"
                   size="xl"
-                  onClick={() => navigate('/credits')}
+                  onClick={() => navigate("/credits")}
                   className="mt-2"
                 >
                   CREDITS
@@ -236,7 +295,7 @@ const HomePage = () => {
                     variant="outline"
                     className="flex-1"
                     size="xl"
-                    onClick={() => navigate('/history')}
+                    onClick={() => navigate("/history")}
                   >
                     LOGS
                   </Button>
@@ -247,9 +306,23 @@ const HomePage = () => {
                       px="px-2"
                       py="py-2"
                       size="xl"
-                      onClick={() => navigate('/messages')}
+                      onClick={() => navigate("/messages")}
                     >
-                      <svg className="h-full w-full lucide lucide-mail-icon lucide-mail" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
+                      <svg
+                        className="h-full w-full lucide lucide-mail-icon lucide-mail"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                      </svg>
                     </Button>
                     <AnimatePresence>
                       {hasUnread && (
@@ -274,21 +347,21 @@ const HomePage = () => {
                 <Button
                   variant="primary"
                   size="xl"
-                  onClick={() => navigate('/play')}
+                  onClick={() => navigate("/play")}
                 >
-                  {guessHistory.length > 0 ? 'CONTINUE' : 'PLAY'}
+                  {guessHistory.length > 0 ? "CONTINUE" : "PLAY"}
                 </Button>
                 <Button
                   variant="outline"
                   size="xl"
-                  onClick={() => navigate('/enemies')}
+                  onClick={() => navigate("/enemies")}
                 >
                   ENEMIES
                 </Button>
                 <Button
                   variant="outline"
                   size="xl"
-                  onClick={() => navigate('/levels')}
+                  onClick={() => navigate("/levels")}
                 >
                   LEVELS
                 </Button>
@@ -296,27 +369,29 @@ const HomePage = () => {
                   <Button
                     variant="outline"
                     size="xl"
-                    className="flex-1" 
-                      onClick={() => {
-                      const url = 'https://ko-fi.com/G2G41UYAX6';
+                    className="flex-1"
+                    onClick={() => {
+                      const url = "https://ko-fi.com/G2G41UYAX6";
                       if (isRunningInDiscord() && discordSdk) {
                         discordSdk.commands.openExternalLink({ url });
                       } else {
-                        window.open(url, '_blank');
+                        window.open(url, "_blank");
                       }
                     }}
                   >
                     DONATE
                     <img
                       className={`w-6 ml-3`}
-                      src={resolveExternalUrl("/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png")}
+                      src={resolveExternalUrl(
+                        "/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png",
+                      )}
                       alt="Ko-fi"
                     />
                   </Button>
                   <Button
                     variant="outline"
                     size="xl"
-                    onClick={() => navigate('/credits')}
+                    onClick={() => navigate("/credits")}
                   >
                     CREDITS
                   </Button>
@@ -326,7 +401,7 @@ const HomePage = () => {
                     variant="outline"
                     className="flex-1"
                     size="xl"
-                    onClick={() => navigate('/history')}
+                    onClick={() => navigate("/history")}
                   >
                     LOGS
                   </Button>
@@ -337,9 +412,23 @@ const HomePage = () => {
                       px="px-2"
                       py="py-2"
                       size="xl"
-                      onClick={() => navigate('/messages')}
+                      onClick={() => navigate("/messages")}
                     >
-                      <svg className="h-full w-full lucide lucide-mail-icon lucide-mail" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
+                      <svg
+                        className="h-full w-full lucide lucide-mail-icon lucide-mail"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                      </svg>
                     </Button>
                     <AnimatePresence>
                       {hasUnread && (
@@ -360,12 +449,14 @@ const HomePage = () => {
                 </div>
               </div>
             )}
-              {!isRunningInDiscord() && (
-            <div className={`grid grid-cols-1 ${isRunningInDiscord() ? "" : "md:grid-cols-1"} gap-2`}>
+            {!isRunningInDiscord() && (
+              <div
+                className={`grid grid-cols-1 ${isRunningInDiscord() ? "" : "md:grid-cols-1"} gap-2`}
+              >
                 <Button
                   variant="ghost"
                   className="flex items-center w-full"
-                  onClick={() => navigate('/discord-install')}
+                  onClick={() => navigate("/discord-install")}
                 >
                   INSTALL ON DISCORD
                   <img
@@ -374,8 +465,8 @@ const HomePage = () => {
                     alt="Discord"
                   />
                 </Button>
-            </div>
-              )}
+              </div>
+            )}
           </motion.div>
         )}
       </div>

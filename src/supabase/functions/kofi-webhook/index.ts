@@ -15,25 +15,28 @@ serve(async (req) => {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const isSub = payload.is_subscription_payment === true;
-    // Set expiry to 31 days from now if it's a sub, otherwise null
-    const expiryDate = isSub
-      ? new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString()
-      : null;
+    // 1. Handle Name (Webhook usually has the UI name, but fallback just in case)
+    let displayName = payload.from_name;
+    if (!displayName || displayName === "Ko-fi Supporter") {
+      displayName = "Anonymous Supporter";
+    }
 
+    // 2. Calculate the Expiry Date (Current time + 7 days)
+    const boardExpiry = new Date();
+    boardExpiry.setDate(boardExpiry.getDate() + 7);
+
+    // 3. Upsert into Supabase
     const { error } = await supabase.from("supporters").upsert(
       {
         kofi_transaction_id: payload.kofi_transaction_id,
-        kofi_id: payload.email, // Using email as a unique identifier for the member
-        name: payload.from_name,
+        name: displayName,
         email: payload.email,
         amount: parseFloat(payload.amount),
         currency: payload.currency,
-        is_subscription: isSub,
-        subscription_expiry: expiryDate,
-        updated_at: new Date().toISOString(),
+        board_expiry: boardExpiry.toISOString(), // <--- THIS IS WHERE IT'S ADDED
+        created_at: new Date().toISOString(),
       },
-      { onConflict: "kofi_id" }, // Updates the record if the email already exists
+      { onConflict: "kofi_transaction_id" }
     );
 
     if (error) throw error;

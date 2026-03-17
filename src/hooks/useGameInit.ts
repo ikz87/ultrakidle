@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getMsUntilNicaraguaMidnight } from "../lib/time";
 
+export interface Donor {
+  name: string;
+  amount: number;
+  currency: string;
+  created_at: string;
+}
+
 export interface GuessHistoryEntry {
   guess_enemy_id: number;
   hint_data: {
@@ -32,17 +39,32 @@ export interface DailyStats {
 export function useGameInit() {
   const [loading, setLoading] = useState(true);
   const [dailyId, setDailyId] = useState<number | null>(null);
-  const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>(
-    [],
-  );
+  const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [streak, setStreak] = useState<number>(0);
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [rates, setRates] = useState<Record<string, number>>({ USD: 1 });
   const [refreshKey, setRefreshKey] = useState(0);
   const [dailyChanged, setDailyChanged] = useState(false);
 
   const refresh = useCallback(() => {
     setLoading(true);
     setRefreshKey((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
+    async function fetchRates() {
+      try {
+        const res = await fetch("https://api.frankfurter.dev/v1/latest?base=USD");
+        const data = await res.json();
+        if (data.rates) {
+          setRates({ ...data.rates, USD: 1 });
+        }
+      } catch (e) {
+        console.error("Exchange rate fetch failed:", e);
+      }
+    }
+    fetchRates();
   }, []);
 
   useEffect(() => {
@@ -69,6 +91,7 @@ export function useGameInit() {
         setGuessHistory(data.history ?? []);
         setDailyStats(data.stats);
         setStreak(data.streak);
+        setDonors(data.donors ?? []);
       } catch (err) {
         console.error("Game init error:", err);
       } finally {
@@ -84,12 +107,8 @@ export function useGameInit() {
 
     const scheduleReset = () => {
       const msUntilMidnight = getMsUntilNicaraguaMidnight();
-      console.log(`[useGameInit] Scheduling local reset in ${msUntilMidnight}ms`);
-
       timeoutId = setTimeout(() => {
-        console.log("[useGameInit] Local reset triggered");
         setDailyChanged(true);
-        // Reschedule for next day if they stay on the page
         scheduleReset();
       }, msUntilMidnight);
     };
@@ -107,6 +126,8 @@ export function useGameInit() {
     guessHistory,
     dailyStats,
     streak,
+    donors,
+    rates,
     refresh,
     dailyChanged,
     setDailyChanged,
