@@ -179,7 +179,7 @@ const PlayPage = () => {
                     className="md:max-w-[1000px] w-full mt-4"
                 >
                     <div className="w-full flex justify-left">
-                    <span className="text-white/50 text-sm text-left place-self-start w-full justify-left">* All data mirrors that of the official wiki</span>
+                    <span className="text-white/50 text-sm text-left place-self-start w-full justify-left">* All data mirrors that of the official wiki, which can be subject to change</span>
                     </div>
                     <GuessBoard guesses={guesses} />
                 </motion.div>
