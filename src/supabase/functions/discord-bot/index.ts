@@ -68,7 +68,8 @@ serve(async (req) => {
       const { error, count } = await supabase
         .from("daily_notification_channels")
         .delete({ count: "exact" })
-        .eq("guild_id", payload.guild_id);
+        .eq("guild_id", payload.guild_id)
+        .eq("channel_id", payload.channel_id);
 
       if (error || count === 0) {
         return Response.json({
@@ -227,7 +228,6 @@ serve(async (req) => {
         },
       });
     }
-
     if (payload.data.name === "channel-subscribe") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -235,15 +235,31 @@ serve(async (req) => {
         { auth: { autoRefreshToken: false, persistSession: false } },
       );
 
-      const { error } = await supabase
-        .from("daily_notification_channels")
-        .upsert({
-          guild_id: payload.guild_id,
-          channel_id: payload.channel_id,
-          configured_by: payload.member.user.id,
+      // Ensure guild exists before linking notification channel
+      const { error: guildError } = await supabase.from("guilds").upsert(
+        { guild_id: payload.guild_id },
+        { onConflict: "guild_id" },
+      );
+
+      if (guildError) {
+        console.error("Error upserting guild:", guildError);
+        return Response.json({
+          type: 4,
+          data: {
+            content: "Failed to initialize guild data.",
+            flags: 64,
+          },
         });
+      }
+
+      const { error } = await supabase.from("daily_notification_channels").upsert({
+        guild_id: payload.guild_id,
+        channel_id: payload.channel_id,
+        configured_by: payload.member.user.id,
+      });
 
       if (error) {
+        console.error("Error upserting notification channel:", error);
         return Response.json({
           type: 4,
           data: {
