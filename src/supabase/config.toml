@@ -86,3 +86,36 @@ entrypoint = "./functions/send-daily-result/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/send-daily-result/*.html" ]
+
+[functions.dispatch-submissions]
+enabled = true
+verify_jwt = true
+import_map = "./functions/dispatch-submissions/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/dispatch-submissions/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/dispatch-submissions/*.html" ]
+
+[functions.ingest-worker]
+enabled = true
+verify_jwt = true
+import_map = "./functions/ingest-worker/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/ingest-worker/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/ingest-worker/*.html" ]
+
+[functions.resolve-worker]
+enabled = true
+verify_jwt = true
+import_map = "./functions/resolve-worker/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/resolve-worker/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/resolve-worker/*.html" ]

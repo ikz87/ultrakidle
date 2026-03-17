@@ -833,25 +833,19 @@ const InfernoPlayPage = () => {
             ) : (
               safeGameData.status === "completed" && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col w-full gap-6"
                 >
                   <div className="flex flex-col items-start gap-1">
                     <Typewriter
                       text="MISSION EVALUATION"
                       className="text-white opacity-50 font-bold uppercase tracking-widest"
-                      speed={0.03}
                     />
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.8 }}
+                    <Typewriter
+                      delay={0.4}
                       className="text-green-500 opacity-50 font-bold tracking-wider uppercase"
+                        text={`TOTAL SCORE: ${(safeGameData as GameCompleted).total_score} / 300`}
                     >
-                      TOTAL SCORE:{" "}
-                      {(safeGameData as GameCompleted).total_score} / 300
-                    </motion.span>
+                    </Typewriter>
                   </div>
 
                   <motion.div
@@ -865,7 +859,7 @@ const InfernoPlayPage = () => {
                         key={round.round_number}
                         className="border border-white/10 p-3 flex flex-col gap-3 bg-white/[0.02]"
                       >
-                        <div className="flex justify-between items-center text-[10px] text-white/30 uppercase tracking-widest">
+                        <div className="flex justify-between items-center text-sm text-white/30 uppercase tracking-widest">
                           <span>Round {round.round_number}</span>
                           <span
                             className={`font-bold ${round.score === 100
@@ -885,7 +879,7 @@ const InfernoPlayPage = () => {
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="flex flex-col gap-1 text-[10px]">
+                        <div className="flex flex-col gap-1 text-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-white/30 uppercase">
                               Guess
@@ -921,7 +915,7 @@ const InfernoPlayPage = () => {
                           </div>
                         </div>
                         <div className="border-t border-white/5 pt-2 flex items-center justify-between">
-                          <span className="text-[8px] text-white/30 uppercase">
+                          <span className="text-sm text-white/30 uppercase">
                             Captured by
                           </span>
                           <div className="flex items-center gap-1.5">
@@ -930,7 +924,7 @@ const InfernoPlayPage = () => {
                               alt=""
                               className="w-3 h-3 rounded-full"
                             />
-                            <span className="text-[10px] text-white/50 font-bold">
+                            <span className="text-sm text-white/50 font-bold">
                               {round.submitted_by.name}
                             </span>
                           </div>

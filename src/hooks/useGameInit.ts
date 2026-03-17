@@ -17,10 +17,7 @@ export interface GuessHistoryEntry {
     properties: {
       enemy_type: { value: string; result: "correct" | "incorrect" };
       weight_class: { value: string; result: "correct" | "incorrect" };
-      health: {
-        value: number;
-        result: "correct" | "higher" | "lower";
-      };
+      health: { value: number; result: "correct" | "higher" | "lower" };
       level_count: {
         value: number;
         result: "correct" | "higher" | "lower";
@@ -52,7 +49,12 @@ export type InfernoStatus = "no_game_today" | "in_progress" | "completed";
 export interface InfernoRoundData {
   status: InfernoStatus;
   total_score?: number;
-  total_games?: number;
+  rounds?: any[];
+  round_number?: number;
+  round_id?: string;
+  image_url?: string;
+  submitted_by?: any;
+  previous_rounds?: any[];
 }
 
 export function useGameInit() {
@@ -64,13 +66,9 @@ export function useGameInit() {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [rates, setRates] = useState<Record<string, number>>({ USD: 1 });
 
-  // Inferno states
-  const [infernoTotal, setInfernoTotal] = useState<InfernoTotalScore | null>(
-    null,
-  );
+  const [infernoTotal, setInfernoTotal] = useState<InfernoTotalScore | null>(null);
   const [infernoAvg, setInfernoAvg] = useState<InfernoDailyAvg | null>(null);
-  const [infernoStatus, setInfernoStatus] =
-    useState<InfernoRoundData | null>(null);
+  const [infernoStatus, setInfernoStatus] = useState<InfernoRoundData | null>(null);
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [dailyChanged, setDailyChanged] = useState(false);
@@ -83,13 +81,9 @@ export function useGameInit() {
   useEffect(() => {
     async function fetchRates() {
       try {
-        const res = await fetch(
-          "https://api.frankfurter.dev/v1/latest?base=USD",
-        );
+        const res = await fetch("https://api.frankfurter.dev/v1/latest?base=USD");
         const data = await res.json();
-        if (data.rates) {
-          setRates({ ...data.rates, USD: 1 });
-        }
+        if (data.rates) setRates({ ...data.rates, USD: 1 });
       } catch (e) {
         console.error("Exchange rate fetch failed:", e);
       }
@@ -100,58 +94,31 @@ export function useGameInit() {
   useEffect(() => {
     async function init() {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          const { error } = await supabase.auth.signInAnonymously();
-          if (error) {
-            console.error("Anonymous sign-in failed:", error.message);
-            return;
-          }
-        }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) await supabase.auth.signInAnonymously();
 
-        const [initRes, roundRes] = await Promise.all([
-          supabase.rpc("init_game"),
-          supabase.rpc("get_inferno_round", { version: "1.2.0" }),
-        ]);
+        const { data, error } = await supabase.rpc("init_game");
+        if (error) throw error;
 
-        if (initRes.error) {
-          console.error("init_game failed:", initRes.error.message);
-          return;
-        }
-
-        if (roundRes.error) {
-          console.error("get_inferno_round failed:", roundRes.error.message);
-        } else {
-          setInfernoStatus(roundRes.data);
-        }
-
-        const data = initRes.data;
-
-        // Classic
         setDailyId(data.daily_id);
         setGuessHistory(data.history ?? []);
         setDailyStats(data.stats);
         setStreak(data.streak);
         setDonors(data.donors ?? []);
-
-        // Inferno
         setInfernoTotal(data.inferno?.total ?? null);
         setInfernoAvg(data.inferno?.daily_avg ?? null);
+        setInfernoStatus(data.inferno?.status ?? null);
       } catch (err) {
         console.error("Game init error:", err);
       } finally {
         setLoading(false);
       }
     }
-
     init();
   }, [refreshKey]);
 
   useEffect(() => {
     let timeoutId: any;
-
     const scheduleReset = () => {
       const msUntilMidnight = getMsUntilNicaraguaMidnight();
       timeoutId = setTimeout(() => {
@@ -159,12 +126,8 @@ export function useGameInit() {
         scheduleReset();
       }, msUntilMidnight + 2000);
     };
-
     scheduleReset();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return {
