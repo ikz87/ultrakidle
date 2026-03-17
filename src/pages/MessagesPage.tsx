@@ -28,7 +28,7 @@ export default function MessagesPage() {
                     {unreadMessages.length > 0 && (
                         <button
                             onClick={handleMarkAllRead}
-                            className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 border border-white/10 transition-colors"
+                            className="hover:cursor-pointer text-xs bg-white/10 hover:bg-white/20 px-3 py-1 border border-white/10 transition-colors"
                         >
                             MARK_ALL_AS_READ
                         </button>
@@ -71,7 +71,7 @@ export default function MessagesPage() {
                         <div className="mt-8 border-t border-white/10 pt-6">
                             <button
                                 onClick={() => setShowArchive(!showArchive)}
-                                className="flex items-center gap-2 text-xs font-mono text-white/40 hover:text-white/70 transition-colors uppercase tracking-widest"
+                                className="hover:cursor-pointer flex items-center gap-2 text-xs font-mono text-white/40 hover:text-white/70 transition-colors uppercase tracking-widest"
                             >
                                 <span>{showArchive ? '[-]' : '[+]'}</span>
                                 <span>ARCHIVE ({readMessages.length})</span>

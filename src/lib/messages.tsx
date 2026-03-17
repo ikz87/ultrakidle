@@ -8,6 +8,32 @@ export interface Message {
 
 export const MESSAGES: Message[] = [
   {
+  id: 'supporters-board',
+  date: '2026-03-17',
+  content: (
+    <div className="space-y-4 lg:space-y-6 text-justify">
+      <p className="text-zinc-400 text-sm">
+        SYSTEM UPDATE LOG // [17-MAR-2026]
+      </p>
+      <p className="text-cyan-300 lg:text-base text-sm">
+        NEW: SUPPORTER'S BOARD
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        To show some love back to those who keep the servers running,
+        there's now a{" "}
+        <span className="text-white">Supporter's Board</span> on
+        the home page. If you donate through Ko-fi,
+          your name and donation amount will be showcased on the
+        board for 7 days after your contribution.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        It's a small gesture, but I wanted donors to get some
+          visibility for supporting my work on ULTRAKIDLE :)
+      </p>
+    </div>
+  ),
+},
+  {
   id: 'back-online',
   date: '2026-03-16',
   content: (

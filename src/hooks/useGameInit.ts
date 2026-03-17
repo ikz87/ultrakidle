@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { getMsUntilNicaraguaMidnight } from "../lib/time";
 
+export interface Donor {
+  name: string;
+  amount: number;
+  currency: string;
+  created_at: string;
+}
+
 export interface GuessHistoryEntry {
   guess_enemy_id: number;
   hint_data: {
@@ -45,7 +52,7 @@ export type InfernoStatus = "no_game_today" | "in_progress" | "completed";
 export interface InfernoRoundData {
   status: InfernoStatus;
   total_score?: number;
-  total_games?: number; // Adjust based on your RPC return if needed
+  total_games?: number;
 }
 
 export function useGameInit() {
@@ -54,11 +61,16 @@ export function useGameInit() {
   const [guessHistory, setGuessHistory] = useState<GuessHistoryEntry[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [streak, setStreak] = useState<number>(0);
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [rates, setRates] = useState<Record<string, number>>({ USD: 1 });
 
   // Inferno states
-  const [infernoTotal, setInfernoTotal] = useState<InfernoTotalScore | null>(null);
+  const [infernoTotal, setInfernoTotal] = useState<InfernoTotalScore | null>(
+    null,
+  );
   const [infernoAvg, setInfernoAvg] = useState<InfernoDailyAvg | null>(null);
-  const [infernoStatus, setInfernoStatus] = useState<InfernoRoundData | null>(null);
+  const [infernoStatus, setInfernoStatus] =
+    useState<InfernoRoundData | null>(null);
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [dailyChanged, setDailyChanged] = useState(false);
@@ -69,9 +81,28 @@ export function useGameInit() {
   }, []);
 
   useEffect(() => {
+    async function fetchRates() {
+      try {
+        const res = await fetch(
+          "https://api.frankfurter.dev/v1/latest?base=USD",
+        );
+        const data = await res.json();
+        if (data.rates) {
+          setRates({ ...data.rates, USD: 1 });
+        }
+      } catch (e) {
+        console.error("Exchange rate fetch failed:", e);
+      }
+    }
+    fetchRates();
+  }, []);
+
+  useEffect(() => {
     async function init() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           const { error } = await supabase.auth.signInAnonymously();
           if (error) {
@@ -80,11 +111,9 @@ export function useGameInit() {
           }
         }
 
-        // Fetch init_game (classic stats + inferno cached stats) 
-        // AND get_inferno_round (for the live round status)
         const [initRes, roundRes] = await Promise.all([
           supabase.rpc("init_game"),
-          supabase.rpc("get_inferno_round", { version: "1.2.0" })
+          supabase.rpc("get_inferno_round", { version: "1.2.0" }),
         ]);
 
         if (initRes.error) {
@@ -99,17 +128,17 @@ export function useGameInit() {
         }
 
         const data = initRes.data;
-        
+
         // Classic
         setDailyId(data.daily_id);
         setGuessHistory(data.history ?? []);
         setDailyStats(data.stats);
         setStreak(data.streak);
+        setDonors(data.donors ?? []);
 
         // Inferno
         setInfernoTotal(data.inferno?.total ?? null);
         setInfernoAvg(data.inferno?.daily_avg ?? null);
-
       } catch (err) {
         console.error("Game init error:", err);
       } finally {
@@ -125,12 +154,10 @@ export function useGameInit() {
 
     const scheduleReset = () => {
       const msUntilMidnight = getMsUntilNicaraguaMidnight();
-      
-      // Add 2000ms buffer to the timeout
       timeoutId = setTimeout(() => {
         setDailyChanged(true);
         scheduleReset();
-      }, msUntilMidnight + 2000); 
+      }, msUntilMidnight + 2000);
     };
 
     scheduleReset();
@@ -138,7 +165,7 @@ export function useGameInit() {
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [])
+  }, []);
 
   return {
     loading,
@@ -146,6 +173,8 @@ export function useGameInit() {
     guessHistory,
     dailyStats,
     streak,
+    donors,
+    rates,
     refresh,
     dailyChanged,
     setDailyChanged,

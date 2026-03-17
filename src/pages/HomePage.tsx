@@ -37,12 +37,72 @@ const getCountdown = () => {
   etMidnight.setHours(24, 0, 0, 0);
 
   const msDiff = etMidnight.getTime() - etNow.getTime();
-
   const hours = Math.floor(msDiff / (1000 * 60 * 60));
   const minutes = Math.floor((msDiff % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((msDiff % (1000 * 60)) / 1000);
 
   return { hours, minutes, seconds };
+};
+
+const DonorsBoard = ({
+  donors,
+  rates,
+}: {
+  donors: any[];
+  rates: Record<string, number>;
+}) => {
+  const processedDonors = (donors || [])
+    .map((d) => {
+      const currency = d.currency.toUpperCase();
+      const rate = rates[currency] || 1;
+      const amountInUsd =
+        currency === "USD" ? d.amount : d.amount / rate;
+      return { ...d, amountInUsd };
+    })
+    .sort((a, b) => {
+      if (b.amountInUsd !== a.amountInUsd)
+        return b.amountInUsd - a.amountInUsd;
+      return (
+        new Date(a.created_at).getTime() -
+        new Date(b.created_at).getTime()
+      );
+    });
+
+  return (
+    <div className="flex flex-col gap-2 bg-black/40 border-2 border-white/10 p-4">
+      <div className="text-xs uppercase font-bold tracking-widest text-white/40 border-b border-white/10 pb-2 mb-1">
+        RECENT_SUPPORTERS
+      </div>
+      <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
+        {processedDonors.length > 0 ? (
+          processedDonors.map((donor, i) => (
+            <div
+              key={i}
+              className="relative flex flex-col items-center flex-shrink-0 gap-1 px-3 py-2 border border-white/20 bg-white/5 min-w-[80px] overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
+              <span className="text-xs md:text-sm uppercase truncate max-w-[100px] text-white/90">
+                {donor.name || "ANONYMOUS"}
+              </span>
+              <span className="text-green-500 text-xs">
+                $
+                {donor.amountInUsd.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="py-4 w-full text-center border border-dashed border-white/10 opacity-50">
+            <span className="text-xs tracking-widest uppercase">
+              NO RECENT SUPPORTERS FOUND
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const HomePage = () => {
@@ -51,6 +111,8 @@ const HomePage = () => {
     guessHistory,
     dailyStats,
     streak,
+    donors,
+    rates,
     refresh,
     dailyChanged,
     setDailyChanged,
@@ -103,8 +165,8 @@ const HomePage = () => {
   const classicStatus = hasWon
     ? "COMPLETED"
     : hasReachedLimit
-    ? "FAILED"
-    : "READY";
+      ? "FAILED"
+      : "READY";
 
   const getInfernoStatusText = () => {
     if (!infernoStatus) return "READY";
@@ -120,14 +182,14 @@ const HomePage = () => {
   const infernoStatusText = getInfernoStatusText();
 
   const countdownStr = `${String(countdown.hours).padStart(2, "0")}:${String(
-    countdown.minutes
+    countdown.minutes,
   ).padStart(2, "0")}:${String(countdown.seconds).padStart(2, "0")}`;
 
   return (
     <div className="flex flex-col w-full h-full min-h-0">
       <SEO
         title="Home"
-        description="ULTRAKIDLE - The daily character guessing game for ULTRAKILL players. Test your knowledge of enemies, levels, and more."
+        description="ULTRAKIDLE - The daily character guessing game for ULTRAKILL players."
       />
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
         <div className="flex flex-col gap-0 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
@@ -140,13 +202,19 @@ const HomePage = () => {
               {diagnosticsStarted && (
                 <>
                   <div className="flex gap-1">
-                    <Typewriter text="CLASSIC... " speed={0.02} delay={0} />
+                    <Typewriter
+                      text="CLASSIC... "
+                      speed={0.02}
+                      delay={0}
+                    />
                     <Typewriter
                       text={classicStatus}
                       speed={0.02}
                       delay={0.2}
                       className={
-                        classicStatus === "COMPLETED" ? "text-green-500" : ""
+                        classicStatus === "COMPLETED"
+                          ? "text-green-500"
+                          : ""
                       }
                     />
                   </div>
@@ -174,7 +242,11 @@ const HomePage = () => {
             {diagnosticsStarted && (
               <div className="flex flex-row items-start justify-start gap-6">
                 <div className="flex flex-col min-w-0">
-                  <Typewriter text="CLASSIC:" speed={0.02} delay={0.3} />
+                  <Typewriter
+                    text="CLASSIC:"
+                    speed={0.02}
+                    delay={0.3}
+                  />
                   <Typewriter
                     text={`├ STREAK: ${streak}`}
                     speed={0.02}
@@ -197,14 +269,18 @@ const HomePage = () => {
                 </div>
 
                 <div className="flex flex-col min-w-0">
-                  <Typewriter text="INFERNOGUESSR:" speed={0.02} delay={0.3} />
+                  <Typewriter
+                    text="INFERNOGUESSR:"
+                    speed={0.02}
+                    delay={0.3}
+                  />
                   <Typewriter
                     text={`├ POINTS: ${infernoTotal?.total_score ?? 0}`}
                     speed={0.02}
                     delay={0.4}
                   />
                   <Typewriter
-                    text={`├ DEPLOYMENTS: ${infernoTotal?.games_played ?? 0}`}
+                    text={`├ DEPLOYED: ${infernoTotal?.games_played ?? 0}`}
                     speed={0.02}
                     delay={0.5}
                   />
@@ -226,14 +302,16 @@ const HomePage = () => {
             transition={{ duration: 0.5 }}
             className="flex flex-col gap-4 w-full max-w-[450px] overflow-show min-h-0 pb-4"
           >
+            <DonorsBoard donors={donors} rates={rates} />
+
             <div className="flex flex-col gap-2">
               <PlayExpandable
                 label={
                   isGameOver || isInfernoCompleted
                     ? "PLAY"
                     : guessHistory.length > 0
-                    ? "CONTINUE"
-                    : "PLAY"
+                      ? "CONTINUE"
+                      : "PLAY"
                 }
                 isExpanded={playExpanded}
                 onToggle={() => setPlayExpanded((p) => !p)}
@@ -242,13 +320,17 @@ const HomePage = () => {
                 classicDisabled={isGameOver}
                 classicContent={
                   isGameOver ? (
-                    <span className="opacity-50">CLASSIC ({countdownStr})</span>
+                    <span className="opacity-50">
+                      CLASSIC ({countdownStr})
+                    </span>
                   ) : null
                 }
                 infernoDisabled={isInfernoCompleted}
                 infernoContent={
                   isInfernoCompleted ? (
-                    <span className="opacity-50">INFERNO ({countdownStr})</span>
+                    <span className="opacity-50">
+                      INFERNO ({countdownStr})
+                    </span>
                   ) : null
                 }
               />
@@ -286,7 +368,7 @@ const HomePage = () => {
                   <img
                     className={`w-6 ml-3`}
                     src={resolveExternalUrl(
-                      "/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png"
+                      "/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png",
                     )}
                     alt="Ko-fi"
                   />
