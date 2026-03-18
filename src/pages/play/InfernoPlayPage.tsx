@@ -28,6 +28,7 @@ interface RoundResult {
   image_url: string;
   distance: number;
   score: number;
+  time_spent_seconds: number;
   guessed_level: Level;
   correct_level: Level;
   submitted_by: Submitter;
@@ -39,6 +40,7 @@ interface GameInProgress {
   round_number: number;
   round_id: string;
   image_url: string;
+  elapsed_seconds: number;
   submitted_by: Submitter;
   previous_rounds: RoundResult[];
 }
@@ -63,6 +65,7 @@ const InfernoPlayPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameData, setGameData] = useState<GameData | null>(null);
+  const [isFetchingNextRound, setIsFetchingNextRound] = useState(false);
 
   const [zoom, setZoom] = useState(1);
   const [gamma, setGamma] = useState(1);
@@ -82,6 +85,8 @@ const InfernoPlayPage = () => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [lightboxZoomed, setLightboxZoomed] = useState(false);
 
+  const [activeTimer, setActiveTimer] = useState(0);
+
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -98,10 +103,7 @@ const InfernoPlayPage = () => {
   ];
 
   const sortedLevels = useMemo(
-    () =>
-      [...levels].sort(
-        (a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)
-      ),
+    () => [...levels].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)),
     []
   );
 
@@ -136,8 +138,12 @@ const InfernoPlayPage = () => {
         return;
       }
 
-      setGameData(data as GameData);
-      if ((data as GameData).status === "completed") {
+      const res = data as GameData;
+      setGameData(res);
+
+      if (res.status === "in_progress") {
+        setActiveTimer(res.elapsed_seconds);
+      } else if (res.status === "completed") {
         setIsGameFinished(true);
         setShowFinalResults(true);
       }
@@ -150,10 +156,28 @@ const InfernoPlayPage = () => {
   };
 
   useEffect(() => {
+   let animationFrame: number;
+   let lastUpdate = Date.now();
+
+   const update = () => {
+     if (gameData?.status === "in_progress" && !lastRoundResult) {
+       const now = Date.now();
+       const delta = (now - lastUpdate) / 1000;
+       setActiveTimer((prev) => prev + delta);
+       lastUpdate = now;
+       animationFrame = requestAnimationFrame(update);
+     }
+   };
+
+   animationFrame = requestAnimationFrame(update);
+   return () => cancelAnimationFrame(animationFrame);
+  }, [gameData?.status, lastRoundResult]);
+
+  useEffect(() => {
     if (
       !lastRoundResult &&
-        filteredLevels.length === 1 &&
-        filteredLevels[0].id !== selectedLevelId
+      filteredLevels.length === 1 &&
+      filteredLevels[0].id !== selectedLevelId
     ) {
       setSelectedLevelId(filteredLevels[0].id);
     }
@@ -168,12 +192,7 @@ const InfernoPlayPage = () => {
 
     const scheduleReset = () => {
       const msUntilMidnight = getMsUntilNicaraguaMidnight();
-      console.log(
-        `[InfernoPlayPage] Scheduling local reset in ${msUntilMidnight}ms`
-      );
-
       timeoutId = setTimeout(() => {
-        console.log("[InfernoPlayPage] Local reset triggered");
         setDailyChanged(true);
         scheduleReset();
       }, msUntilMidnight);
@@ -187,11 +206,7 @@ const InfernoPlayPage = () => {
   }, []);
 
   const handleGuess = async () => {
-    if (
-      !selectedLevelId ||
-      isSubmitting ||
-      gameData?.status !== "in_progress"
-    )
+    if (!selectedLevelId || isSubmitting || gameData?.status !== "in_progress")
       return;
 
     setIsSubmitting(true);
@@ -229,6 +244,7 @@ const InfernoPlayPage = () => {
         correct_level: result.correct_level,
         distance: result.distance,
         score: result.score,
+        time_spent_seconds: result.time_spent_seconds,
         image_url: gameData.image_url,
         submitted_by: gameData.submitted_by,
       };
@@ -237,17 +253,7 @@ const InfernoPlayPage = () => {
 
       if (result.game_complete) {
         setIsGameFinished(true);
-      } else {
-        setPendingNextRound({
-          status: "in_progress",
-          set_id: gameData.set_id,
-          round_number: result.next_round.round_number,
-          round_id: result.next_round.round_id,
-          image_url: result.next_round.image_url,
-          submitted_by: result.next_round.submitted_by,
-          previous_rounds: [...gameData.previous_rounds, currentRoundResult],
-        });
-      }
+      } 
       setSelectedLevelId(null);
       setSearchQuery("");
       setZoom(1);
@@ -265,22 +271,23 @@ const InfernoPlayPage = () => {
     }
   };
 
-  const nextRound = () => {
-    if (pendingNextRound) {
-      setGameData(pendingNextRound);
-      setPendingNextRound(null);
-    }
-    setLastRoundResult(null);
-    setImageLoaded(false);
-    setImgRetry(0);
-    setSearchQuery("");
-
-    setTimeout(() => {
-      document
-        .getElementById("main-scroll-container")
-        ?.scrollTo({ top: 0, behavior: "smooth" });
-    }, 10);
-  };
+ const nextRound = async () => {
+   setIsFetchingNextRound(true);
+   try {
+     await fetchGameState({ silent: true });
+     setLastRoundResult(null);
+     setImageLoaded(false);
+     setImgRetry(0);
+     setSearchQuery("");
+     setTimeout(() => {
+       document
+         .getElementById("main-scroll-container")
+         ?.scrollTo({ top: 0, behavior: "smooth" });
+     }, 10);
+   } finally {
+     setIsFetchingNextRound(false);
+   }
+ };
 
   const viewFinalResults = async () => {
     await fetchGameState({ silent: true });
@@ -295,6 +302,18 @@ const InfernoPlayPage = () => {
     }, 10);
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+   const secs = (seconds % 60).toFixed(1); // Show 1 decimal point for "active" feel
+   const [whole, decimal] = secs.split(".");
+   return `${mins}:${whole.padStart(2, "0")}.${decimal}`;
+  };
+
+  const totalTimeSeconds = useMemo(() => {
+    if (gameData?.status !== "completed") return 0;
+    return gameData.rounds.reduce((acc, r) => acc + r.time_spent_seconds, 0);
+  }, [gameData]);
+
   useEffect(() => {
     if (zoom === 1) setPan({ x: 0, y: 0 });
   }, [zoom]);
@@ -308,9 +327,6 @@ const InfernoPlayPage = () => {
   const handleImageError = () => {
     if (imgRetry >= MAX_IMG_RETRIES) return;
     const delay = Math.min(250 * Math.pow(2, imgRetry), 3000);
-    console.log(
-      `[InfernoPlayPage] Image load failed, retrying in ${delay}ms (attempt ${imgRetry + 1}/${MAX_IMG_RETRIES})`
-    );
     imgRetryTimer.current = setTimeout(() => {
       setImgRetry((r) => r + 1);
     }, delay);
@@ -326,7 +342,6 @@ const InfernoPlayPage = () => {
     }
   }, [lastRoundResult]);
 
-  // Close lightbox on Escape
   useEffect(() => {
     if (!lightboxUrl) return;
     setLightboxZoomed(false);
@@ -438,11 +453,8 @@ const InfernoPlayPage = () => {
       ? safeGameData.rounds[safeGameData.rounds.length - 1]
       : null);
 
-  if (!displayRound) {
-    return null;
-  }
+  if (!displayRound) return null;
 
-  // Use filteredLevels for the scrollable list, sortedLevels for the compressed log
   const displayLevels = searchQuery.trim() ? filteredLevels : sortedLevels;
 
   return (
@@ -470,22 +482,27 @@ const InfernoPlayPage = () => {
           transition={{ duration: 0.2 }}
           className="flex flex-col w-full items-start"
         >
-          {/* Header */}
           <div className="flex flex-col gap-0 mb-4 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
-            <div className="flex gap-4 items-baseline">
-              <h1 className="tracking-widest">DAILY_LOCATION</h1>
-              <span className="text-xs tracking-widest opacity-70">
-                {showFinalResults
-                  ? "COMPLETE"
-                  : `ROUND ${displayRound.round_number} / 5`}
-              </span>
+            <div className="flex md:flex-row flex-col justify-between items-baseline w-full md:max-w-[1000px]">
+              <div className="flex gap-4 items-baseline">
+                <h1 className="tracking-widest">DAILY_LOCATION</h1>
+                <span className="text-sm tracking-widest opacity-70">
+                  {showFinalResults
+                    ? "COMPLETE"
+                    : `ROUND ${displayRound.round_number} / 5`}
+                </span>
+              </div>
+              {!showFinalResults && (
+                <span className="text-sm lg:text-base  tracking-widest">
+                  TIME: {formatTime(activeTimer)}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="flex flex-col md:max-w-[1000px] w-full gap-4">
             {!showFinalResults ? (
               <>
-                {/* Image Container */}
                 <div className="relative aspect-video bg-black border border-white/10 overflow-hidden group">
                   <div
                     className="h-full w-full select-none"
@@ -531,7 +548,6 @@ const InfernoPlayPage = () => {
                     />
                   </div>
 
-                  {/* Controls Overlay */}
                   <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <div className="bg-black/80 p-2 border border-white/10 flex flex-col gap-3">
                       <div className="flex flex-col gap-1">
@@ -544,9 +560,7 @@ const InfernoPlayPage = () => {
                           max="4"
                           step="0.5"
                           value={zoom}
-                          onChange={(e) =>
-                            setZoom(parseFloat(e.target.value))
-                          }
+                          onChange={(e) => setZoom(parseFloat(e.target.value))}
                           className="w-24 md:w-32 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
                         />
                       </div>
@@ -560,16 +574,13 @@ const InfernoPlayPage = () => {
                           max="2"
                           step="0.1"
                           value={gamma}
-                          onChange={(e) =>
-                            setGamma(parseFloat(e.target.value))
-                          }
+                          onChange={(e) => setGamma(parseFloat(e.target.value))}
                           className="w-24 md:w-32 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Attribution badge */}
                   <div className="absolute top-3 right-3 flex items-center gap-2 px-2 py-1 bg-black/60 border border-white/10 z-10">
                     <span className="text-[12px] text-white/50 uppercase tracking-widest">
                       CAPTURED BY:
@@ -585,7 +596,6 @@ const InfernoPlayPage = () => {
                   </div>
                 </div>
 
-                {/* Guess UI */}
                 <div className="flex flex-col sm:flex-row justify-between items-center border border-white/10 p-3 gap-3 bg-white/[0.02]">
                   <div className="flex flex-row items-center gap-3 w-full sm:w-auto">
                     <div className="w-14 aspect-video bg-black/40 border border-white/10 overflow-hidden flex-shrink-0">
@@ -631,7 +641,6 @@ const InfernoPlayPage = () => {
                   </Button>
                 </div>
 
-                {/* Search input */}
                 {!lastRoundResult && (
                   <div className="w-full">
                     <input
@@ -639,7 +648,11 @@ const InfernoPlayPage = () => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && selectedLevelId && !isSubmitting) {
+                        if (
+                          e.key === "Enter" &&
+                          selectedLevelId &&
+                          !isSubmitting
+                        ) {
                           handleGuess();
                         }
                       }}
@@ -649,7 +662,6 @@ const InfernoPlayPage = () => {
                   </div>
                 )}
 
-                {/* Level list */}
                 <div
                   className="w-full overflow-x-auto custom-scrollbar pb-2 will-change-transform"
                   style={{ transform: "translateZ(0)" }}
@@ -670,14 +682,12 @@ const InfernoPlayPage = () => {
 
                       const guessIdx = lastRoundResult
                         ? sortedLevels.findIndex(
-                            (l) =>
-                              l.id === lastRoundResult.guessed_level.id
+                            (l) => l.id === lastRoundResult.guessed_level.id
                           )
                         : -1;
                       const correctIdx = lastRoundResult
                         ? sortedLevels.findIndex(
-                            (l) =>
-                              l.id === lastRoundResult.correct_level.id
+                            (l) => l.id === lastRoundResult.correct_level.id
                           )
                         : -1;
                       const minIdx = Math.min(guessIdx, correctIdx);
@@ -695,16 +705,13 @@ const InfernoPlayPage = () => {
                           key={level.id}
                           ref={isCorrect ? targetRef : null}
                           onClick={() =>
-                            !lastRoundResult &&
-                            setSelectedLevelId(level.id)
+                            !lastRoundResult && setSelectedLevelId(level.id)
                           }
                           className={`group relative flex flex-col hover:cursor-pointer items-center gap-1 min-w-32 w-[15vw] max-w-48 flex-shrink-0 transition-all ${
                             isSelected
                               ? "scale-105 opacity-100 grayscale-0"
                               : lastRoundResult &&
-                                  (isCorrect ||
-                                    isGuessed ||
-                                    isInBetween)
+                                  (isCorrect || isGuessed || isInBetween)
                                 ? "scale-105 opacity-100 grayscale-0"
                                 : "opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
                           }`}
@@ -723,9 +730,7 @@ const InfernoPlayPage = () => {
                             }`}
                           >
                             <img
-                              src={resolveExternalUrl(
-                                level.thumbnail || ""
-                              )}
+                              src={resolveExternalUrl(level.thumbnail || "")}
                               alt={level.name}
                               className={`w-full h-full object-cover transition-all duration-500 ${
                                 lastRoundResult && isCorrect
@@ -754,27 +759,12 @@ const InfernoPlayPage = () => {
                           >
                             {level.levelNumber}
                           </span>
-                          {isSelected && !lastRoundResult && (
-                            <div className="absolute -bottom-1 w-1 h-1 bg-white rounded-full" />
-                          )}
-                          {lastRoundResult && isCorrect && (
-                            <div className="absolute -bottom-1 w-1 h-1 bg-green-500 rounded-full" />
-                          )}
-                          {isGuessed && (
-                            <div className="absolute -bottom-1 w-1 h-1 bg-red-400 rounded-full" />
-                          )}
                         </button>
                       );
                     })}
-                    {displayLevels.length === 0 && (
-                      <span className="text-white/20 text-xs uppercase tracking-widest py-4 px-2">
-                        No levels match "{searchQuery}"
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                {/* Status text */}
                 <div className="text-white flex flex-col items-start gap-1 font-bold uppercase tracking-wider">
                   <span className="opacity-50">
                     ROUND: {displayRound.round_number} / 5
@@ -802,10 +792,16 @@ const InfernoPlayPage = () => {
                         delay={0.4}
                       />
                       <Typewriter
+                        text={`TIME: ${lastRoundResult.time_spent_seconds.toFixed(3)}`}
+                        className="opacity-50"
+                        speed={0.02}
+                        delay={0.6}
+                      />
+                      <Typewriter
                         text={`SCORE: +${lastRoundResult.score}`}
                         className="text-green-500 opacity-50"
                         speed={0.02}
-                        delay={0.7}
+                        delay={0.8}
                       />
                       <motion.div
                         initial={{ opacity: 0 }}
@@ -822,153 +818,21 @@ const InfernoPlayPage = () => {
                             VIEW RESULTS
                           </Button>
                         ) : (
-                          <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={nextRound}
-                            className="opacity-50 hover:opacity-100 mt-2"
-                          >
-                            NEXT ROUND
-                          </Button>
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              onClick={nextRound}
+                              disabled={isFetchingNextRound}
+                              className="opacity-50 hover:opacity-100 mt-2"
+                            >
+                              {isFetchingNextRound ? "LOADING..." : "NEXT ROUND"}
+                            </Button>
                         )}
                       </motion.div>
                     </div>
                   )}
                   <div ref={resultsRef} />
                 </div>
-
-                {/* Compressed round log */}
-                <AnimatePresence>
-                  {lastRoundResult && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="w-full border-t border-white/10 pt-4 flex flex-col gap-4"
-                    >
-                      <div className="flex flex-col items-start gap-2">
-                        <Typewriter
-                          text="COMPRESSED ROUND LOG:"
-                          className="text-white opacity-50 text-sm font-bold uppercase tracking-wider"
-                          speed={0.01}
-                          delay={0.3}
-                        />
-                        <motion.div
-                          initial="hidden"
-                          animate="visible"
-                          variants={{
-                            visible: {
-                              transition: {
-                                staggerChildren: 0.01,
-                                delayChildren: 0.6,
-                              },
-                            },
-                          }}
-                          className="flex flex-wrap gap-0.5"
-                        >
-                          {sortedLevels.map((level, index) => {
-                            const isCorrect =
-                              level.id ===
-                              lastRoundResult.correct_level.id;
-                            const isGuess =
-                              level.id ===
-                              lastRoundResult.guessed_level.id;
-
-                            const guessIdx = sortedLevels.findIndex(
-                              (l) =>
-                                l.id ===
-                                lastRoundResult.guessed_level.id
-                            );
-                            const correctIdx = sortedLevels.findIndex(
-                              (l) =>
-                                l.id ===
-                                lastRoundResult.correct_level.id
-                            );
-                            const minIdx = Math.min(
-                              guessIdx,
-                              correctIdx
-                            );
-                            const maxIdx = Math.max(
-                              guessIdx,
-                              correctIdx
-                            );
-
-                            const isBetween =
-                              !isCorrect &&
-                              !isGuess &&
-                              index >= minIdx &&
-                              index <= maxIdx;
-
-                            let colorClass =
-                              "bg-zinc-800/20 border-zinc-500/30";
-                            if (isCorrect) {
-                              colorClass =
-                                "bg-green-500/20 border-green-500";
-                            } else if (isGuess) {
-                              colorClass =
-                                "bg-red-500/20 border-red-500";
-                            } else if (isBetween) {
-                              colorClass =
-                                "bg-red-500/10 border-red-500/40";
-                            }
-
-                            return (
-                              <motion.div
-                                key={level.id}
-                                variants={{
-                                  hidden: {
-                                    opacity: 0,
-                                    scale: 0.5,
-                                  },
-                                  visible: {
-                                    opacity: 1,
-                                    scale: 1,
-                                  },
-                                }}
-                                title={`${level.levelNumber}: ${level.name}`}
-                                className={`w-4 h-4 border ${colorClass}`}
-                              />
-                            );
-                          })}
-                        </motion.div>
-
-                        {/* Legend */}
-                        <div className="flex gap-4 mt-1">
-                          {[
-                            {
-                              label: "Target",
-                              cls: "bg-green-500/20 border-green-500",
-                            },
-                            ...(lastRoundResult.distance > 0
-                              ? [
-                                  {
-                                    label: "Guess",
-                                    cls: "bg-red-500/20 border-red-500",
-                                  },
-                                  {
-                                    label: "Between",
-                                    cls: "bg-red-500/10 border-red-500/40",
-                                  },
-                                ]
-                              : []),
-                          ].map(({ label, cls }) => (
-                            <div
-                              key={label}
-                              className="flex items-center gap-1.5"
-                            >
-                              <div
-                                className={`w-3 h-3 border ${cls}`}
-                              />
-                              <span className="text-[10px] text-white/40 uppercase tracking-widest">
-                                {label}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </>
             ) : (
               safeGameData.status === "completed" && (
@@ -978,11 +842,18 @@ const InfernoPlayPage = () => {
                       text="MISSION EVALUATION"
                       className="text-white opacity-50 font-bold uppercase tracking-widest"
                     />
-                    <Typewriter
-                      delay={0.4}
-                      className="text-green-500 opacity-50 font-bold tracking-wider uppercase"
-                      text={`TOTAL SCORE: ${(safeGameData as GameCompleted).total_score} / 500`}
-                    />
+                    <div className="flex flex-col">
+                      <Typewriter
+                        delay={0.4}
+                        className="text-green-500 opacity-50 font-bold tracking-wider uppercase"
+                        text={`TOTAL SCORE: ${(safeGameData as GameCompleted).total_score} / 500`}
+                      />
+                      <Typewriter
+                        delay={0.6}
+                        className="text-white opacity-50 font-bold tracking-wider uppercase text-sm"
+                        text={`TOTAL TIME: ${formatTime(totalTimeSeconds)}`}
+                      />
+                    </div>
                   </div>
 
                   <motion.div
@@ -991,96 +862,88 @@ const InfernoPlayPage = () => {
                     transition={{ delay: 1.2 }}
                     className="grid grid-cols-1 md:grid-cols-3 gap-3"
                   >
-                    {(safeGameData as GameCompleted).rounds.map(
-                      (round) => (
-                        <div
-                          key={round.round_number}
-                          className="border border-white/10 p-3 flex flex-col gap-3 bg-white/[0.02]"
-                        >
-                          <div className="flex justify-between items-center text-sm text-white/30 uppercase tracking-widest">
-                            <span>Round {round.round_number}</span>
-                            <span
-                              className={`font-bold ${
-                                round.score === 100
-                                  ? "text-green-500"
-                                  : round.score >= 50
-                                    ? "text-yellow-500"
-                                    : "text-red-500"
-                              }`}
-                            >
-                              +{round.score}
-                            </span>
-                          </div>
-
-                          {/* Submitter credits above image */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-white/30 uppercase">
-                              Captured by
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <img
-                                src={round.submitted_by.avatar_url}
-                                alt=""
-                                className="w-3 h-3 rounded-full"
-                              />
-                              <span className="text-sm text-white/50 font-bold">
-                                {round.submitted_by.name}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div
-                            className="aspect-video border border-white/10 overflow-hidden cursor-pointer hover:border-white/30 transition-colors"
-                            onClick={() =>
-                              setLightboxUrl(round.image_url)
-                            }
+                    {(safeGameData as GameCompleted).rounds.map((round) => (
+                      <div
+                        key={round.round_number}
+                        className="border border-white/10 p-3 flex flex-col gap-3 bg-white/[0.02]"
+                      >
+                        <div className="flex justify-between items-center text-sm text-white/30 uppercase tracking-widest">
+                          <span>Round {round.round_number}</span>
+                          <span
+                            className={`font-bold ${
+                              round.score === 100
+                                ? "text-green-500"
+                                : round.score >= 50
+                                  ? "text-yellow-500"
+                                  : "text-red-500"
+                            }`}
                           >
-                            <img
-                              src={round.image_url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+                            +{round.score}
+                          </span>
+                        </div>
 
-                          <div className="flex flex-col gap-1 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="text-white/30 uppercase">
-                                Guess
-                              </span>
-                              <span className="font-bold text-red-400 uppercase truncate max-w-[120px]">
-                                {round.guessed_level.level_number}:{" "}
-                                {round.guessed_level.level_name}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-white/30 uppercase">
-                                Target
-                              </span>
-                              <span className="font-bold text-green-400 uppercase truncate max-w-[120px]">
-                                {round.correct_level.level_number}:{" "}
-                                {round.correct_level.level_name}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-white/30 uppercase">
-                                Distance
-                              </span>
-                              <span
-                                className={`font-bold ${
-                                  round.distance === 0
-                                    ? "text-green-400"
-                                    : round.distance <= 5
-                                      ? "text-yellow-400"
-                                      : "text-red-400"
-                                }`}
-                              >
-                                {round.distance}
-                              </span>
-                            </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-white/30 uppercase">
+                            Captured by
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <img
+                              src={round.submitted_by.avatar_url}
+                              alt=""
+                              className="w-3 h-3 rounded-full"
+                            />
+                            <span className="text-sm text-white/50 font-bold">
+                              {round.submitted_by.name}
+                            </span>
                           </div>
                         </div>
-                      )
-                    )}
+
+                        <div
+                          className="aspect-video border border-white/10 overflow-hidden cursor-pointer hover:border-white/30 transition-colors"
+                          onClick={() => setLightboxUrl(round.image_url)}
+                        >
+                          <img
+                            src={round.image_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/30 uppercase">
+                              Time
+                            </span>
+                            <span className="font-bold text-white/70 uppercase">
+                              {round.time_spent_seconds.toFixed(3)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/30 uppercase">
+                              Target
+                            </span>
+                            <span className="font-bold text-green-400 uppercase truncate max-w-[120px]">
+                              {round.correct_level.level_number}:{" "}
+                              {round.correct_level.level_name}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white/30 uppercase">
+                              Distance
+                            </span>
+                            <span
+                              className={`font-bold ${
+                                round.distance === 0
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                              }`}
+                            >
+                              {round.distance}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </motion.div>
                 </motion.div>
               )
@@ -1091,7 +954,6 @@ const InfernoPlayPage = () => {
 
       <div className="-z-10 h-dvh w-dvw bg-black/40 fixed top-0 left-0 overflow-visible" />
 
-            {/* Image lightbox modal */}
       <AnimatePresence>
         {lightboxUrl && (
           <motion.div
@@ -1136,12 +998,6 @@ const InfernoPlayPage = () => {
                 draggable={false}
               />
             </div>
-            <button
-              onClick={() => setLightboxUrl(null)}
-              className="fixed top-4 right-4 text-white/50 hover:text-white text-2xl font-bold transition-colors"
-            >
-              ✕
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1158,28 +1014,16 @@ const InfernoPlayPage = () => {
               className="text-3xl text-red-500 font-bold tracking-widest"
               speed={0.05}
             />
-            <Typewriter
-              text="A NEW DAILY CHALLENGE IS AVAILABLE"
-              className="text-white/70 text-center"
-              speed={0.03}
-              delay={0.5}
-            />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.5 }}
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => {
+                setDailyChanged(false);
+                fetchGameState();
+              }}
             >
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => {
-                  setDailyChanged(false);
-                  fetchGameState();
-                }}
-              >
-                START NEW MISSION
-              </Button>
-            </motion.div>
+              START NEW MISSION
+            </Button>
           </motion.div>
         </div>
       )}
