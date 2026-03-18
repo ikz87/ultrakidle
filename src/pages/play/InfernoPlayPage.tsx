@@ -455,10 +455,6 @@ const InfernoPlayPage = () => {
 
   if (!displayRound) return null;
 
-console.log('image_url:', displayRound.image_url);
-console.log('SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('resolved:', resolveExternalUrl(displayRound.image_url));
-
   const displayLevels = searchQuery.trim() ? filteredLevels : sortedLevels;
 
   return (
