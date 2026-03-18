@@ -548,7 +548,7 @@ const InfernoPlayPage = () => {
                     />
                   </div>
 
-                  <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-100 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute bottom-3 right-3 flex flex-col gap-2 transition-opacity z-10">
                     <div className="bg-black/80 p-2 border border-white/10 flex flex-col gap-3">
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-white/40 uppercase tracking-widest">
@@ -578,7 +578,7 @@ const InfernoPlayPage = () => {
                           className="w-24 md:w-32 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
                         />
                       </div>
-                    </div
+                    </div>
                   </div>
 
                   <div className="absolute top-3 right-3 flex items-center gap-2 px-2 py-1 bg-black/60 border border-white/10 z-10">
@@ -657,7 +657,7 @@ const InfernoPlayPage = () => {
                         }
                       }}
                       placeholder="Search levels..."
-                      className="w-full bg-white/[0.03] border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/20 uppercase tracking-wider outline-none focus:border-white/30 transition-colors"
+                      className="w-full bg-white/[0.03] border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/20 font-mono uppercase tracking-wider outline-none focus:border-white/30 transition-colors"
                     />
                   </div>
                 )}
