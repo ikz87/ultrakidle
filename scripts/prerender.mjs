@@ -107,7 +107,15 @@ async function prerender() {
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 15000 });
     await new Promise((r) => setTimeout(r, 500));
 
-    const html = await page.content();
+    const html = await page.evaluate(() => {
+      document.getElementById('splash-loader')?.remove();
+      // Also remove the inline <style> for it if you want
+      const styles = document.querySelectorAll('style');
+      styles.forEach((s) => {
+        if (s.textContent.includes('splash-loader')) s.remove();
+      });
+      return document.documentElement.outerHTML;
+    });
     await page.close();
 
     const fixedHtml = fixRelativePaths(html, route);
