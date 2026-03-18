@@ -1,4 +1,5 @@
 import SEO from '../components/SEO';
+import { ExternalLink } from '../components/ui/ExternalLink';
 
 const ContactPage = () => {
     return (
@@ -14,9 +15,9 @@ const ContactPage = () => {
 
                         <span className="opacity-50 mt-2">Socials:</span>
                         <div className="flex gap-4">
-                            <a href="https://x.com/iikz87ii" target="_blank" className="underline">Twitter</a>
-                            <a href="https://github.com/ikz87" target="_blank" className="underline">GitHub</a>
-                            <a href="https://discord.gg/6dsMavu6mH" target="_blank" className="underline">DISCORD</a>
+                            <ExternalLink href="https://x.com/iikz87ii" className="underline">Twitter</ExternalLink>
+                            <ExternalLink href="https://github.com/ikz87" className="underline">GitHub</ExternalLink>
+                            <ExternalLink href="https://discord.gg/6dsMavu6mH" className="underline">DISCORD</ExternalLink>
                         </div>
                     </div>
                 </div>

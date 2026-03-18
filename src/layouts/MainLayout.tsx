@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Leaderboard } from '../components/game/Leaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderboard } from '../hooks/useLeaderboard';
+import { ExternalLink } from '../components/ui/ExternalLink';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -56,13 +57,6 @@ const MainLayout = () => {
   const isHome = location.pathname === '/';
   const isPlay = location.pathname.startsWith('/play');
   const inDiscord = isRunningInDiscord();
-
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
-    if (inDiscord && discordSdk) {
-      e.preventDefault();
-      discordSdk.commands.openExternalLink({ url });
-    }
-  };
 
   return (
     <div className="text-white overflow-hidden w-full h-dvh flex flex-col relative">
@@ -203,7 +197,7 @@ const MainLayout = () => {
                         <li>WEIGHT: LIGHT, MEDIUM, HEAVY OR SUPERHEAVY</li>
                         <li>HEALTH: NUMERIC COMPARISON. TARGET CAN BE HIGHER ▲ OR LOWER ▼. <span className={colorblindMode ? "text-blue-500" : "text-yellow-500"}>{colorblindMode ? "BLUE" : "YELLOW"}</span> INDICATES VALUE IS WITHIN 10 HP OF TARGET. FOR ENEMIES WITH MULTIPLE VARIANTS, THE HIGHEST VARIANT'S HEALTH IS USED. FOR ENEMIES WITH MULTIPLE PHASES, HEALTH IS THE SUM OF ALL PHASES</li>
                         <li>TOTAL LEVELS: NUMBER OF LEVELS THE ENEMY APPEARS IN. TARGET CAN BE HIGHER ▲ OR LOWER ▼. <span className={colorblindMode ? "text-blue-500" : "text-yellow-500"}>{colorblindMode ? "BLUE" : "YELLOW"}</span> INDICATES VALUE IS WITHIN 3 LEVELS OF TARGET</li>
-                        <li>REGISTERED AT: LEVEL OF FIRST ENCOUNTER. TARGET CAN BE LATER ▲ OR EARLIER ▼ (ORDERED ACCORDING TO OUR <a href="/levels" target="_blank" className="underline hover:text-white/80">LEVEL LIST</a>). <span className={colorblindMode ? "text-blue-500" : "text-yellow-500"}>{colorblindMode ? "BLUE" : "YELLOW"}</span> INDICATES TARGET ENEMY ALSO APPEARS IN THIS LEVEL</li>
+                        <li>REGISTERED AT: LEVEL OF FIRST ENCOUNTER. TARGET CAN BE LATER ▲ OR EARLIER ▼ (ORDERED ACCORDING TO OUR <button onClick={() => { setIsHowToPlayOpen(false); navigate("/levels"); }} className="underline hover:text-white/80 cursor-pointer">LEVEL LIST</button>). <span className={colorblindMode ? "text-blue-500" : "text-yellow-500"}>{colorblindMode ? "BLUE" : "YELLOW"}</span> INDICATES TARGET ENEMY ALSO APPEARS IN THIS LEVEL</li>
                       </ul>
                     </div>
                   </div>
@@ -214,7 +208,7 @@ const MainLayout = () => {
                       <p className="opacity-50 underline uppercase">Mechanics:</p>
                       <ul className="list-disc [&>*]:text-left pl-4 list-outside space-y-1 opacity-80">
                         <li>You get <span className="text-white">one attempt</span> per round.</li>
-                        <li>Distance is calculated based on the position of your guess relative to the correct answer in our <a href="/levels" target="_blank" className="underline hover:text-white/80">Levels</a> page list.</li>
+                        <li>Distance is calculated based on the position of your guess relative to the correct answer in our <button onClick={() => { setIsHowToPlayOpen(false); navigate("/levels"); }} className="underline hover:text-white/80 cursor-pointer">Levels</button> page list.</li>
                         <li>A guess of 0-3 while the answer is 0-5 results in a <span className="text-white font-bold">distance of 2</span>.</li>
                       </ul>
                     </div>
@@ -233,15 +227,18 @@ const MainLayout = () => {
                 <div className="pb-4">
                   <Outlet />
                 </div>
+
+                {/* ... (inside MainLayout) */}
+
                 <div className="z-10 text-left lg:text-xl md:text-lg text-sm border-t border-white/5 ">
                   <span className="opacity-50 uppercase ">
                     INTO SOCIALS... OK
                   </span>
                   <div className="flex gap-3 lg:text-3xl md:text-xl text-lg flex-wrap">
-                    <a onClick={(e) => handleLinkClick(e, 'https://github.com/ikz87')} target="_blank" href="https://github.com/ikz87" className="underline hover:opacity-80 transition-colors">GITHUB</a>
-                    <a onClick={(e) => handleLinkClick(e, 'https://www.youtube.com/@kz8785/')} target="_blank" href="https://www.youtube.com/@kz8785/" className="underline hover:opacity-80 transition-colors">YOUTUBE</a>
-                    <a onClick={(e) => handleLinkClick(e, 'https://x.com/iikz87ii')} target="_blank" href="https://x.com/iikz87ii" className="underline hover:opacity-80 transition-colors">TWITTER</a>
-                    <a onClick={(e) => handleLinkClick(e, 'https://discord.gg/6dsMavu6mH')} target="_blank" href="https://discord.gg/6dsMavu6mH" className="underline hover:opacity-80 transition-colors">DISCORD</a>
+                    <ExternalLink href="https://github.com/ikz87" className="underline hover:opacity-80 transition-colors">GITHUB</ExternalLink>
+                    <ExternalLink href="https://www.youtube.com/@kz8785/" className="underline hover:opacity-80 transition-colors">YOUTUBE</ExternalLink>
+                    <ExternalLink href="https://x.com/iikz87ii" className="underline hover:opacity-80 transition-colors">TWITTER</ExternalLink>
+                    <ExternalLink href="https://discord.gg/6dsMavu6mH" className="underline hover:opacity-80 transition-colors">DISCORD</ExternalLink>
                   </div>
                   {/* Secondary Footer */}
                   <div className="flex gap-2 lg:gap-4 mt-2 lg:text-base text-sm opacity-30 uppercase tracking-tighter">

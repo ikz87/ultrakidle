@@ -10,6 +10,17 @@ export function resolveExternalUrl(url: string): string {
 
     // If we are in Discord, we need the proxy to bypass CSP
     if (isRunningInDiscord()) {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (supabaseUrl && url.startsWith(supabaseUrl)) {
+            // Convert to a relative path so it's handled by the Vite proxy
+            // Ensure we don't end up with double slashes if supabaseUrl ends with /
+            return url.replace(supabaseUrl.endsWith('/') ? supabaseUrl.slice(0, -1) : supabaseUrl, '');
+        }
+
+        if (url.startsWith('https://img.icons8.com/')) {
+            return url.replace('https://img.icons8.com', '/external/icons8');
+        }
+
         return url;
     }
 
@@ -40,6 +51,10 @@ export function toExternalUrl(url: string): string {
 
     if (url.startsWith("/external/wiki/")) {
         return `https://ultrakill.wiki.gg/${url.replace("/external/wiki/", "")}`;
+    }
+
+    if (url.startsWith("/external/icons8/")) {
+        return `https://img.icons8.com/${url.replace("/external/icons8/", "")}`;
     }
 
     return url;

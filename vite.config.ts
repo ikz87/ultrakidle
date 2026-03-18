@@ -13,6 +13,11 @@ export default defineConfig(({ mode }) => {
       changeOrigin: true,
       secure: true,
     },
+    '/storage': {
+      target: env.VITE_SUPABASE_URL,
+      changeOrigin: true,
+      secure: true,
+    },
     '/auth': {
       target: env.VITE_SUPABASE_URL,
       changeOrigin: true,
@@ -41,10 +46,16 @@ export default defineConfig(({ mode }) => {
       secure: true,
       rewrite: (path: string) => path.replace(/^\/external\/wiki/, ''),
     },
+    '/external/icons8': {
+      target: 'https://img.icons8.com',
+      changeOrigin: true,
+      secure: true,
+      rewrite: (path: string) => path.replace(/^\/external\/icons8/, ''),
+    },
   };
 
   return {
-    base: './',
+    base: '/',
     plugins: [react(), tailwindcss()],
     build: {
       modulePreload: false,

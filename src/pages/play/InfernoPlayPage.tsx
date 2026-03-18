@@ -439,7 +439,7 @@ const InfernoPlayPage = () => {
                       </div>
                     )}
                     <img
-                      src={displayRound.image_url}
+                      src={resolveExternalUrl(displayRound.image_url)}
                       alt="Target"
                       className="w-full h-full object-contain pointer-events-none"
                       draggable={false}

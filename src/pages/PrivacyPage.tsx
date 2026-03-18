@@ -1,4 +1,5 @@
 import SEO from '../components/SEO';
+import { ExternalLink } from '../components/ui/ExternalLink';
 
 const PrivacyPage = () => {
   return (
@@ -38,14 +39,12 @@ const PrivacyPage = () => {
           <p className="font-bold uppercase">Third-Party Services</p>
           <p>
             Google Analytics (
-            <a
+            <ExternalLink
               href="https://policies.google.com/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
               className="underline"
             >
               Privacy Policy
-            </a>
+            </ExternalLink>
             )
           </p>
 

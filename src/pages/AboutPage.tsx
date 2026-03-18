@@ -1,4 +1,5 @@
 import SEO from '../components/SEO';
+import { ExternalLink } from '../components/ui/ExternalLink';
 
 const AboutPage = () => {
     return (
@@ -8,7 +9,7 @@ const AboutPage = () => {
                 <h1 className="text-3xl text-white">ABOUT_ULTRAKIDLE</h1>
                 <div className="flex flex-col gap-4 opacity-70 font-normal text-left normal-case tracking-normal">
                     <p>
-                        ULTRAKIDLE is a daily web-based game inspired by <a className="underline" href="https://www.nytimes.com/games/wordle/index.html">Wordle</a> and similar websites like <a className="underline" href="https://silksongdle.com/">Silksongdle</a>.
+                        ULTRAKIDLE is a daily web-based game inspired by <ExternalLink className="underline" href="https://www.nytimes.com/games/wordle/index.html">Wordle</ExternalLink> and similar websites like <ExternalLink className="underline" href="https://silksongdle.com/">Silksongdle</ExternalLink>.
                         Test your knowledge of ULTRAKILL's enemies and levels in a series of
                         challenging guessing modes.
                     </p>
@@ -28,7 +29,7 @@ const AboutPage = () => {
 
                     <p className="font-bold uppercase">The Team</p>
                     <p>
-                        ULTRAKIDLE is developed and maintained by ikz87, a dedicated fan, with the help of the <a className="text-indigo-500 underline" href="https://discord.gg/6dsMavu6mH">official ULTRAKIDLE discord server</a>. We are dedicated to
+                        ULTRAKIDLE is developed and maintained by ikz87, a dedicated fan, with the help of the <ExternalLink className="text-indigo-500 underline" href="https://discord.gg/6dsMavu6mH">official ULTRAKIDLE discord server</ExternalLink>. We are dedicated to
                         polishing the experience and adding new content regularly based on community feedback.
                     </p>
 

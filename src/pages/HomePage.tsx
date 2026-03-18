@@ -6,6 +6,7 @@ import { useGameInit } from "../hooks/useGameInit";
 import { Typewriter } from "../components/Typewriter";
 import { isRunningInDiscord, discordSdk } from "../lib/discord";
 import { resolveExternalUrl } from "../lib/urls";
+import { ExternalLink } from "../components/ui/ExternalLink";
 import { useMessages } from "../context/MessagesContext";
 import SEO from "../components/SEO";
 import PlayExpandable from "../components/ui/PlayExpandable";
@@ -349,29 +350,27 @@ const HomePage = () => {
               >
                 LEVELS
               </Button>
+
               <div className="flex w-full h-fit gap-2 flex-row">
-                <Button
-                  variant="outline"
-                  size="xl"
+                <ExternalLink
+                  href="https://ko-fi.com/G2G41UYAX6"
                   className="flex-1"
-                  onClick={() => {
-                    const url = "https://ko-fi.com/G2G41UYAX6";
-                    if (isRunningInDiscord() && discordSdk) {
-                      discordSdk.commands.openExternalLink({ url });
-                    } else {
-                      window.open(url, "_blank");
-                    }
-                  }}
                 >
-                  DONATE
-                  <img
-                    className={`w-6 ml-3`}
-                    src={resolveExternalUrl(
-                      "/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png",
-                    )}
-                    alt="Ko-fi"
-                  />
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="xl"
+                    className="w-full pointer-events-none"
+                  >
+                    DONATE
+                    <img
+                      className={`w-6 ml-3`}
+                      src={resolveExternalUrl(
+                        "/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png",
+                      )}
+                      alt="Ko-fi"
+                    />
+                  </Button>
+                </ExternalLink>
                 <Button
                   variant="outline"
                   size="xl"
@@ -442,7 +441,7 @@ const HomePage = () => {
                   INSTALL ON DISCORD
                   <img
                     className="w-5 ml-2"
-                    src="https://img.icons8.com/ios-filled/50/ffffff/discord-logo.png"
+                    src={resolveExternalUrl("https://img.icons8.com/ios-filled/50/ffffff/discord-logo.png")}
                     alt="Discord"
                   />
                 </Button>

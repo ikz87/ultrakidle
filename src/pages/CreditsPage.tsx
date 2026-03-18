@@ -1,5 +1,6 @@
 import SEO from '../components/SEO';
-import { resolveExternalUrl } from '../lib/urls';
+import { toExternalUrl } from '../lib/urls';
+import { ExternalLink } from '../components/ui/ExternalLink';
 
 const CreditsPage = () => {
     return (
@@ -9,24 +10,22 @@ const CreditsPage = () => {
                 <div className="flex flex-col gap-2">
                     <h1 className="text-xl opacity-50">DEVELOPED_BY</h1>
                     <span className="text-4xl text-white">ikz87</span>
-                    <a
+                    <ExternalLink
                         href="mailto:iikz87ii@gmail.com"
                         className="text-lg text-indigo-500 hover:text-red-400 transition-colors underline lowercase tracking-normal"
                     >
                         iikz87ii@gmail.com
-                    </a>
+                    </ExternalLink>
                 </div>
 
                 <div className="flex flex-col gap-2">
                     <span className="text-xl opacity-50">DATA_SOURCE</span>
-                    <a
-                        href={resolveExternalUrl("/external/wiki/")}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <ExternalLink
+                        href={toExternalUrl("/external/wiki/")}
                         className="text-3xl text-red-500 hover:text-red-400 transition-colors underline"
                     >
                         ULTRAwiki
-                    </a>
+                    </ExternalLink>
                     <span className="text-sm opacity-30 mt-1 italic font-normal normal-case">
                         ALL RIGHTS TO ULTRAKILL BELONG TO ARSI "HAKITA" PATALA AND NEW BLOOD INTERACTIVE.
                     </span>
