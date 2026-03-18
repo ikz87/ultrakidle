@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import { useGameInit } from "../hooks/useGameInit";
 import { Typewriter } from "../components/Typewriter";
-import { isRunningInDiscord, discordSdk } from "../lib/discord";
+import { isRunningInDiscord } from "../lib/discord";
 import { resolveExternalUrl } from "../lib/urls";
 import { ExternalLink } from "../components/ui/ExternalLink";
 import { useMessages } from "../context/MessagesContext";

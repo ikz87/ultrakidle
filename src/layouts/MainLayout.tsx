@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { isRunningInDiscord, discordSdk, getGuildId } from '../lib/discord';
+import { isRunningInDiscord, getGuildId } from '../lib/discord';
 import { supabase } from '../lib/supabaseClient';
 import { Leaderboard } from '../components/game/Leaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
