@@ -71,7 +71,7 @@ const DonorsBoard = ({
   return (
     <div className="flex flex-col gap-2 bg-black/40 border-2 border-white/10 p-4">
       <div className="text-xs uppercase font-bold tracking-widest text-white/40 border-b border-white/10 pb-2 mb-1">
-        RECENT_TIPS
+        RECENT_DONATIONS
       </div>
       <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
         {processedDonors.length > 0 ? (
