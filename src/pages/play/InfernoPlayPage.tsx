@@ -477,7 +477,7 @@ const InfernoPlayPage = () => {
               <span className="text-xs tracking-widest opacity-70">
                 {showFinalResults
                   ? "COMPLETE"
-                  : `ROUND ${displayRound.round_number} / 3`}
+                  : `ROUND ${displayRound.round_number} / 5`}
               </span>
             </div>
           </div>
@@ -777,7 +777,7 @@ const InfernoPlayPage = () => {
                 {/* Status text */}
                 <div className="text-white flex flex-col items-start gap-1 font-bold uppercase tracking-wider">
                   <span className="opacity-50">
-                    ROUND: {displayRound.round_number} / 3
+                    ROUND: {displayRound.round_number} / 5
                   </span>
 
                   {lastRoundResult && (
@@ -981,7 +981,7 @@ const InfernoPlayPage = () => {
                     <Typewriter
                       delay={0.4}
                       className="text-green-500 opacity-50 font-bold tracking-wider uppercase"
-                      text={`TOTAL SCORE: ${(safeGameData as GameCompleted).total_score} / 300`}
+                      text={`TOTAL SCORE: ${(safeGameData as GameCompleted).total_score} / 500`}
                     />
                   </div>
 
@@ -1069,7 +1069,7 @@ const InfernoPlayPage = () => {
                                 className={`font-bold ${
                                   round.distance === 0
                                     ? "text-green-400"
-                                    : round.distance <= 3
+                                    : round.distance <= 5
                                       ? "text-yellow-400"
                                       : "text-red-400"
                                 }`}

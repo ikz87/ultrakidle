@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
       .order("round_number");
 
     if (roundsErr) throw roundsErr;
-    if (!rounds || rounds.length !== 3) {
-      throw new Error(`Expected 3 rounds, got ${rounds?.length}`);
+    if (!rounds || rounds.length !== 5) {
+      throw new Error(`Expected 5 rounds, got ${rounds?.length}`);
     }
 
     // 2. Copy each image to the public bucket
