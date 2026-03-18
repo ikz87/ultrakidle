@@ -16,7 +16,6 @@ console.log(`[prerender] DIST: ${DIST}`);
 const PORT = 45678;
 
 const ROUTES = [
-  '/',
   '/about',
   '/enemies',
   '/credits',
@@ -75,8 +74,7 @@ function serve() {
 }
 
 function fixRelativePaths(html, route) {
-  const depth =
-    route === '/' ? 0 : route.replace(/^\//, '').split('/').length;
+  const depth = route.replace(/^\//, '').split('/').length;
   if (depth === 0) return html;
   const prefix = '../'.repeat(depth);
   return html.replaceAll(/\.\/(assets\/)/g, `${prefix}$1`);
@@ -109,18 +107,15 @@ async function prerender() {
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 15000 });
     await new Promise((r) => setTimeout(r, 500));
 
-    const html = await page.evaluate((route) => {
-      if ( route !== "/" ) {
+    const html = await page.evaluate(() => {
       document.getElementById('splash-loader')?.remove();
-      }
       return document.documentElement.outerHTML;
     });
     await page.close();
 
     const fixedHtml = fixRelativePaths(html, route);
 
-    const outDir =
-      route === '/' ? DIST : join(DIST, route.replace(/^\//, ''));
+    const outDir = join(DIST, route.replace(/^\//, ''));
 
     if (!existsSync(outDir)) {
       mkdirSync(outDir, { recursive: true });
