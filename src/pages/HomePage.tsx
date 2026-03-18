@@ -300,7 +300,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col gap-4 w-full max-w-[450px] overflow-show min-h-0 pb-4"
+            className="flex flex-col gap-2 w-full max-w-[450px] overflow-show min-h-0 pb-4"
           >
             <DonorsBoard donors={donors} rates={rates} />
 
@@ -338,7 +338,7 @@ const HomePage = () => {
                 variant="outline"
                 size="xl"
                 onClick={() => navigate("/enemies")}
-                className="mt-2"
+                className=""
               >
                 ENEMIES
               </Button>
@@ -346,7 +346,7 @@ const HomePage = () => {
                 variant="outline"
                 size="xl"
                 onClick={() => navigate("/levels")}
-                className="mt-2"
+                className=""
               >
                 LEVELS
               </Button>
