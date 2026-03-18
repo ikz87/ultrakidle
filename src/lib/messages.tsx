@@ -7,6 +7,39 @@ export interface Message {
 }
 
 export const MESSAGES: Message[] = [
+    {
+    id: 'changelog-2026-03-18',
+    date: '2026-03-18',
+    content: (
+      <div className="space-y-4 lg:space-y-6 text-justify">
+        <p className="text-zinc-400 text-sm">
+          SYSTEM UPDATE LOG // [18-MAR-2026]
+        </p>
+        <p className="text-cyan-300 lg:text-base text-sm">
+          BALANCE CHANGE: DEBUT LEVEL HINTS
+        </p>
+        <p className="text-cyan-300 lg:text-base text-sm">
+          TLDR: Read the how to play section (again)
+        </p>
+        <p className="text-white/70 lg:text-base text-sm">
+          The <span className="text-yellow-400">yellow</span> hint
+          for the <span className="text-white">registered at</span>{" "}
+          column has been reworked. Previously, it indicated that the
+          target enemy appeared in the guessed enemy's debut
+          level, meaning that seeing someone else's grid with yellow
+          on their last column immediately spoiled that the daily enemy 
+          had more than one appearance.
+        </p>
+        <p className="text-white/70 lg:text-base text-sm">
+          Now, <span className="text-yellow-400">yellow</span> means
+          the correct debut level is{" "}
+          <span className="text-white">within 10 levels</span> of
+          your guess (based on level ordering). This should make the hint still
+          useful while not spoiling anything about the enemy for other players
+        </p>
+      </div>
+    ),
+  },
   {
   id: 'supporters-board',
   date: '2026-03-17',
