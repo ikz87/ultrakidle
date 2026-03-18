@@ -8,6 +8,43 @@ export interface Message {
 }
 
 export const MESSAGES: Message[] = [
+  {
+  id: 'infernoguessr-release',
+  date: '2026-03-18',
+  content: (
+    <div className="space-y-4 lg:space-y-6 text-justify">
+      <p className="text-zinc-400 text-sm">
+        SYSTEM UPDATE LOG // [18-MAR-2026]
+      </p>
+      <p className="text-green-500 lg:text-xl text-base font-bold tracking-wide">
+        INFERNOGUESSR HAS BEEN DEPLOYED
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        A new gamemode has been added to ULTRAKIDLE. You are shown a
+        screenshot from an ULTRAKILL level. You guess the level. You are
+        scored based on how close you get. There will be 5 rounds daily with a maximum of 500 points to get.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        When the daily challenge refreshed, there might have been some jank on the site or the discord
+        activity, that was me messing things up while trying to finish this new feature before going to bed. Everything should be back to normal now, sorry for the inconveniences.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        Big shoutouts to everyone who submitted screenshots in the discord!
+        You guys made this possible. Your tag is shown in-game whenever one
+        of your images comes up.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+          Interested in submitting your own screenshots? Join the           <ExternalLink
+            className="text-indigo-500 underline"
+            href="https://discord.gg/6dsMavu6mH"
+          >
+            discord server
+          </ExternalLink>
+!
+      </p>
+    </div>
+  ),
+},
     {
     id: 'changelog-2026-03-18',
     date: '2026-03-18',
