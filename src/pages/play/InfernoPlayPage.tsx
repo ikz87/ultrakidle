@@ -74,6 +74,7 @@ const InfernoPlayPage = () => {
   const [pendingNextRound, setPendingNextRound] =
     useState<GameInProgress | null>(null);
   const [isGameFinished, setIsGameFinished] = useState(false);
+  const [imgRetry, setImgRetry] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFinalResults, setShowFinalResults] = useState(false);
   const [dailyChanged, setDailyChanged] = useState(false);
@@ -85,6 +86,8 @@ const InfernoPlayPage = () => {
   const listRef = useRef<HTMLDivElement>(null);
   const targetRef = useRef<HTMLButtonElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const imgRetryTimer = useRef<ReturnType<typeof setTimeout>>();
+  const MAX_IMG_RETRIES = 5
 
   const tabs: { id: GameMode; label: string }[] = [
     { id: "classic", label: "CLASSIC" },
@@ -236,6 +239,7 @@ const InfernoPlayPage = () => {
     }
     setLastRoundResult(null);
     setImageLoaded(false);
+    setImgRetry(0);
 
     setTimeout(() => {
       document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -246,6 +250,7 @@ const InfernoPlayPage = () => {
     await fetchGameState({ silent: true });
     setLastRoundResult(null);
     setImageLoaded(false);
+    setImgRetry(0);
     setTimeout(() => {
       document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
     }, 10);
@@ -255,6 +260,24 @@ const InfernoPlayPage = () => {
   useEffect(() => {
     if (zoom === 1) setPan({ x: 0, y: 0 });
   }, [zoom]);
+
+  useEffect(() => {
+    return () => {
+      if (imgRetryTimer.current) clearTimeout(imgRetryTimer.current);
+    };
+  }, []);
+
+  const handleImageError = () => {
+    if (imgRetry >= MAX_IMG_RETRIES) return;
+    const delay = Math.min(250 * Math.pow(2, imgRetry), 3000);
+    console.log(
+      `[InfernoPlayPage] Image load failed, retrying in ${delay}ms (attempt ${imgRetry + 1}/${MAX_IMG_RETRIES})`
+    );
+    imgRetryTimer.current = setTimeout(() => {
+      setImgRetry((r) => r + 1);
+    }, delay);
+  };
+
 
   useEffect(() => {
     if (lastRoundResult && targetRef.current) {
@@ -439,11 +462,18 @@ const InfernoPlayPage = () => {
                       </div>
                     )}
                     <img
-                      src={resolveExternalUrl(displayRound.image_url)}
+                      src={
+                        resolveExternalUrl(displayRound.image_url) +
+                        (imgRetry > 0 ? `${displayRound.image_url.includes("?") ? "&" : "?"}_r=${imgRetry}` : "")
+                      }
                       alt="Target"
                       className="w-full h-full object-contain pointer-events-none"
                       draggable={false}
-                      onLoad={() => setImageLoaded(true)}
+                      onLoad={() => {
+                        setImageLoaded(true);
+                        if (imgRetryTimer.current) clearTimeout(imgRetryTimer.current);
+                      }}
+                      onError={handleImageError}
                     />
                   </div>
 
