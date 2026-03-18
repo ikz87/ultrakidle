@@ -109,11 +109,6 @@ async function prerender() {
 
     const html = await page.evaluate(() => {
       document.getElementById('splash-loader')?.remove();
-      // Also remove the inline <style> for it if you want
-      const styles = document.querySelectorAll('style');
-      styles.forEach((s) => {
-        if (s.textContent.includes('splash-loader')) s.remove();
-      });
       return document.documentElement.outerHTML;
     });
     await page.close();
