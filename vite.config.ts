@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
-    base: './',
+    base: '/',
     plugins: [react(), tailwindcss()],
     build: {
       modulePreload: false,
