@@ -329,7 +329,7 @@ const HomePage = () => {
                 infernoContent={
                   isInfernoCompleted ? (
                     <span className="opacity-50">
-                      INFERNO ({countdownStr})
+                      INFERNOGUESSR ({countdownStr})
                     </span>
                   ) : null
                 }

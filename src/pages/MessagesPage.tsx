@@ -63,7 +63,7 @@ export default function MessagesPage() {
                         </div>
                     ) : (
                         <div className="py-12 text-center border border-dashed border-white/10 opacity-50">
-                            <p className="text-sm font-mono tracking-widest uppercase">NO NEW V-MAIL FOUND</p>
+                            <p className="text-sm tracking-widest uppercase">NO NEW V-MAIL FOUND</p>
                         </div>
                     )}
 
@@ -71,7 +71,7 @@ export default function MessagesPage() {
                         <div className="mt-8 border-t border-white/10 pt-6">
                             <button
                                 onClick={() => setShowArchive(!showArchive)}
-                                className="hover:cursor-pointer flex items-center gap-2 text-xs font-mono text-white/40 hover:text-white/70 transition-colors uppercase tracking-widest"
+                                className="hover:cursor-pointer flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors uppercase tracking-widest"
                             >
                                 <span>{showArchive ? '[-]' : '[+]'}</span>
                                 <span>ARCHIVE ({readMessages.length})</span>
@@ -95,7 +95,7 @@ export default function MessagesPage() {
                                                         {msg.content}
                                                     </div>
                                                     {msg.date && (
-                                                        <div className="mt-2 text-[10px] text-white/30 font-mono uppercase">
+                                                        <div className="mt-2 text-[10px] text-white/30 uppercase">
                                                             ARCHIVED: {msg.date}
                                                         </div>
                                                     )}

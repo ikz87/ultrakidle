@@ -97,6 +97,9 @@ const InfernoPlayPage = () => {
   const targetRef = useRef<HTMLButtonElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const imgRetryTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const nextRoundBtnRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
   const MAX_IMG_RETRIES = 5;
 
   const tabs: { id: GameMode; label: string }[] = [
@@ -105,7 +108,8 @@ const InfernoPlayPage = () => {
   ];
 
   const sortedLevels = useMemo(
-    () => [...levels].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)),
+    () =>
+      [...levels].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0)),
     []
   );
 
@@ -204,6 +208,20 @@ const InfernoPlayPage = () => {
     };
   }, []);
 
+
+  // Auto-focus search input when a new round loads (no result showing)
+  useEffect(() => {
+    if (
+      !lastRoundResult &&
+      !showFinalResults &&
+      gameData?.status === "in_progress"
+    ) {
+      setTimeout(() => {
+        searchInputRef.current?.focus({ preventScroll: true });
+      }, 100);
+    }
+  }, [lastRoundResult, showFinalResults, gameData?.status]);
+
   const handleGuess = async () => {
     if (!selectedLevelId || isSubmitting || gameData?.status !== "in_progress")
       return;
@@ -279,9 +297,7 @@ const InfernoPlayPage = () => {
       setImgRetry(0);
       setSearchQuery("");
       setTimeout(() => {
-        document
-          .getElementById("main-scroll-container")
-          ?.scrollTo({ top: 0, behavior: "smooth" });
+        imageRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 10);
     } finally {
       setIsFetchingNextRound(false);
@@ -716,7 +732,8 @@ const InfernoPlayPage = () => {
               )
             ) : (
               <>
-                <div className="relative aspect-video bg-black border border-white/10 overflow-hidden group">
+                  
+                <div ref={imageRef} className="relative aspect-video bg-black border border-white/10 overflow-hidden group">
                   <div
                     className="h-full w-full select-none"
                     onPointerDown={handlePointerDown}
@@ -855,6 +872,7 @@ const InfernoPlayPage = () => {
                 {!lastRoundResult && (
                   <div className="w-full">
                     <input
+                      ref={searchInputRef}
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -868,7 +886,7 @@ const InfernoPlayPage = () => {
                         }
                       }}
                       placeholder="Search levels..."
-                      className="w-full bg-white/[0.03] border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/20 font-mono uppercase tracking-wider outline-none focus:border-white/30 transition-colors"
+                      className="w-full bg-white/[0.03] border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/20 uppercase tracking-wider outline-none focus:border-white/30 transition-colors"
                     />
                   </div>
                 )}
@@ -922,7 +940,7 @@ const InfernoPlayPage = () => {
                             isSelected
                               ? "scale-105 opacity-100 grayscale-0"
                               : lastRoundResult &&
-                                (isCorrect || isGuessed || isInBetween)
+                                  (isCorrect || isGuessed || isInBetween)
                                 ? "scale-105 opacity-100 grayscale-0"
                                 : "opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
                           }`}
@@ -1014,13 +1032,25 @@ const InfernoPlayPage = () => {
                         speed={0.02}
                         delay={0.8}
                       />
+                        <div className="md:block hidden">
+                      <Typewriter
+                        text={`(CLICK OR PRESS ENTER )`}
+                          className="lg:block hidden text-sm opacity-50"
+                        speed={0.02}
+                        delay={1.2}
+                      />
+                        </div>
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 1.2 }}
+                          onAnimationComplete={() => {
+                            nextRoundBtnRef.current?.focus({ preventScroll: true });
+                          }}
                       >
                         {isGameFinished ? (
                           <Button
+                            ref={nextRoundBtnRef}
                             variant="outline"
                             size="lg"
                             onClick={viewFinalResults}
@@ -1030,6 +1060,7 @@ const InfernoPlayPage = () => {
                           </Button>
                         ) : (
                           <Button
+                            ref={nextRoundBtnRef}
                             variant="outline"
                             size="lg"
                             onClick={nextRound}
