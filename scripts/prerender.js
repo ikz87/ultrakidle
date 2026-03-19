@@ -26,8 +26,6 @@ const ROUTES = [
   '/tos',
   '/privacy',
   '/messages',
-  '/play/classic',
-  '/play/infernoguessr',
 ];
 
 function serve() {
@@ -103,45 +101,23 @@ async function prerender() {
     page.on('request', (req) => {
       const reqUrl = req.url();
       const isLocal = reqUrl.startsWith(`http://localhost:${PORT}`);
-      const isSupabase = reqUrl.includes('.supabase.co') || reqUrl.includes('/rest/v1/') || reqUrl.includes('/auth/v1/');
-      const isImage = /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(reqUrl.split('?')[0]) || reqUrl.includes('/storage/v1/object/public/');
 
-      if (isLocal || isSupabase) {
-        // Block external images only for infernoguessr
-        if (route === '/play/infernoguessr' && isImage && !isLocal) {
-          req.abort();
-        } else {
-          req.continue();
-        }
+      if (isLocal) {
+        req.continue();
       } else {
         req.abort();
       }
     });
 
     try {
-      if (route === '/play/infernoguessr') {
-        // Wait for the main content but don't wait for network idle to avoid timing out on blocked images
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        // Wait for the "INITIALIZING BOARD..." to disappear (loading becomes false)
-        await page.waitForFunction(() => {
-          return !document.body.innerText.includes('INITIALIZING BOARD...');
-        }, { timeout: 10000 }).catch(() => console.log(`[prerender] Timeout waiting for loading state for ${route}`));
-        // Give it a tiny bit of time for the shell to breathe
-        await new Promise((r) => setTimeout(r, 1000));
-      } else if (route === '/play/classic') {
-        await page.goto(url, { waitUntil: 'networkidle0', timeout: 15000 });
-        // Ensure loading is done
-        await page.waitForFunction(() => {
-          return !document.body.innerText.includes('INITIALIZING BOARD...');
-        }, { timeout: 10000 }).catch(() => console.log(`[prerender] Timeout waiting for loading state for ${route}`));
-      } else {
-        await page.goto(url, { waitUntil: 'networkidle0', timeout: 15000 });
-      }
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
     } catch (e) {
-      console.warn(`[prerender] Warning during navigation for ${route}: ${e.message}`);
+      console.warn(
+        `[prerender] Warning during navigation for ${route}: ${e.message}`
+      );
     }
 
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 1000));
 
     const html = await page.evaluate(() => {
       document.getElementById('splash-loader')?.remove();

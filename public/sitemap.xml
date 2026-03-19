@@ -6,11 +6,6 @@
     <changefreq>daily</changefreq>
   </url>
   <url>
-    <loc>https://ultrakidle.online/play</loc>
-    <priority>0.9</priority>
-    <changefreq>daily</changefreq>
-  </url>
-  <url>
     <loc>https://ultrakidle.online/enemies</loc>
     <priority>0.8</priority>
     <changefreq>monthly</changefreq>
