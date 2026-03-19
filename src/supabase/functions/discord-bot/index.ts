@@ -75,8 +75,7 @@ serve(async (req) => {
         return Response.json({
           type: 4,
           data: {
-            content:
-              "This channel doesn't have daily notifications enabled.",
+            content: "This channel doesn't have daily notifications enabled.",
             flags: 64,
           },
         });
@@ -92,47 +91,47 @@ serve(async (req) => {
     }
 
     if (payload.data.name === "stats") {
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
 
-  const { data: stats, error } = await supabase.rpc("get_daily_stats");
+      const { data: stats, error } = await supabase.rpc("get_daily_stats");
 
-    if (error || !stats) {
+      if (error || !stats) {
+        return Response.json({
+          type: 4,
+          data: { content: "Failed to fetch stats.", flags: 64 },
+        });
+      }
+
+      // Next reset: midnight Nicaragua (UTC-6)
+      const now = new Date();
+      const nicaraguaNow = new Date(
+        now.toLocaleString("en-US", { timeZone: "America/Managua" }),
+      );
+      const nextMidnight = new Date(nicaraguaNow);
+      nextMidnight.setDate(nextMidnight.getDate() + 1);
+      nextMidnight.setHours(0, 0, 0, 0);
+      const msLeft = nextMidnight.getTime() - nicaraguaNow.getTime();
+
+      const hours = Math.floor(msLeft / 3_600_000);
+      const minutes = Math.floor((msLeft % 3_600_000) / 60_000);
+
+      const winPct =
+        stats.total_players > 0
+          ? Math.round((stats.total_wins / stats.total_players) * 100)
+          : 0;
+
+      const lossPct =
+        stats.total_players > 0
+          ? Math.round((stats.total_losses / stats.total_players) * 100)
+          : 0;
+
       return Response.json({
         type: 4,
-        data: { content: "Failed to fetch stats.", flags: 64 },
-      });
-    }
-
-    // Next reset: midnight Nicaragua (UTC-6)
-    const now = new Date();
-    const nicaraguaNow = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/Managua" }),
-    );
-    const nextMidnight = new Date(nicaraguaNow);
-    nextMidnight.setDate(nextMidnight.getDate() + 1);
-    nextMidnight.setHours(0, 0, 0, 0);
-    const msLeft = nextMidnight.getTime() - nicaraguaNow.getTime();
-
-    const hours = Math.floor(msLeft / 3_600_000);
-    const minutes = Math.floor((msLeft % 3_600_000) / 60_000);
-
-    const winPct =
-      stats.total_players > 0
-        ? Math.round((stats.total_wins / stats.total_players) * 100)
-        : 0;
-
-    const lossPct =
-      stats.total_players > 0
-        ? Math.round((stats.total_losses / stats.total_players) * 100)
-        : 0;
-
-    return Response.json({
-      type: 4,
-      data: {
+        data: {
           embeds: [
             {
               title: "📊 Today's ULTRAKIDLE",
@@ -147,10 +146,10 @@ serve(async (req) => {
               ].join("\n"),
             },
           ],
-        components: PLAY_BUTTONS,
-      },
-    });
-  }
+          components: PLAY_BUTTONS,
+        },
+      });
+    }
 
     if (payload.data.name === "random-level") {
       const supabase = createClient(
@@ -228,6 +227,7 @@ serve(async (req) => {
         },
       });
     }
+
     if (payload.data.name === "channel-subscribe") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -252,11 +252,13 @@ serve(async (req) => {
         });
       }
 
-      const { error } = await supabase.from("daily_notification_channels").upsert({
-        guild_id: payload.guild_id,
-        channel_id: payload.channel_id,
-        configured_by: payload.member.user.id,
-      });
+      const { error } = await supabase
+        .from("daily_notification_channels")
+        .upsert({
+          guild_id: payload.guild_id,
+          channel_id: payload.channel_id,
+          configured_by: payload.member.user.id,
+        });
 
       if (error) {
         console.error("Error upserting notification channel:", error);
@@ -323,7 +325,12 @@ serve(async (req) => {
         p_discord_id: discordId,
       });
 
-      if (error || !data) {
+      const { data: infernoData } = await supabase.rpc(
+        "get_daily_inferno_share",
+        { p_discord_id: discordId },
+      );
+
+      if ((error || !data) && !infernoData) {
         return Response.json({
           type: 4,
           data: {
@@ -334,17 +341,36 @@ serve(async (req) => {
         });
       }
 
-      const result = data.is_win ? `${data.attempts}/5` : "X/5";
+      const parts: string[] = [];
+
+      if (data) {
+        const result = data.is_win ? `${data.attempts}/5` : "X/5";
+        parts.push(
+          `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}`,
+        );
+      }
+
+      if (infernoData) {
+        parts.push(
+          [
+            `**${displayName}** — INFERNOGUESSR #${infernoData.day_number}`,
+            `PTS: ${infernoData.total_score}/${infernoData.max_score}`,
+            `TIME: ${infernoData.time_text}`,
+            "",
+            infernoData.grid,
+          ].join("\n"),
+        );
+      }
 
       return Response.json({
         type: 4,
         data: {
-          content: `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}\n\u200b`,
+          content: parts.join("\n\n") + "\n\u200b",
           components: PLAY_BUTTONS,
         },
       });
     }
-  }
+  } // <-- This closing brace was missing in your previous version
 
   if (payload.type === 3) {
     if (payload.data.custom_id === "launch_activity") {
