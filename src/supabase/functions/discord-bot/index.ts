@@ -99,18 +99,73 @@ serve(async (req) => {
 
       const { data: stats, error } = await supabase.rpc("get_daily_stats");
 
-      if (error || !stats) {
-        return Response.json({
-          type: 4,
-          data: { content: "Failed to fetch stats.", flags: 64 },
-        });
-      }
-
-      // Next reset: midnight Nicaragua (UTC-6)
+      // Get today's inferno set
       const now = new Date();
       const nicaraguaNow = new Date(
         now.toLocaleString("en-US", { timeZone: "America/Managua" }),
       );
+      const todayStr = nicaraguaNow.toISOString().split("T")[0];
+
+      const { data: infernoSet } = await supabase
+        .from("inferno_daily_sets")
+        .select("id")
+        .eq("game_date", todayStr)
+        .single();
+
+      let infernoLines: string[] = [];
+
+      if (infernoSet) {
+        const { data: infernoCache } = await supabase
+          .from("inferno_daily_stats_cache")
+          .select("total_score_sum, total_completed")
+          .eq("set_id", infernoSet.id)
+          .single();
+
+        const { data: timeData } = await supabase
+          .from("inferno_results")
+          .select("total_time_seconds")
+          .eq("set_id", infernoSet.id)
+          .not("completed_at", "is", null);
+
+        const completed = infernoCache?.total_completed ?? 0;
+        const avgScore =
+          completed > 0
+            ? Math.round(infernoCache!.total_score_sum / completed)
+            : 0;
+
+        let avgTimeStr = "—";
+        if (timeData && timeData.length > 0) {
+          const totalSecs =
+            timeData.reduce(
+              (sum: number, r: { total_time_seconds: number }) =>
+                sum + (r.total_time_seconds ?? 0),
+              0,
+            ) / timeData.length;
+          const m = Math.floor(totalSecs / 60);
+          const s = Math.floor(totalSecs % 60);
+          avgTimeStr = `${m}m ${s}s`;
+        }
+
+        infernoLines = [
+          "",
+          "**INFERNOGUESSR**",
+          "```",
+          `Players    ${completed}`,
+          `Avg Score  ${avgScore}/500`,
+          `Avg Time   ${avgTimeStr}`,
+          "```",
+        ];
+      }
+
+      if (error || !stats) {
+        if (infernoLines.length === 0) {
+          return Response.json({
+            type: 4,
+            data: { content: "Failed to fetch stats.", flags: 64 },
+          });
+        }
+      }
+
       const nextMidnight = new Date(nicaraguaNow);
       nextMidnight.setDate(nextMidnight.getDate() + 1);
       nextMidnight.setHours(0, 0, 0, 0);
@@ -119,30 +174,38 @@ serve(async (req) => {
       const hours = Math.floor(msLeft / 3_600_000);
       const minutes = Math.floor((msLeft % 3_600_000) / 60_000);
 
-      const winPct =
-        stats.total_players > 0
-          ? Math.round((stats.total_wins / stats.total_players) * 100)
-          : 0;
+      const classicLines: string[] = [];
+      if (stats) {
+        const winPct =
+          stats.total_players > 0
+            ? Math.round((stats.total_wins / stats.total_players) * 100)
+            : 0;
+        const lossPct =
+          stats.total_players > 0
+            ? Math.round((stats.total_losses / stats.total_players) * 100)
+            : 0;
 
-      const lossPct =
-        stats.total_players > 0
-          ? Math.round((stats.total_losses / stats.total_players) * 100)
-          : 0;
+        classicLines.push(
+          "**CLASSIC**",
+          "```",
+          `Players    ${stats.total_players}`,
+          `Wins       ${stats.total_wins} (${winPct}%)`,
+          `Losses     ${stats.total_losses} (${lossPct}%)`,
+          "```",
+        );
+      }
 
       return Response.json({
         type: 4,
         data: {
           embeds: [
             {
-              title: "📊 Today's ULTRAKIDLE",
+              title: "📊 Today's Stats",
               color: 0xff0000,
               description: [
-                "```",
-                `Players    ${stats.total_players}`,
-                `Wins       ${stats.total_wins} (${winPct}%)`,
-                `Losses     ${stats.total_losses} (${lossPct}%)`,
-                "```",
-                `Next enemy in **${hours}h ${minutes}m**`,
+                ...classicLines,
+                ...infernoLines,
+                `Next daily in **${hours}h ${minutes}m**`,
               ].join("\n"),
             },
           ],

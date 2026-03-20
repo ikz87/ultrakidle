@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import { isRunningInDiscord, getGuildId } from '../lib/discord';
 import { supabase } from '../lib/supabaseClient';
-import { Leaderboard } from '../components/game/Leaderboard';
+import { LeaderboardTabs } from '../components/game/LeaderboardTabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { ExternalLink } from '../components/ui/ExternalLink';
@@ -92,7 +92,7 @@ const MainLayout = () => {
                 }`}
               aria-hidden={!isRankingOpen}
             >
-              <Leaderboard layout="horizontal" users={users} loading={loading} />
+              <LeaderboardTabs layout="horizontal" guildId={guildId} />
             </div>
           </div>
         )}
@@ -291,7 +291,7 @@ const MainLayout = () => {
                   }`}
               >
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
-                  <Leaderboard layout="vertical" users={users} loading={loading} />
+                  <LeaderboardTabs layout="vertical" guildId={guildId} />
                 </div>
               </div>
             </div>

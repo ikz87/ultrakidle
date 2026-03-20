@@ -130,3 +130,25 @@ entrypoint = "./functions/refetch-submitters-data/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/refetch-submitters-data/*.html" ]
+
+[functions.optimized-daily-message]
+enabled = true
+verify_jwt = true
+import_map = "./functions/optimized-daily-message/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/optimized-daily-message/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/optimized-daily-message/*.html" ]
+
+[functions.rate-limited-daily-message]
+enabled = true
+verify_jwt = true
+import_map = "./functions/rate-limited-daily-message/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/rate-limited-daily-message/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/rate-limited-daily-message/*.html" ]

@@ -185,7 +185,7 @@ const InfernoPlayPage = () => {
           }
         });
       },
-      { threshold: 1.0 }
+      { threshold: 0.2 }
     );
 
     observer.observe(el);
@@ -247,6 +247,11 @@ const InfernoPlayPage = () => {
       !showFinalResults &&
       gameData?.status === "in_progress"
     ) {
+      const isCoarsePointer = window.matchMedia(
+        "(pointer: coarse)"
+      ).matches;
+      if (isCoarsePointer) return;
+
       setTimeout(() => {
         searchInputRef.current?.focus({ preventScroll: true });
       }, 100);
