@@ -16,7 +16,6 @@ console.log(`[prerender] DIST: ${DIST}`);
 const PORT = 45678;
 
 const ROUTES = [
-  '/',
   '/about',
   '/enemies',
   '/levels',

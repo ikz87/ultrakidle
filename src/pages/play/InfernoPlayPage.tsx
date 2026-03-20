@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SEO from "../../components/SEO";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, animate } from "framer-motion";
 import ModeTabs from "../../components/ui/ModeTabs";
 import type { GameMode } from "../../components/ui/ModeTabs";
 import { levels } from "../../lib/levels_list";
@@ -88,6 +88,7 @@ const InfernoPlayPage = () => {
   const [copySuccess, setCopySuccess] = useState(false);
 
   const [activeTimer, setActiveTimer] = useState(0);
+  const [isListVisible, setIsListVisible] = useState(false);
 
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
@@ -160,6 +161,36 @@ const InfernoPlayPage = () => {
       if (!silent) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!listRef.current || loading || gameData?.status !== "in_progress") return;
+
+    const el = listRef.current;
+    el.scrollLeft = el.scrollWidth;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsListVisible(true);
+            setTimeout(() => {
+              animate(el.scrollLeft, 0, {
+                type: "tween",
+                ease: "easeOut",
+                duration: 0.67,
+                onUpdate: (latest) => (el.scrollLeft = latest),
+              });
+            }, 100);
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 1.0 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading, gameData?.status]);
 
   useEffect(() => {
     let animationFrame: number;
@@ -875,7 +906,10 @@ const InfernoPlayPage = () => {
                       ref={searchInputRef}
                       type="text"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        if (val.length <= 3) setSearchQuery(val);
+                      }}
                       onKeyDown={(e) => {
                         if (
                           e.key === "Enter" &&
@@ -891,9 +925,11 @@ const InfernoPlayPage = () => {
                   </div>
                 )}
 
-                <div
+                <motion.div
                   className="w-full overflow-x-auto custom-scrollbar pb-2 will-change-transform"
-                  style={{ transform: "translateZ(0)" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isListVisible ? 1 : 0 }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
                   ref={listRef}
                 >
                   <div className="flex px-2 gap-2 min-w-max py-2">
@@ -992,7 +1028,7 @@ const InfernoPlayPage = () => {
                       );
                     })}
                   </div>
-                </div>
+                </motion.div>
 
                 <div className="text-white flex flex-col items-start gap-1 font-bold uppercase tracking-wider">
                   <span className="opacity-50">
