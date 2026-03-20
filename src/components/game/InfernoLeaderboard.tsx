@@ -144,7 +144,7 @@ export const InfernoLeaderboard = ({
             : "w-[135px]"
         } ${
           user.status === "completed"
-            ? partialScore >= 400
+            ? partialScore >= 0 
               ? "bg-green-500/10 border-green-500/30"
               : "bg-white/5 border-white/20"
             : "bg-white/5 border-white/10"
