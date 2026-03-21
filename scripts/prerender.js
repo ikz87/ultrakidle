@@ -121,12 +121,15 @@ async function prerender() {
     await new Promise((r) => setTimeout(r, 1000));
 
     const html = await page.evaluate(() => {
-      document.getElementById('splash-loader')?.remove();
       return document.documentElement.outerHTML;
     });
     await page.close();
 
-    const fixedHtml = fixRelativePaths(html, route);
+    const withoutSplash = html.replace(
+      /<div id="splash-loader">[\s\S]*?<\/div>/,
+      ''
+    );
+    const fixedHtml = fixRelativePaths(withoutSplash, route);
 
     const outDir = join(DIST, route.replace(/^\//, ''));
 
