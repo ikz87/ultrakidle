@@ -364,7 +364,7 @@ serve(async (req) => {
             "- **Weight:** Light, Medium, Heavy, or Superheavy",
             "- **Health:** Numeric comparison. Target can be higher ▲ or lower ▼. Yellow means the value is within 10 HP of the target. For enemies with multiple variants, the highest variant's health is used. For enemies with multiple phases, health is the sum of all phases.",
             "- **Total Levels:** Number of levels the enemy appears in. Target can be higher ▲ or lower ▼. Yellow indicates value is within 3 levels of target",
-            "- **Registered At:** Level of first encounter. Target can be later ▲ or earlier ▼ (ordered according to [our level list](https://ultrakidle.online/levels)). Yellow indicates the target is within 10 positions in the level list.",
+            "- **Registered At:** Level of first encounter. Target can be ◄ earlier or later ► (ordered according to [our level list](https://ultrakidle.online/levels)). Yellow indicates the target is within 10 positions in the level list.",
           ].join("\n"),
           components: PLAY_BUTTONS,
         },

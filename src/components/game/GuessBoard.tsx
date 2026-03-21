@@ -109,9 +109,9 @@ export const GuessBoard = ({ guesses }: GuessBoardProps) => {
                                 {/* Appearance */}
                                 <td className={`px-4 py-4 font-bold border-l-4 border-black/50 ${getResultColorClass(guess.properties.appearance.value ? guess.properties.appearance.result : 'gray', guess.properties.appearance.value ? guess.properties.appearance.color : undefined, colorblindMode)}`}>
                                     <div className="flex items-center gap-2 h-full">
+                                        {guess.properties.appearance.value && guess.properties.appearance.result === 'earlier' && <span className="text-lg">◄</span>}
                                         {guess.properties.appearance.value || '???'}
-                                        {guess.properties.appearance.value && guess.properties.appearance.result === 'later' && <span className="text-lg">▲</span>}
-                                        {guess.properties.appearance.value && guess.properties.appearance.result === 'earlier' && <span className="text-lg">▼</span>}
+                                        {guess.properties.appearance.value && guess.properties.appearance.result === 'later' && <span className="text-lg">►</span>}
                                     </div>
                                 </td>
                             </tr>
