@@ -1,6 +1,7 @@
 // scripts/prerender.mjs
 
-import { launch } from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 import { createServer } from 'http';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, resolve, dirname } from 'path';
@@ -85,9 +86,10 @@ function fixRelativePaths(html, route) {
 async function prerender() {
   const server = await serve();
 
-  const browser = await launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  const browser = await puppeteer.launch({
+    headless: chromium.headless,
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
   });
 
   for (const route of ROUTES) {
