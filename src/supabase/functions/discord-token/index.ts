@@ -105,6 +105,51 @@ Deno.serve(async (req) => {
 
     if (!authData?.user) throw new Error("Could not establish a user session");
 
+    const userGuildsRes = await fetch(
+      "https://discord.com/api/users/@me/guilds",
+      { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
+    );
+
+    if (userGuildsRes.ok) {
+      const currentGuilds: { id: string }[] = await userGuildsRes.json();
+      const currentGuildIds = currentGuilds.map((g) => g.id);
+
+      const { data: savedGuilds } = await dbClient
+        .from("user_guilds")
+        .select("guild_id")
+        .eq("user_id", authData.user.id);
+
+      const savedIds = savedGuilds?.map((g) => g.guild_id) ?? [];
+
+      const toInsert = currentGuildIds
+      .filter((id) => !savedIds.includes(id))
+      .map((id) => ({
+        user_id: authData.user!.id,
+        guild_id: id,
+        last_seen_at: new Date().toISOString(),
+      }));
+
+      const toDelete = savedIds.filter((id) => !currentGuildIds.includes(id));
+
+      const promises: Promise<unknown>[] = [];
+
+      if (toInsert.length > 0) {
+        promises.push(dbClient.from("user_guilds").upsert(toInsert));
+      }
+
+      if (toDelete.length > 0) {
+        promises.push(
+          dbClient
+            .from("user_guilds")
+            .delete()
+            .eq("user_id", authData.user.id)
+            .in("guild_id", toDelete)
+        );
+      }
+
+      await Promise.all(promises);
+    }
+
     // 5. Update Profile and Guild Info in Parallel
     const avatarUrl = discordUser.avatar
       ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
@@ -118,48 +163,7 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     });
 
-        const guildPromise = (async () => {
-      if (!launchedGuildId) return;
-
-      let guildName: string | null = null;
-      try {
-        // Fetching guild name via Bot Token
-        const guildRes = await fetch(
-          `https://discord.com/api/v10/guilds/${launchedGuildId}`,
-          {
-            headers: {
-              Authorization: `Bot ${Deno.env.get("DISCORD_BOT_TOKEN")}`,
-            },
-          }
-        );
-
-        if (guildRes.ok) {
-          const guild = await guildRes.json();
-          guildName = guild.name;
-        } else {
-          // Fallback if bot isn't in guild or token is invalid
-          console.error(`Guild fetch failed: ${guildRes.status}`);
-        }
-      } catch (e) {
-        console.error("Guild fetch error:", e);
-      }
-
-      await dbClient.from("guilds").upsert(
-        { 
-          guild_id: launchedGuildId, 
-          name: guildName 
-        },
-        { onConflict: "guild_id" }
-      );
-
-      await dbClient.from("user_guilds").upsert({
-        user_id: authData.user.id,
-        guild_id: launchedGuildId,
-        last_seen_at: new Date().toISOString(),
-      });
-    })();
-
-    await Promise.all([profilePromise, guildPromise]);
+    await Promise.all([profilePromise]);
 
     return new Response(
       JSON.stringify({

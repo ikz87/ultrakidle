@@ -9,7 +9,7 @@ const faqData = [
     },
     {
         question: "IS THIS OFFICIAL?",
-        answer: "No, ULTRAKILLDLE is a fan-made project made by me, ikz87. All assets and information are provided by the official ULTRAKILL Wiki and are property of Arsi 'Hakita' Patala and New Blood Interactive."
+        answer: "No, ULTRAKIDLE is a fan-made project made by me, ikz87. All assets and information are provided by the official ULTRAKILL Wiki and are property of Arsi 'Hakita' Patala and New Blood Interactive."
     },
     {
         question: "HOW DOES MY RANK WORK?",
