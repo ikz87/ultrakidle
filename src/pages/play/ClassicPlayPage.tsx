@@ -232,7 +232,7 @@ const ClassicPlayPage = () => {
                         </div>
                     </div>
 
-                    <div className="w-full z-10">
+                    <div className="w-full z-20">
                         <EnemySearch
                             onGuess={handleGuess}
                             disabled={isSubmitting || isGameOver}
