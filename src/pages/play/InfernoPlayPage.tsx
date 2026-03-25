@@ -63,7 +63,7 @@ type GameData = GameInProgress | GameCompleted | NoGameToday;
 const InfernoPlayPage = () => {
   const navigate = useNavigate();
   const { setUpdateAvailable } = useVersion();
-  const { dayNumber } = useGameInit();
+  const { dayNumber, infernoImageUrls } = useGameInit();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +101,7 @@ const InfernoPlayPage = () => {
   const nextRoundBtnRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const autoSelectedRef = useRef<number | null>(null);
   const MAX_IMG_RETRIES = 5;
 
   const tabs: { id: GameMode; label: string }[] = [
@@ -167,7 +168,8 @@ const InfernoPlayPage = () => {
   };
 
   useEffect(() => {
-    if (!listRef.current || loading || gameData?.status !== "in_progress") return;
+    if (!listRef.current || loading || gameData?.status !== "in_progress")
+      return;
 
     const el = listRef.current;
     el.scrollLeft = el.scrollWidth;
@@ -215,12 +217,20 @@ const InfernoPlayPage = () => {
   }, [gameData?.status, lastRoundResult]);
 
   useEffect(() => {
-    if (
-      !lastRoundResult &&
-      filteredLevels.length === 1 &&
-      filteredLevels[0].id !== selectedLevelId
+    if (lastRoundResult) return;
+
+    if (filteredLevels.length === 1) {
+      const id = filteredLevels[0].id;
+      if (id !== selectedLevelId) {
+        setSelectedLevelId(id);
+        autoSelectedRef.current = id;
+      }
+    } else if (
+      autoSelectedRef.current !== null &&
+        selectedLevelId === autoSelectedRef.current
     ) {
-      setSelectedLevelId(filteredLevels[0].id);
+      setSelectedLevelId(null);
+      autoSelectedRef.current = null;
     }
   }, [filteredLevels, lastRoundResult]);
 
@@ -243,17 +253,13 @@ const InfernoPlayPage = () => {
     };
   }, []);
 
-
-  // Auto-focus search input when a new round loads (no result showing)
   useEffect(() => {
     if (
       !lastRoundResult &&
       !showFinalResults &&
       gameData?.status === "in_progress"
     ) {
-      const isCoarsePointer = window.matchMedia(
-        "(pointer: coarse)"
-      ).matches;
+      const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
       if (isCoarsePointer) return;
 
       setTimeout(() => {
@@ -261,6 +267,11 @@ const InfernoPlayPage = () => {
       }, 100);
     }
   }, [lastRoundResult, showFinalResults, gameData?.status]);
+
+  const infernoNumber = dayNumber ? dayNumber - 23 : null;
+
+  const resolveRoundImage = (roundNumber: number, fallbackUrl: string) =>
+  resolveExternalUrl(infernoImageUrls[roundNumber] || fallbackUrl);
 
   const handleGuess = async () => {
     if (!selectedLevelId || isSubmitting || gameData?.status !== "in_progress")
@@ -302,7 +313,7 @@ const InfernoPlayPage = () => {
         distance: result.distance,
         score: result.score,
         time_spent_seconds: result.time_spent_seconds,
-        image_url: gameData.image_url,
+        image_url: resolveRoundImage(result.round_number, gameData.image_url),
         submitted_by: gameData.submitted_by,
       };
 
@@ -430,8 +441,6 @@ const InfernoPlayPage = () => {
     () => sortedLevels.find((l) => l.id === selectedLevelId),
     [selectedLevelId, sortedLevels]
   );
-
-  const infernoNumber = dayNumber ? dayNumber - 23 : null;
 
   const copyMissionLog = async () => {
     if (gameData?.status !== "completed") return;
@@ -632,23 +641,25 @@ const InfernoPlayPage = () => {
                             className="flex items-center gap-2"
                           >
                             <div
-                              className={`w-4 h-4 border ${status === "green"
+                              className={`w-4 h-4 border ${
+                                status === "green"
                                   ? "border-green-500 bg-green-500/20"
                                   : status === "yellow"
                                     ? "border-yellow-500 bg-yellow-500/20"
                                     : status === "red"
                                       ? "border-red-500 bg-red-500/20"
                                       : "border-zinc-500/30 bg-zinc-800/20"
-                                }`}
+                              }`}
                             />
                             {round && (
                               <span
-                                className={`text-sm font-bold tracking-wider ${status === "green"
+                                className={`text-sm font-bold tracking-wider ${
+                                  status === "green"
                                     ? "text-green-500/70"
                                     : status === "yellow"
                                       ? "text-yellow-500/70"
                                       : "text-red-500/70"
-                                  }`}
+                                }`}
                               >
                                 +{round.score}
                               </span>
@@ -666,7 +677,8 @@ const InfernoPlayPage = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{
-                        delay: 1.0 + safeGameData.rounds.length * 0.08 + 0.3,
+                        delay:
+                          1.0 + safeGameData.rounds.length * 0.08 + 0.3,
                       }}
                     >
                       {copySuccess ? <>✓ COPIED</> : <>⎘ COPY LOG</>}
@@ -693,12 +705,13 @@ const InfernoPlayPage = () => {
                         <div className="flex justify-between items-center text-sm text-white/30 uppercase tracking-widest">
                           <span>Round {round.round_number}</span>
                           <span
-                            className={`font-bold ${round.score === 100
+                            className={`font-bold ${
+                              round.score === 100
                                 ? "text-green-500"
                                 : round.score >= 60
                                   ? "text-yellow-500"
                                   : "text-red-500"
-                              }`}
+                            }`}
                           >
                             +{round.score}
                           </span>
@@ -721,11 +734,19 @@ const InfernoPlayPage = () => {
                         <div
                           className="aspect-video border border-white/10 overflow-hidden cursor-pointer hover:border-white/30 transition-colors"
                           onClick={() =>
-                            setLightboxUrl(resolveExternalUrl(round.image_url))
+                            setLightboxUrl(
+                              resolveRoundImage(
+                                round.round_number,
+                                round.image_url
+                              )
+                            )
                           }
                         >
                           <img
-                            src={resolveExternalUrl(round.image_url)}
+                            src={resolveRoundImage(
+                              round.round_number,
+                              round.image_url
+                            )}
                             alt=""
                             className="w-full h-full object-cover"
                           />
@@ -752,10 +773,11 @@ const InfernoPlayPage = () => {
                               Distance
                             </span>
                             <span
-                              className={`font-bold ${round.distance === 0
+                              className={`font-bold ${
+                                round.distance === 0
                                   ? "text-green-400"
                                   : "text-red-400"
-                                }`}
+                              }`}
                             >
                               {round.distance}
                             </span>
@@ -768,8 +790,10 @@ const InfernoPlayPage = () => {
               )
             ) : (
               <>
-
-                <div ref={imageRef} className="relative aspect-video bg-black border border-white/10 overflow-hidden group">
+                <div
+                  ref={imageRef}
+                  className="relative aspect-video bg-black border border-white/10 overflow-hidden group"
+                >
                   <div
                     className="h-full w-full select-none"
                     onPointerDown={handlePointerDown}
@@ -797,7 +821,10 @@ const InfernoPlayPage = () => {
                     )}
                     <img
                       src={
-                        resolveExternalUrl(displayRound.image_url) +
+                        resolveRoundImage(
+                          displayRound.round_number,
+                          displayRound.image_url
+                        ) +
                         (imgRetry > 0
                           ? `${displayRound.image_url.includes("?") ? "&" : "?"}_r=${imgRetry}`
                           : "")
@@ -825,7 +852,9 @@ const InfernoPlayPage = () => {
                           max="4"
                           step="0.5"
                           value={zoom}
-                          onChange={(e) => setZoom(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            setZoom(parseFloat(e.target.value))
+                          }
                           className="w-24 md:w-32 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
                         />
                       </div>
@@ -839,7 +868,9 @@ const InfernoPlayPage = () => {
                           max="2"
                           step="0.1"
                           value={gamma}
-                          onChange={(e) => setGamma(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            setGamma(parseFloat(e.target.value))
+                          }
                           className="w-24 md:w-32 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
                         />
                       </div>
@@ -913,7 +944,8 @@ const InfernoPlayPage = () => {
                       value={searchQuery}
                       onChange={(e) => {
                         const val = e.target.value.toUpperCase();
-                        if (val.length <= maxSearchLength) setSearchQuery(val);
+                        if (val.length <= maxSearchLength)
+                          setSearchQuery(val);
                       }}
                       onKeyDown={(e) => {
                         if (
@@ -952,13 +984,15 @@ const InfernoPlayPage = () => {
 
                       const guessIdx = lastRoundResult
                         ? sortedLevels.findIndex(
-                          (l) => l.id === lastRoundResult.guessed_level.id
-                        )
+                            (l) =>
+                              l.id === lastRoundResult.guessed_level.id
+                          )
                         : -1;
                       const correctIdx = lastRoundResult
                         ? sortedLevels.findIndex(
-                          (l) => l.id === lastRoundResult.correct_level.id
-                        )
+                            (l) =>
+                              l.id === lastRoundResult.correct_level.id
+                          )
                         : -1;
                       const minIdx = Math.min(guessIdx, correctIdx);
                       const maxIdx = Math.max(guessIdx, correctIdx);
@@ -975,18 +1009,23 @@ const InfernoPlayPage = () => {
                           key={level.id}
                           ref={isCorrect ? targetRef : null}
                           onClick={() =>
-                            !lastRoundResult && setSelectedLevelId(level.id)
+                            !lastRoundResult &&
+                            setSelectedLevelId(level.id)
                           }
-                          className={`group relative flex flex-col hover:cursor-pointer items-center gap-1 min-w-32 w-[15vw] max-w-48 flex-shrink-0 transition-all ${isSelected
+                          className={`group relative flex flex-col hover:cursor-pointer items-center gap-1 min-w-32 w-[15vw] max-w-48 flex-shrink-0 transition-all ${
+                            isSelected
                               ? "scale-105 opacity-100 grayscale-0"
                               : lastRoundResult &&
-                                (isCorrect || isGuessed || isInBetween)
+                                  (isCorrect ||
+                                    isGuessed ||
+                                    isInBetween)
                                 ? "scale-105 opacity-100 grayscale-0"
                                 : "opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
-                            }`}
+                          }`}
                         >
                           <div
-                            className={`w-full aspect-video border-2 transition-colors duration-500 overflow-hidden relative ${isSelected
+                            className={`w-full aspect-video border-2 transition-colors duration-500 overflow-hidden relative ${
+                              isSelected
                                 ? "border-white/70"
                                 : lastRoundResult && isCorrect
                                   ? "border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
@@ -995,24 +1034,28 @@ const InfernoPlayPage = () => {
                                     : isInBetween
                                       ? "border-red-500/50"
                                       : "border-white/10"
-                              }`}
+                            }`}
                           >
                             <img
-                              src={resolveExternalUrl(level.thumbnail || "")}
+                              src={resolveExternalUrl(
+                                level.thumbnail || ""
+                              )}
                               alt={level.name}
-                              className={`w-full h-full object-cover transition-all duration-500 ${lastRoundResult && isCorrect
+                              className={`w-full h-full object-cover transition-all duration-500 ${
+                                lastRoundResult && isCorrect
                                   ? "brightness-110"
                                   : isInBetween
                                     ? "brightness-75"
                                     : ""
-                                }`}
+                              }`}
                             />
                             {isInBetween && (
                               <div className="absolute inset-0 bg-red-500/20 animate-pulse pointer-events-none z-10" />
                             )}
                           </div>
                           <span
-                            className={`text-base truncate w-full text-center transition-colors ${isSelected
+                            className={`text-base truncate w-full text-center transition-colors ${
+                              isSelected
                                 ? "text-white"
                                 : lastRoundResult && isCorrect
                                   ? "text-green-500"
@@ -1021,7 +1064,7 @@ const InfernoPlayPage = () => {
                                     : isInBetween
                                       ? "text-red-400"
                                       : "text-white/50 group-hover:text-white"
-                              }`}
+                            }`}
                           >
                             {level.levelNumber}
                           </span>
@@ -1082,7 +1125,9 @@ const InfernoPlayPage = () => {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 1.2 }}
                         onAnimationComplete={() => {
-                          nextRoundBtnRef.current?.focus({ preventScroll: true });
+                          nextRoundBtnRef.current?.focus({
+                            preventScroll: true,
+                          });
                         }}
                       >
                         {isGameFinished ? (
@@ -1104,7 +1149,9 @@ const InfernoPlayPage = () => {
                             disabled={isFetchingNextRound}
                             className="opacity-50 hover:opacity-100 mt-2"
                           >
-                            {isFetchingNextRound ? "LOADING..." : "NEXT ROUND"}
+                            {isFetchingNextRound
+                              ? "LOADING..."
+                              : "NEXT ROUND"}
                           </Button>
                         )}
                       </motion.div>
@@ -1126,10 +1173,11 @@ const InfernoPlayPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 z-50 bg-black/90 backdrop-blur-sm ${lightboxZoomed
+            className={`fixed inset-0 z-50 bg-black/90 backdrop-blur-sm ${
+              lightboxZoomed
                 ? "overflow-auto"
                 : "flex items-center justify-center"
-              }`}
+            }`}
             onClick={() => setLightboxUrl(null)}
           >
             <div

@@ -75,6 +75,15 @@ export interface InfernoRoundData {
   previous_rounds?: any[];
 }
 
+function preloadImage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(url);
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 export function useGameInit() {
   const [loading, setLoading] = useState(true);
   const [dailyId, setDailyId] = useState<number | null>(null);
@@ -86,9 +95,15 @@ export function useGameInit() {
   const [rates, setRates] = useState<Record<string, number>>({ USD: 1 });
   const [ranks, setRanks] = useState<Ranks | null>(null);
 
-  const [infernoTotal, setInfernoTotal] = useState<InfernoTotalScore | null>(null);
-  const [infernoAvg, setInfernoAvg] = useState<InfernoDailyAvg | null>(null);
-  const [infernoStatus, setInfernoStatus] = useState<InfernoRoundData | null>(null);
+  const [infernoTotal, setInfernoTotal] =
+    useState<InfernoTotalScore | null>(null);
+  const [infernoAvg, setInfernoAvg] =
+    useState<InfernoDailyAvg | null>(null);
+  const [infernoStatus, setInfernoStatus] =
+    useState<InfernoRoundData | null>(null);
+  const [infernoImageUrls, setInfernoImageUrls] = useState<
+    Record<number, string>
+  >({});
 
   const [refreshKey, setRefreshKey] = useState(0);
   const [dailyChanged, setDailyChanged] = useState(false);
@@ -101,7 +116,9 @@ export function useGameInit() {
   useEffect(() => {
     async function fetchRates() {
       try {
-        const res = await fetch("https://api.frankfurter.dev/v1/latest?base=USD");
+        const res = await fetch(
+          "https://api.frankfurter.dev/v1/latest?base=USD",
+        );
         const data = await res.json();
         if (data.rates) setRates({ ...data.rates, USD: 1 });
       } catch (e) {
@@ -114,7 +131,9 @@ export function useGameInit() {
   useEffect(() => {
     async function init() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) await supabase.auth.signInAnonymously();
 
         const { data, error } = await supabase.rpc("init_game");
@@ -130,6 +149,27 @@ export function useGameInit() {
         setInfernoTotal(data.inferno?.total ?? null);
         setInfernoAvg(data.inferno?.daily_avg ?? null);
         setInfernoStatus(data.inferno?.status ?? null);
+
+        const paths: { round_number: number; storage_path: string }[] =
+          data.inferno?.paths ?? [];
+
+        if (paths.length > 0) {
+          const { data: { publicUrl: baseUrl } } = supabase.storage
+          .from("inferno-daily")
+          .getPublicUrl("");
+
+          const urlMap: Record<number, string> = {};
+          for (const p of paths) {
+            if (p.storage_path) {
+              urlMap[p.round_number] = `${baseUrl}${p.storage_path}`;
+            }
+          }
+          setInfernoImageUrls(urlMap);
+
+          Object.values(urlMap).forEach((url) => {
+            preloadImage(url).catch(() => {});
+          });
+        }
       } catch (err) {
         console.error("Game init error:", err);
       } finally {
@@ -168,5 +208,6 @@ export function useGameInit() {
     infernoTotal,
     infernoAvg,
     infernoStatus,
+    infernoImageUrls,
   };
 }
