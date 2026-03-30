@@ -11,13 +11,14 @@ import { Typewriter } from "../../components/Typewriter";
 import { motion } from "framer-motion";
 import AlertDialog from "../../components/ui/AlertDialog";
 import { EnemyIcon } from "../../components/game/EnemyIcon";
+import Tooltip from "../../components/ui/Tooltip";
 
 const defaultHintData = { value: "", result: "gray" } as any;
 
 const mapHintDataToGuessResult = (
   guess_enemy_id: number,
   hint_data: any,
-  is_penance: boolean
+  is_penance: boolean,
 ): GuessResult => {
   const enemyData = enemies.find((e) => e.id === guess_enemy_id);
   const enemy_name = enemyData ? enemyData.name : "UNKNOWN";
@@ -46,6 +47,7 @@ const CybergrindClassicPage = () => {
   >("loading");
   const [currentWave, setCurrentWave] = useState<number>(1);
   const [modifiers, setModifiers] = useState<string[]>([]);
+  const [radianceTarget, setRadianceTarget] = useState<string | null>(null);
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [guessCount, setGuessCount] = useState<number>(0);
   const [roundId, setRoundId] = useState<number | null>(null);
@@ -65,6 +67,7 @@ const CybergrindClassicPage = () => {
     setGuessCount(0);
     setRoundId(null);
     setModifiers([]);
+    setRadianceTarget(null);
     setCurrentWave(1);
     setStatus("loading");
     try {
@@ -74,32 +77,38 @@ const CybergrindClassicPage = () => {
     }
   };
 
-  const handleStartRun = async () => {
-    setIsSubmitting(true);
-    try {
-      const { data, error } = await supabase.rpc("start_cybergrind_run", {
-        version: CURRENT_VERSION,
-      });
+  const startingRef = useRef(false);
 
-      if (error) {
-        if (error.message.includes("CLIENT_OUTDATED"))
-          setUpdateAvailable(true);
-        throw error;
-      }
+const handleStartRun = async () => {
+  if (startingRef.current) return;
+  startingRef.current = true;
+  setIsSubmitting(true);
+  try {
+    const { data, error } = await supabase.rpc("start_cybergrind_run", {
+      version: CURRENT_VERSION,
+    });
 
-      setStatus("active");
-      setRoundId(data.round_id);
-      setCurrentWave(data.round_number);
-      setModifiers(data.modifiers || []);
-      setGuesses([]);
-      setGuessCount(0);
-    } catch (err) {
-      console.error("Error starting cybergrind run:", err);
-      throw err;
-    } finally {
-      setIsSubmitting(false);
+    if (error) {
+      if (error.message.includes("CLIENT_OUTDATED"))
+        setUpdateAvailable(true);
+      throw error;
     }
-  };
+
+    setStatus("active");
+    setRoundId(data.round_id);
+    setCurrentWave(data.round_number);
+    setModifiers(data.modifiers || []);
+    setRadianceTarget(null);
+    setGuesses([]);
+    setGuessCount(0);
+  } catch (err) {
+    console.error("Error starting cybergrind run:", err);
+    throw err;
+  } finally {
+    setIsSubmitting(false);
+    startingRef.current = false;
+  }
+};
 
   const fetchState = async () => {
     try {
@@ -113,6 +122,7 @@ const CybergrindClassicPage = () => {
         setRoundId(data.round_id);
         setCurrentWave(data.current_wave);
         setModifiers(data.modifiers || []);
+        setRadianceTarget(data.radiance_target || null);
         setGuessCount(data.guess_count || 0);
 
         if (data.guesses) {
@@ -120,8 +130,8 @@ const CybergrindClassicPage = () => {
             mapHintDataToGuessResult(
               g.guess_enemy_id,
               g.hint_data,
-              g.is_penance
-            )
+              g.is_penance,
+            ),
           );
           setGuesses(mappedGuesses);
         } else {
@@ -138,6 +148,11 @@ const CybergrindClassicPage = () => {
     fetchState();
   }, []);
 
+  const getLetheLimit = () => {
+    if (!modifiers.includes("LETHE")) return Infinity;
+    return radianceTarget === "LETHE" ? 1 : 2;
+  };
+
   const handleGuess = async (enemyId: number) => {
     if (isSubmitting || status !== "active" || !roundId) return;
 
@@ -149,7 +164,7 @@ const CybergrindClassicPage = () => {
           guess_id: enemyId,
           p_round_id: roundId,
           version: CURRENT_VERSION,
-        }
+        },
       );
 
       if (error) {
@@ -161,11 +176,12 @@ const CybergrindClassicPage = () => {
       const newGuess = mapHintDataToGuessResult(
         enemyId,
         data.hint_data,
-        data.is_penance
+        false,
       );
+      const limit = getLetheLimit();
       setGuesses((prev) => {
         const updated = [...prev, newGuess];
-        return modifiers.includes("LETHE") ? updated.slice(-2) : updated;
+        return limit < Infinity ? updated.slice(-limit) : updated;
       });
       setGuessCount((prev) => prev + 1);
 
@@ -173,7 +189,6 @@ const CybergrindClassicPage = () => {
         setShouldFlash(true);
         setTimeout(() => setShouldFlash(false), 1500);
       } else if (data.game_over) {
-        // Backend already ended the run on the 6th failed guess
         setStats({
           waves_reached: data.waves_reached,
           is_new_record: data.is_new_record,
@@ -240,7 +255,7 @@ const CybergrindClassicPage = () => {
     return (
       <>
         <div className="h-dvh w-dvw bg-black/40 fixed top-0 left-0 overflow-visible"></div>
-        <div className="flex flex-col w-full h-full items-start justify-start ">
+        <div className="flex flex-col w-full h-full items-start justify-start">
           <div className="z-40 flex flex-col w-full pt-4 justify-start items-start">
             <p className="text-xl opacity-50 animate-pulse mt-4">
               INITIALIZING BOARD...
@@ -268,7 +283,9 @@ const CybergrindClassicPage = () => {
         >
           <div className="flex flex-col gap-0 mb-4 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
             <div className="flex gap-2 items-baseline">
-              <h1 className="tracking-widest flex-1">CYBERGRIND_CLASSIC</h1>
+              <h1 className="tracking-widest flex-1">
+                CYBERGRIND_CLASSIC
+              </h1>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 w-full md:max-w-[1000px] border-b border-white/5 pb-6">
@@ -287,19 +304,58 @@ const CybergrindClassicPage = () => {
               </span>
               <div className="flex gap-2 items-center flex-wrap">
                 {modifiers.length > 0 ? (
-                  modifiers.map((mod) => (
-                    <span
-                      key={mod}
-                      className="font-bold text-red-500 uppercase italic tracking-wider"
-                    >
-                      {mod}
-                    </span>
-                  ))
+                  modifiers.map((mod) => {
+                    const isRadiance = mod === "RADIANCE";
+                    const isTarget = mod === radianceTarget;
+
+                    const tooltipMap: Record<string, string> = {
+                      PENANCE:
+                      "Automatically select a wrong guess at the start of the round. Hints for this guess are always visible and truthful",
+                      FALSIFIER:
+                      "Flips the arrow of a random hint. Only triggers if there is a hint where this can be applied",
+                      SETHE:
+                      "You can only see your 2 most recent guesses",
+                      ECLIPSE:
+                      "Completely obscures a random column without arrows for the entire round",
+                      RADIANCE:
+                      "Double the effects of another randomly selected modifier",
+                    };
+
+                    const baseTooltip = tooltipMap[mod] || mod;
+                    const tooltip = isTarget
+                      ? `${baseTooltip} | RADIANCE: Effect is doubled`
+                      : baseTooltip;
+
+                    return (
+                      <Tooltip
+                        key={mod}
+                        content={tooltip}
+                        wrapperClassName=""
+                      >
+                        <span
+                          className={`font-bold uppercase italic tracking-wider cursor-help ${
+isRadiance
+? "text-purple-400"
+: isTarget
+? "text-yellow-400"
+: "text-red-500"
+}`}
+                        >
+                          {mod}
+                          {isTarget && (
+                            <span className="text-[9px] text-purple-400 ml-0.5">
+                              ×2
+                            </span>
+                          )}
+                        </span>
+                      </Tooltip>
+                    );
+                  })
                 ) : (
-                  <span className="text-white/40 uppercase tracking-widest italic font-bold">
-                    NONE
-                  </span>
-                )}
+                    <span className="text-white/40 uppercase tracking-widest italic font-bold">
+                      NONE
+                    </span>
+                  )}
               </div>
             </div>
           </div>
@@ -315,11 +371,11 @@ const CybergrindClassicPage = () => {
             animate={
               shouldFlash
                 ? {
-                    backgroundColor: [
-                      "rgba(255, 255, 255, 0.6)",
-                      "rgba(255, 255, 255, 0)",
-                    ],
-                  }
+                  backgroundColor: [
+                    "rgba(255, 255, 255, 0.6)",
+                    "rgba(255, 255, 255, 0)",
+                  ],
+                }
                 : { backgroundColor: "rgba(255, 255, 255, 0)" }
             }
             transition={
@@ -331,11 +387,11 @@ const CybergrindClassicPage = () => {
           >
             <div className="w-full flex justify-left">
               <span className="text-white/50 text-sm text-left place-self-start w-full justify-left">
-                * All data mirrors that of the official wiki, which can be
-                subject to change
+                * All data mirrors that of the official wiki, which can
+                be subject to change
               </span>
             </div>
-            <GuessBoard guesses={guesses} />
+            <GuessBoard guesses={guesses} modifiers={modifiers} />
           </motion.div>
 
           <div className="mt-2 text-white flex flex-col items-start gap-1 font-bold uppercase tracking-wider md:max-w-[1000px] w-full">
@@ -457,13 +513,11 @@ const CybergrindClassicPage = () => {
         </motion.div>
       </div>
 
-      {/* Background Dim */}
-      {(!isGameOver &&
-        modifiers.some((m) => m === "ECLIPSE") && (
-          <div className="fixed left-0 top-0 -z-10 h-dvh w-dvw overflow-visible bg-black/80"></div>
-        )) || (
-        <div className="fixed left-0 top-0 -z-10 h-dvh w-dvw overflow-visible bg-black/40"></div>
-      )}
+      {(!isGameOver && modifiers.some((m) => m === "ECLIPSE") && (
+        <div className="fixed left-0 top-0 -z-10 h-dvh w-dvw overflow-visible bg-black/80"></div>
+      )) || (
+          <div className="fixed left-0 top-0 -z-10 h-dvh w-dvw overflow-visible bg-black/40"></div>
+        )}
 
       <AlertDialog
         isOpen={isAbandonModalOpen}
