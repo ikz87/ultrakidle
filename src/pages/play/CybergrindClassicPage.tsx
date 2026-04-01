@@ -21,6 +21,13 @@ const MODIFIER_DISPLAY_ORDER: string[] = [
   "RADIANCE",
 ];
 
+const RADIANCE_DESCRIPTIONS: Record<string, string> = {
+  PENANCE: "RADIANCE: 2 wrong guesses instead of 1",
+  FALSIFIER: "RADIANCE: Up to 2 arrows flipped instead of 1. Can flip the same arrow twice",
+  LETHE: "RADIANCE: Only your most recent guess is visible",
+  ECLIPSE: "RADIANCE: Both Type and Weight columns are hidden",
+};
+
 const MODIFIER_TOOLTIPS: Record<string, string> = {
   PENANCE:
     "Automatically select a wrong guess at the start of the round",
@@ -329,12 +336,12 @@ const CybergrindClassicPage = () => {
               </span>
               <div className="flex gap-2 items-center flex-wrap">
                 {sortedModifiers.length > 0 ? (
-                sortedModifiers.map((mod) => {
+                  sortedModifiers.map((mod) => {
                     const isRadiance = mod === "RADIANCE";
                     const isTarget = radianceTargets.includes(mod);
                     const baseTooltip = MODIFIER_TOOLTIPS[mod] || mod;
                     const tooltip = isTarget
-                      ? `${baseTooltip} | RADIANCE: Effect is doubled`
+                      ? `${baseTooltip} | ${RADIANCE_DESCRIPTIONS[mod]}`
                       : baseTooltip;
 
                     return (
