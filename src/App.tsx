@@ -24,6 +24,8 @@ import { SettingsProvider } from './context/SettingsContext';
 import { MessagesProvider } from './context/MessagesContext';
 import VersionUpdateModal from './components/VersionUpdateModal';
 
+const SHOW_EXPERIMENTAL_MESSAGE = true;
+
 function AppContent() {
   const { updateAvailable } = useVersion();
   const location = useLocation();
@@ -32,6 +34,17 @@ function AppContent() {
     // Only send pageview if initialized (handled by react-ga4 internally or by being silent)
     ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
   }, [location]);
+
+  if (SHOW_EXPERIMENTAL_MESSAGE) {
+    return (
+      <div className="fixed top-0 left-0 bg-black h-dvh w-dvw"
+      >
+        <div style={{ maxWidth: '800px', lineHeight: '1.6' }}>
+          Not testing any experimental features currently, go to <a href="https://ultrakidle.online/" style={{ color: 'white', textDecoration: 'underline' }}>https://ultrakidle.online/</a> now!
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
