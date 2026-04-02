@@ -6,6 +6,7 @@ import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
 import ClassicPlayPage from './pages/play/ClassicPlayPage';
 import InfernoPlayPage from './pages/play/InfernoPlayPage';
+import CybergrindClassicPage from './pages/play/CybergrindClassicPage';
 import CreditsPage from './pages/CreditsPage';
 import HistoryPage from './pages/HistoryPage';
 import TermsPage from './pages/TermsPage';
@@ -41,6 +42,7 @@ function AppContent() {
           <Route path="play" element={<Navigate to="/play/classic" replace />} />
           <Route path="play/classic" element={<ClassicPlayPage />} />
           <Route path="play/infernoguessr" element={<InfernoPlayPage />} />
+          <Route path="cybergrind/classic" element={<CybergrindClassicPage />} />
           <Route path="credits" element={<CreditsPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="tos" element={<TermsPage />} />

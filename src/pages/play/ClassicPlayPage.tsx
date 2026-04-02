@@ -114,7 +114,7 @@ const ClassicPlayPage = () => {
         : null;
 
     const guessGridData = guesses.map((g) => {
-        const getStatus = (value: any, result: string, color?: string) => {
+        const getStatus = (value: any, result: string | null, color?: string) => {
             if (value === undefined || value === null) return "gray";
             if (color === "green" || result === "correct") return "green";
             if (color === "yellow") return "yellow";
@@ -405,25 +405,25 @@ const ClassicPlayPage = () => {
                                                                     },
                                                                 }}
                                                                 className={`h-6 w-6 border flex items-center justify-center ${status ===
-                                                                        "green"
-                                                                        ? "border-green-500 bg-green-500/20"
+                                                                    "green"
+                                                                    ? "border-green-500 bg-green-500/20"
+                                                                    : status ===
+                                                                        "yellow"
+                                                                        ? colorblindMode
+                                                                            ? "border-blue-500 bg-blue-500/20"
+                                                                            : "border-yellow-500 bg-yellow-500/20"
                                                                         : status ===
-                                                                            "yellow"
-                                                                            ? colorblindMode
-                                                                                ? "border-blue-500 bg-blue-500/20"
-                                                                                : "border-yellow-500 bg-yellow-500/20"
-                                                                            : status ===
-                                                                                "gray"
-                                                                                ? "border-zinc-500/30 bg-zinc-800/20"
-                                                                                : "border-red-500 bg-red-500/20"
+                                                                            "gray"
+                                                                            ? "border-zinc-500/30 bg-zinc-800/20"
+                                                                            : "border-red-500 bg-red-500/20"
                                                                     }`}
                                                             >
                                                                 {colorblindMode && status !== "gray" && (
                                                                     <span className={`text-[10px] font-bold ${status === "green"
-                                                                            ? "text-green-500"
-                                                                            : status === "yellow"
-                                                                                ? "text-blue-500"
-                                                                                : "text-red-500"
+                                                                        ? "text-green-500"
+                                                                        : status === "yellow"
+                                                                            ? "text-blue-500"
+                                                                            : "text-red-500"
                                                                         }`}>
                                                                         {status === "green" ? "✓" : status === "yellow" ? "ǃ" : "⨯"}
                                                                     </span>

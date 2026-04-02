@@ -37,8 +37,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 inner: 'bg-transparent text-white group-hover:bg-white/10',
             },
             danger: {
-                outer: 'bg-red-500',
-                inner: 'bg-transparent text-white group-hover:bg-red-500 group-hover:text-black',
+                outer: 'bg-white',
+                inner: 'bg-black text-[#FF8000]',
             },
         };
 
@@ -74,20 +74,32 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     whileHover: {},
                     whileTap: {
                         backgroundColor: '#ef4444',
-                        transition: { duration: 0 }
-                    }
+                        transition: { duration: 0 },
+                    },
                 };
             }
             if (variant === 'outline') {
                 return {
                     whileHover: {
                         opacity: 0.5,
-                        transition: { duration: 0.1 }
+                        transition: { duration: 0.1 },
                     },
                     whileTap: {
                         backgroundColor: '#ef4444',
-                        transition: { duration: 0 }
-                    }
+                        transition: { duration: 0 },
+                    },
+                };
+            }
+            if (variant === 'danger') {
+                return {
+                    whileHover: {
+                        opacity: 0.5,
+                        transition: { duration: 0.1 },
+                    },
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        transition: { duration: 0 },
+                    },
                 };
             }
             return {};
@@ -99,8 +111,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     whileTap: {
                         backgroundColor: '#ef4444',
                         color: '#ffffff',
-                        transition: { duration: 0 }
-                    }
+                        transition: { duration: 0 },
+                    },
                 };
             }
             return {};

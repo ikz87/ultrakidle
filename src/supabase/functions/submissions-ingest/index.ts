@@ -3,9 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const BOT_TOKEN = Deno.env.get("DISCORD_AUTOMATION_BOT_TOKEN")!;
+const BOT_USER_ID = Deno.env.get("DISCORD_AUTOMATION_BOT_ID")!;
 const DISCORD_API = "https://discord.com/api/v10";
-const ASPECT_TOLERANCE = 0.02;
+const REACTION_THRESHOLD = 3;
+const TARGET_WIDTH = 1920;
+const TARGET_HEIGHT = 1080;
 const LEVEL_PATTERN = /^(\d+-\d+|\d+-[A-Z]\d*|P-\d+)$/i;
+const STALE_MS = 2 * 24 * 60 * 60 * 1000;
 
 const discordHeaders = {
   Authorization: `Bot ${BOT_TOKEN}`,
@@ -75,29 +79,130 @@ async function addReaction(
   );
 }
 
-async function rejectThread(
-  threadId: string,
+async function removeReaction(
+  channelId: string,
   messageId: string,
-  reason: string,
+  emoji: string,
 ) {
-  await addReaction(threadId, messageId, "❌");
-  await sendMessage(
-    threadId,
-    `❌ **Submission rejected** — ${reason}`,
+  const encoded = encodeURIComponent(emoji);
+  await discordFetch(
+    `${DISCORD_API}/channels/${channelId}/messages/${messageId}/reactions/${encoded}/@me`,
+    { method: "DELETE", headers: discordHeaders },
   );
-  await closeThread(threadId);
 }
 
-function discordAvatarUrl(
-  userId: string,
-  avatarHash: string | null,
-): string {
-  if (!avatarHash) {
-    const index = (BigInt(userId) >> 22n) % 6n;
-    return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+async function getReactionUsers(
+  channelId: string,
+  messageId: string,
+  emoji: string,
+): Promise<string[]> {
+  const encoded = encodeURIComponent(emoji);
+  const res = await discordFetch(
+    `${DISCORD_API}/channels/${channelId}/messages/${messageId}/reactions/${encoded}?limit=100`,
+    { headers: discordHeaders },
+  );
+  if (!res.ok) return [];
+  const users: { id: string }[] = await res.json();
+  return users.map((u) => u.id).filter((id) => id !== BOT_USER_ID);
+}
+
+async function approveSubmission(
+  supabase: any,
+  sub: any,
+  levelNumMap: Map<string, string>,
+): Promise<{ action: string; reason?: string }> {
+  const msgRes = await discordFetch(
+    `${DISCORD_API}/channels/${sub.channel_id}/messages/${sub.channel_id}`,
+    { headers: discordHeaders },
+  );
+  if (!msgRes.ok) {
+    await supabase
+      .from("image_submissions")
+      .update({
+        status: "rejected",
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("id", sub.id);
+    await removeReaction(sub.channel_id, sub.message_id, "👀");
+    await addReaction(sub.channel_id, sub.message_id, "❌");
+    await sendMessage(
+      sub.channel_id,
+      "❌ **Submission rejected** — Original message is no longer available.",
+    );
+    await closeThread(sub.channel_id);
+    return { action: "rejected", reason: "message_gone" };
   }
-  const ext = avatarHash.startsWith("a_") ? "gif" : "png";
-  return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${ext}`;
+
+  const freshMsg = await msgRes.json();
+  const freshAttachment = (freshMsg.attachments ?? []).find(
+    (a: any) =>
+      a.content_type?.startsWith("image/") ||
+      /\.(png|jpe?g|webp|gif)$/i.test(a.filename ?? ""),
+  );
+
+  if (!freshAttachment) {
+    await supabase
+      .from("image_submissions")
+      .update({
+        status: "rejected",
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("id", sub.id);
+    await removeReaction(sub.channel_id, sub.message_id, "👀");
+    await addReaction(sub.channel_id, sub.message_id, "❌");
+    await sendMessage(
+      sub.channel_id,
+      "❌ **Submission rejected** — Original image is no longer available.",
+    );
+    await closeThread(sub.channel_id);
+    return { action: "rejected", reason: "image_gone" };
+  }
+
+  const imgRes = await fetch(freshAttachment.url);
+  if (!imgRes.ok) {
+    return { action: "skipped", reason: "download_failed" };
+  }
+
+  const imageData = new Uint8Array(await imgRes.arrayBuffer());
+  const decoded = await Image.decode(imageData);
+  const resized = decoded.resize(TARGET_WIDTH, TARGET_HEIGHT);
+  const jpegData = await resized.encodeJPEG(90);
+
+  const levelNumber = levelNumMap.get(sub.level_id);
+  const storagePath = `${levelNumber}/${sub.id}.jpg`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("level-images")
+    .upload(storagePath, jpegData, {
+      contentType: "image/jpeg",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error(
+      `[resolve] Upload error #${sub.id}:`,
+      uploadError,
+    );
+    return { action: "skipped", reason: "upload_failed" };
+  }
+
+  await supabase
+    .from("image_submissions")
+    .update({
+      status: "approved",
+      storage_path: storagePath,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", sub.id);
+
+  await removeReaction(sub.channel_id, sub.message_id, "👀");
+  await addReaction(sub.channel_id, sub.message_id, "✅");
+  await sendMessage(
+    sub.channel_id,
+    "✅ **Submission approved!** Added to gallery.",
+  );
+  await closeThread(sub.channel_id);
+  return { action: "approved" };
 }
 
 serve(async (req) => {
@@ -109,12 +214,15 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { threads } = await req.json();
-  if (!threads?.length) {
+  const body = await req.json();
+  const { submissions, force_approve } = body;
+  if (!submissions?.length) {
     return Response.json({
       results: [],
-      ingested: 0,
+      approved: 0,
       rejected: 0,
+      expired: 0,
+      skipped: 0,
     });
   }
 
@@ -136,223 +244,237 @@ serve(async (req) => {
   }
 
   const levelMap = new Map(levels.map((l) => [l.level_number, l.id]));
+  const levelNumMap = new Map(
+    levels.map((l) => [l.id, l.level_number]),
+  );
+  const now = Date.now();
 
   type Result = {
-    thread_id: string;
+    id: number;
     action: string;
     reason?: string;
   };
   const results: Result[] = [];
-  let ingested = 0;
+  let approved = 0;
   let rejected = 0;
+  let expired = 0;
+  let skipped = 0;
 
-  for (const thread of threads) {
+  for (const sub of submissions) {
     try {
       await new Promise((r) => setTimeout(r, 1000));
 
-      const title = (thread.name ?? "").trim();
-      const levelMatch = title.match(LEVEL_PATTERN);
-
-      if (!levelMatch) {
-        await rejectThread(
-          thread.id,
-          thread.id,
-          `Post title must be exactly a level name (e.g. \`2-1\`, \`P-2\`, \`0-E\`, \`7-S\`). Got: \`${title}\``,
+      if (force_approve) {
+        console.log(`[resolve] ⚡ Force-approving #${sub.id}`);
+        const result = await approveSubmission(
+          supabase,
+          sub,
+          levelNumMap,
         );
-        await supabase
-          .from("rejected_threads")
-          .insert({ thread_id: thread.id });
-        results.push({
-          thread_id: thread.id,
-          action: "rejected",
-          reason: "invalid_title",
-        });
-        rejected++;
+        results.push({ id: sub.id, ...result });
+        if (result.action === "approved") approved++;
+        else if (result.action === "rejected") rejected++;
+        else skipped++;
         continue;
       }
 
-      const levelNumber = levelMatch[1].toUpperCase();
-      const levelId = levelMap.get(levelNumber);
-
-      if (!levelId) {
-        await rejectThread(
-          thread.id,
-          thread.id,
-          `Level \`${levelNumber}\` was not found in the database. Make sure it's a valid main level.`,
-        );
+      // Check if stale (>2 days old)
+      const createdAt = new Date(sub.created_at).getTime();
+      if (now - createdAt > STALE_MS) {
         await supabase
-          .from("rejected_threads")
-          .insert({ thread_id: thread.id });
-        results.push({
-          thread_id: thread.id,
-          action: "rejected",
-          reason: "unknown_level",
-        });
-        rejected++;
+          .from("image_submissions")
+          .update({
+            status: "expired",
+            resolved_at: new Date().toISOString(),
+          })
+          .eq("id", sub.id);
+        await removeReaction(
+          sub.channel_id,
+          sub.message_id,
+          "👀",
+        );
+        await sendMessage(
+          sub.channel_id,
+          "⏰ **Submission expired** — This thread has been open for over 2 days without reaching the vote threshold. Feel free to resubmit!",
+        );
+        await closeThread(sub.channel_id);
+        results.push({ id: sub.id, action: "expired" });
+        expired++;
+        console.log(`[resolve] ⏰ Expired #${sub.id}`);
         continue;
       }
 
-      const msgRes = await discordFetch(
-        `${DISCORD_API}/channels/${thread.id}/messages/${thread.id}`,
+      // Re-check thread title for edits
+      const threadRes = await discordFetch(
+        `${DISCORD_API}/channels/${sub.channel_id}`,
         { headers: discordHeaders },
       );
-      if (!msgRes.ok) {
-        await closeThread(thread.id);
+      if (!threadRes.ok) {
+        console.warn(
+          `[resolve] Thread fetch failed for ${sub.channel_id}: ${threadRes.status}`,
+        );
         results.push({
-          thread_id: thread.id,
-          action: "error",
-          reason: "no_starter_message",
+          id: sub.id,
+          action: "skipped",
+          reason: "thread_fetch_failed",
         });
+        skipped++;
         continue;
       }
-      const msg = await msgRes.json();
 
-      const imageAttachments = (msg.attachments ?? []).filter(
-        (a: any) =>
-          a.content_type?.startsWith("image/") ||
-          /\.(png|jpe?g|webp|gif)$/i.test(a.filename ?? ""),
-      );
+      const threadData = await threadRes.json();
+      const currentTitle = (threadData.name ?? "")
+        .trim()
+        .toUpperCase();
+      const levelMatch = currentTitle.match(LEVEL_PATTERN);
+      const levelId = levelMatch
+        ? levelMap.get(levelMatch[1])
+        : null;
 
-      if (imageAttachments.length === 0) {
-        await rejectThread(
-          thread.id,
-          thread.id,
-          "The first message must contain exactly one image attachment.",
-        );
+      if (!levelId) {
         await supabase
-          .from("rejected_threads")
-          .insert({ thread_id: thread.id });
+          .from("image_submissions")
+          .update({
+            status: "rejected",
+            resolved_at: new Date().toISOString(),
+          })
+          .eq("id", sub.id);
+        await removeReaction(
+          sub.channel_id,
+          sub.message_id,
+          "👀",
+        );
+        await addReaction(sub.channel_id, sub.message_id, "❌");
+        await sendMessage(
+          sub.channel_id,
+          `❌ **Submission rejected** — Title edited to invalid level: "${currentTitle}"`,
+        );
+        await closeThread(sub.channel_id);
         results.push({
-          thread_id: thread.id,
+          id: sub.id,
           action: "rejected",
-          reason: "no_image",
+          reason: "invalid_title_edit",
         });
         rejected++;
         continue;
       }
 
-      if (imageAttachments.length > 1) {
-        await rejectThread(
-          thread.id,
-          thread.id,
-          `The first message must contain exactly one image. Found ${imageAttachments.length}.`,
-        );
+      // Update level_id if title was changed to a different valid level
+      if (levelId !== sub.level_id) {
         await supabase
-          .from("rejected_threads")
-          .insert({ thread_id: thread.id });
-        results.push({
-          thread_id: thread.id,
-          action: "rejected",
-          reason: "multiple_images",
-        });
-        rejected++;
-        continue;
+          .from("image_submissions")
+          .update({ level_id: levelId })
+          .eq("id", sub.id);
+        sub.level_id = levelId;
       }
 
-      const attachment = imageAttachments[0];
-      const imgRes = await fetch(attachment.url);
-      if (!imgRes.ok) {
-        await rejectThread(
-          thread.id,
-          thread.id,
-          "Failed to download image.",
-        );
-        await supabase
-          .from("rejected_threads")
-          .insert({ thread_id: thread.id });
-        results.push({
-          thread_id: thread.id,
-          action: "rejected",
-          reason: "download_failed",
-        });
-        rejected++;
-        continue;
-      }
+      // Count reactions
+      const [upUsers, downUsers] = await Promise.all([
+        getReactionUsers(sub.channel_id, sub.message_id, "👍"),
+        getReactionUsers(sub.channel_id, sub.message_id, "👎"),
+      ]);
 
-      const imageData = new Uint8Array(await imgRes.arrayBuffer());
-      const decoded = await Image.decode(imageData);
+      const up = upUsers.length;
+      const down = downUsers.length;
 
-      if (
-        Math.abs(decoded.width / decoded.height - 16 / 9) >=
-        ASPECT_TOLERANCE
-      ) {
-        await rejectThread(
-          thread.id,
-          thread.id,
-          `Image must be 16:9 aspect ratio. Got ${decoded.width}×${decoded.height}.`,
-        );
-        await supabase
-          .from("rejected_threads")
-          .insert({ thread_id: thread.id });
-        results.push({
-          thread_id: thread.id,
-          action: "rejected",
-          reason: "bad_aspect_ratio",
-        });
-        rejected++;
-        continue;
-      }
-
-      const author = msg.author;
-      const displayName = author.global_name || author.username;
-
-      const { error } = await supabase
+      await supabase
         .from("image_submissions")
-        .insert({
-          guild_id: thread.guild_id,
-          channel_id: thread.id,
-          message_id: thread.id,
-          discord_user_id: author.id,
-          discord_name: displayName,
-          discord_avatar_url: discordAvatarUrl(
-            author.id,
-            author.avatar,
-          ),
-          level_id: levelId,
-          image_url: attachment.url,
-        })
-        .single();
+        .update({ thumbs_up: up, thumbs_down: down })
+        .eq("id", sub.id);
 
-      if (error) {
-        if (error.code === "23505") {
-          results.push({
-            thread_id: thread.id,
-            action: "skipped",
-            reason: "duplicate",
-          });
-        } else {
-          console.error(
-            `[ingest] DB error for ${thread.id}:`,
-            error,
-          );
-          results.push({
-            thread_id: thread.id,
-            action: "error",
-            reason: "db_error",
-          });
-        }
+      if (up < REACTION_THRESHOLD && down < REACTION_THRESHOLD) {
+        results.push({
+          id: sub.id,
+          action: "skipped",
+          reason: `${up}👍 ${down}👎`,
+        });
+        skipped++;
+        console.log(
+          `[resolve] #${sub.id} — ${up}👍 ${down}👎, need ${REACTION_THRESHOLD}`,
+        );
         continue;
       }
 
-      await addReaction(thread.id, thread.id, "👀");
-      results.push({ thread_id: thread.id, action: "ingested" });
-      ingested++;
-      console.log(
-        `[ingest] ✓ ${thread.id} — ${levelNumber} by ${displayName}`,
-      );
+      if (up > down) {
+        const result = await approveSubmission(
+          supabase,
+          sub,
+          levelNumMap,
+        );
+        results.push({ id: sub.id, ...result });
+        if (result.action === "approved") {
+          approved++;
+          console.log(
+            `[resolve] ✓ Approved #${sub.id} — ${up}👍 ${down}👎`,
+          );
+        } else if (result.action === "rejected") {
+          rejected++;
+        } else {
+          skipped++;
+        }
+      } else {
+        // Rejected by vote
+        await supabase
+          .from("image_submissions")
+          .update({
+            status: "rejected",
+            resolved_at: new Date().toISOString(),
+          })
+          .eq("id", sub.id);
+
+        await removeReaction(
+          sub.channel_id,
+          sub.message_id,
+          "👀",
+        );
+        await addReaction(sub.channel_id, sub.message_id, "❌");
+        await sendMessage(
+          sub.channel_id,
+          "❌ **Submission rejected** by vote.",
+        );
+        await closeThread(sub.channel_id);
+        results.push({
+          id: sub.id,
+          action: "rejected",
+          reason: "vote",
+        });
+        rejected++;
+        console.log(
+          `[resolve] ✗ Rejected #${sub.id} — ${up}👍 ${down}👎`,
+        );
+      }
     } catch (e) {
-      console.error(`[ingest] Error for ${thread.id}:`, e);
-      await closeThread(thread.id).catch(() => {});
+      console.error(`[resolve] Error for #${sub.id}:`, e);
+      await supabase
+        .from("image_submissions")
+        .update({
+          status: "rejected",
+          resolved_at: new Date().toISOString(),
+        })
+        .eq("id", sub.id)
+        .then(
+          () => {},
+          () => {},
+        );
+      await closeThread(sub.channel_id).catch(() => {});
       results.push({
-        thread_id: thread.id,
+        id: sub.id,
         action: "error",
         reason: String(e),
       });
+      rejected++;
     }
   }
 
   console.log(
-    `[ingest] Done — ${ingested} ingested, ${rejected} rejected`,
+    `[resolve] Done — ${approved} approved, ${rejected} rejected, ${expired} expired, ${skipped} skipped`,
   );
-  return Response.json({ results, ingested, rejected });
+
+  return Response.json({
+    results,
+    approved,
+    rejected,
+    expired,
+    skipped,
+  });
 });

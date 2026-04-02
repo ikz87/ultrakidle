@@ -105,7 +105,7 @@ const PlayPage = () => {
     const revealedEnemy = revealedId ? enemies.find(e => e.id === revealedId) : null;
 
     const guessGridData = guesses.map(g => {
-        const getStatus = (value: any, result: string, color?: string) => {
+        const getStatus = (value: any, result: string | null, color?: string) => {
             if (value === undefined || value === null) return 'gray';
             if (color === 'green' || result === 'correct') return 'green';
             if (color === 'yellow') return 'yellow';

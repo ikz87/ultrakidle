@@ -354,6 +354,14 @@ const HomePage = () => {
               <Button
                 variant="outline"
                 size="xl"
+                onClick={() => navigate("/cybergrind/classic")}
+                className=""
+              >
+                CYBERGRIND
+              </Button>
+              <Button
+                variant="outline"
+                size="xl"
                 onClick={() => navigate("/enemies")}
                 className=""
               >

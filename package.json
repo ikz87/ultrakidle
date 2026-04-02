@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.4.0",
+    "@floating-ui/react": "^0.27.19",
     "@sparticuz/chromium": "^143.0.4",
     "@supabase/supabase-js": "^2.97.0",
     "@tailwindcss/vite": "^4.2.1",
