@@ -23,21 +23,21 @@ export const useCybergrindLeaderboard = () => {
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id;
 
-                // Fetch top 
-                const { data: top3Data, error: top3Error } = await supabase
+                // Fetch top 10
+                const { data: top10Data, error: top10Error } = await supabase
                     .from("cybergrind_leaderboard")
                     .select("*")
                     .limit(10)
                     .order("rank", { ascending: true });
 
-                if (top3Error) {
-                    console.error("Error fetching top 3 cybergrind leaderboard:", top3Error);
+                if (top10Error) {
+                    console.error("Error fetching top 10 cybergrind leaderboard:", top10Error);
                 }
 
-                const top3 = (top3Data || []) as CGLeaderboardEntry[];
+                const top10 = (top10Data || []) as CGLeaderboardEntry[];
 
                 if (!userId) {
-                    setEntries(top3);
+                    setEntries(top10);
                     setLoading(false);
                     return;
                 }
@@ -54,29 +54,29 @@ export const useCybergrindLeaderboard = () => {
                 }
 
                 if (!userData || !userData.rank) {
-                    setEntries(top3);
+                    setEntries(top10);
                     setLoading(false);
                     return;
                 }
 
                 const userRank = userData.rank;
 
-                if (userRank <= 4) {
-                    // fetch top 5 to overlap with user
-                    const { data: top5Data, error: top5Error } = await supabase
+                if (userRank <= 11) {
+                    // Fetch top 12 so user and neighbors overlap with top 10
+                    const { data: top12Data, error: top12Error } = await supabase
                         .from("cybergrind_leaderboard")
                         .select("*")
-                        .limit(5)
+                        .limit(12)
                         .order("rank", { ascending: true });
 
-                    if (top5Error) {
-                        console.error("Error fetching top 5 cybergrind leaderboard:", top5Error);
+                    if (top12Error) {
+                        console.error("Error fetching top 12 cybergrind leaderboard:", top12Error);
                     }
 
-                    setEntries((top5Data || []) as CGLeaderboardEntry[]);
+                    setEntries((top12Data || []) as CGLeaderboardEntry[]);
                     setHasEllipsis(false);
                 } else {
-                    // get user and neighbors
+                    // Get user and neighbors (rank ± 1)
                     const { data: neighborData, error: neighborError } = await supabase
                         .from("cybergrind_leaderboard")
                         .select("*")
@@ -89,11 +89,9 @@ export const useCybergrindLeaderboard = () => {
                     }
 
                     setHasEllipsis(true);
-                    const combined = [...top3, ...((neighborData || []) as CGLeaderboardEntry[])];
+                    const combined = [...top10, ...((neighborData || []) as CGLeaderboardEntry[])];
 
-                    // Deduplicate by rank just in case
                     const uniqueEntries = Array.from(new Map(combined.map(e => [e.rank, e])).values());
-                    // Sort by rank
                     uniqueEntries.sort((a, b) => a.rank - b.rank);
 
                     setEntries(uniqueEntries);
