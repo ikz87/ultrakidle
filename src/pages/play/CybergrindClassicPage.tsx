@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, Fragment, useEffect, useRef } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import SEO from "../../components/SEO";
 import { CURRENT_VERSION, useVersion } from "../../context/VersionContext";
@@ -24,7 +24,7 @@ const MODIFIER_DISPLAY_ORDER: string[] = [
 const RADIANCE_DESCRIPTIONS: Record<string, string> = {
   PENANCE: "RADIANCE: 2 wrong guesses instead of 1",
   FALSIFIER:
-    "RADIANCE: Up to 2 arrows flipped instead of 1. Can flip the same arrow twice",
+  "RADIANCE: Flips up to 2 arrows instead of 1. Can flip the same arrow twice, canceling itself out",
   LETHE: "RADIANCE: Only your most recent guess is visible",
   ECLIPSE: "RADIANCE: Both Type and Weight columns are hidden",
 };
@@ -33,7 +33,7 @@ const MODIFIER_TOOLTIPS: Record<string, string> = {
   PENANCE:
     "Automatically select a wrong guess at the start of the round",
   FALSIFIER:
-    "Flips the arrow of a random hint. Only triggers if there is a hint where this can be applied",
+  "For a random hint with arrows, flip its arrow to the opposite direction. The hint this applies to is re-rolled on every guess",
   LETHE: "You can only see your 2 most recent guesses",
   ECLIPSE:
     "Completely obscures a random column without arrows for the entire round",
@@ -383,47 +383,47 @@ const CybergrindClassicPage = () => {
               <span className="text-white/60 font-bold uppercase tracking-widest whitespace-nowrap">
                 MODIFIERS:
               </span>
-              <div className="flex gap-2 items-center flex-wrap">
+              <div className="flex gap-1 items-center flex-wrap">
                 {sortedModifiers.length > 0 ? (
-                  sortedModifiers.map((mod) => {
+                  sortedModifiers.map((mod, index) => {
                     const isRadiance = mod === "RADIANCE";
-                    const isTarget =
-                      radianceTargets.includes(mod);
-                    const baseTooltip =
-                      MODIFIER_TOOLTIPS[mod] || mod;
+                    const isTarget = radianceTargets.includes(mod);
+                    const baseTooltip = MODIFIER_TOOLTIPS[mod] || mod;
                     const tooltip = isTarget
                       ? `${baseTooltip} | ${RADIANCE_DESCRIPTIONS[mod]}`
                       : baseTooltip;
 
                     return (
-                      <Tooltip
-                        key={mod}
-                        content={tooltip}
-                        wrapperClassName=""
-                      >
-                        <span
-                          className={`font-bold uppercase italic tracking-wider cursor-help ${isRadiance
-                              ? "text-purple-400"
-                              : isTarget
-                                ? "text-yellow-400"
-                                : "text-red-500"
-                            }`}
-                        >
-                          {mod}
-                          {isTarget && (
-                            <span className="text-[9px] text-purple-400 ml-0.5">
-                              ×2
-                            </span>
-                          )}
-                        </span>
-                      </Tooltip>
+                      <Fragment key={mod}>
+                        {index > 0 && (
+                          <span className="text-white">|</span>
+                        )}
+                        <Tooltip content={tooltip} wrapperClassName="">
+                          <span
+                            className={`font-bold uppercase italic tracking-wider cursor-help ${
+isRadiance
+? "text-purple-400"
+: isTarget
+? "text-yellow-400"
+: "text-red-500"
+}`}
+                          >
+                            {mod}
+                            {isTarget && (
+                              <span className="text-[9px] text-purple-400 ml-0.5">
+                                ×2
+                              </span>
+                            )}
+                          </span>
+                        </Tooltip>
+                      </Fragment>
                     );
                   })
                 ) : (
-                  <span className="text-white/40 uppercase tracking-widest italic font-bold">
-                    NONE
-                  </span>
-                )}
+                    <span className="text-white/40 uppercase tracking-widest italic font-bold">
+                      NONE
+                    </span>
+                  )}
               </div>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { resolveExternalUrl } from "../lib/urls";
 import { supabase } from "../lib/supabaseClient";
 import { getMsUntilNicaraguaMidnight } from "../lib/time";
 
@@ -150,18 +151,15 @@ export function useGameInit() {
         setInfernoAvg(data.inferno?.daily_avg ?? null);
         setInfernoStatus(data.inferno?.status ?? null);
 
-        const paths: { round_number: number; storage_path: string }[] =
-          data.inferno?.paths ?? [];
+        const paths: { round_number: number; image_url: string }[] =
+        data.inferno?.paths ?? [];
 
+        
         if (paths.length > 0) {
-          const { data: { publicUrl: baseUrl } } = supabase.storage
-          .from("inferno-daily")
-          .getPublicUrl("");
-
           const urlMap: Record<number, string> = {};
           for (const p of paths) {
-            if (p.storage_path) {
-              urlMap[p.round_number] = `${baseUrl}${p.storage_path}`;
+            if (p.image_url) {
+              urlMap[p.round_number] = resolveExternalUrl(p.image_url);
             }
           }
           setInfernoImageUrls(urlMap);
@@ -170,6 +168,8 @@ export function useGameInit() {
             preloadImage(url).catch(() => {});
           });
         }
+
+
       } catch (err) {
         console.error("Game init error:", err);
       } finally {

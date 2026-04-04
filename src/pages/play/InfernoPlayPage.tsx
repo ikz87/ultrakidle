@@ -121,12 +121,11 @@ const InfernoPlayPage = () => {
 
   const filteredLevels = useMemo(() => {
     if (!searchQuery.trim()) return sortedLevels;
-    const q = searchQuery.toLowerCase().trim();
-    return sortedLevels.filter(
-      (l) =>
-        l.name.toLowerCase().includes(q) ||
-        l.levelNumber.toLowerCase().includes(q)
-    );
+    const q = searchQuery.toLowerCase().trim().replace(/[-\s]+/g, " ");
+    return sortedLevels.filter((l) => {
+      const norm = (s: string) => s.toLowerCase().replace(/[-\s]+/g, " ");
+      return norm(l.name).includes(q) || norm(l.levelNumber).includes(q);
+    });
   }, [searchQuery, sortedLevels]);
 
   const fetchGameState = async ({ silent = false } = {}) => {
@@ -271,7 +270,7 @@ const InfernoPlayPage = () => {
   const infernoNumber = dayNumber ? dayNumber - 23 : null;
 
   const resolveRoundImage = (roundNumber: number, fallbackUrl: string) =>
-  resolveExternalUrl(infernoImageUrls[roundNumber] || fallbackUrl);
+  infernoImageUrls[roundNumber] || resolveExternalUrl(fallbackUrl);
 
   const handleGuess = async () => {
     if (!selectedLevelId || isSubmitting || gameData?.status !== "in_progress")
@@ -820,15 +819,15 @@ const InfernoPlayPage = () => {
                       </div>
                     )}
                     <img
-                      src={
-                        resolveRoundImage(
-                          displayRound.round_number,
-                          displayRound.image_url
-                        ) +
-                        (imgRetry > 0
-                          ? `${displayRound.image_url.includes("?") ? "&" : "?"}_r=${imgRetry}`
-                          : "")
-                      }
+                        src={
+                          resolveRoundImage(
+                            displayRound.round_number,
+                            displayRound.image_url
+                          ) +
+                            (imgRetry > 0
+                              ? `${resolveRoundImage(displayRound.round_number, displayRound.image_url).includes("?") ? "&" : "?"}_r=${imgRetry}`
+                              : "")
+                        }
                       alt="Target"
                       className="w-full h-full object-contain pointer-events-none"
                       draggable={false}
@@ -1120,7 +1119,7 @@ const InfernoPlayPage = () => {
                       />
                       <div className="md:block hidden">
                         <Typewriter
-                          text={`(CLICK OR PRESS ENTER )`}
+                          text={`(CLICK OR PRESS ENTER)`}
                           className="lg:block hidden text-sm opacity-50"
                           speed={0.02}
                           delay={1.2}
