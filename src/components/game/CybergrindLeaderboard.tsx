@@ -100,10 +100,10 @@ export const CybergrindLeaderboard = () => {
                     </span>
                     <span className="text-white/20">|</span>
                     <span className="whitespace-nowrap">
-                      {entry.total_guesses}G
+                      {entry.total_guesses}
                     </span>
                     <span className="text-white/20">|</span>
-                    <span className="whitespace-nowrap">{accuracy}% ACC</span>
+                    <span className="whitespace-nowrap">{accuracy}%</span>
                   </div>
                 </div>
               </motion.div>
