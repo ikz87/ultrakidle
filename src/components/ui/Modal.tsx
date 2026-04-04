@@ -86,7 +86,7 @@ const Modal = ({
                 </div>
 
                 { footerText && (
-                  <p className="mt-2 border-t-white border-t-2 text-sm">
+                  <p className="mt-4 border-t-white border-t-2 text-sm">
                     {footerText}
                   </p>
                 )}
