@@ -49,6 +49,7 @@ export async function setupDiscord() {
             code,
             client_id: clientId,
             guild_id: discordSdk.guildId,
+            channel_id: discordSdk.channelId,
         },
     });
 
