@@ -9,6 +9,7 @@ import { LeaderboardTabs } from '../components/game/LeaderboardTabs';
 import { CybergrindLeaderboard } from '../components/game/CybergrindLeaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink } from '../components/ui/ExternalLink';
+import { useSession } from '../hooks/useSession';
 
 const MainLayout = () => {
   const location = useLocation();
@@ -31,10 +32,10 @@ const MainLayout = () => {
     return localStorage.getItem('ultrakilldle_seen_cg_guide') === 'true';
   });
 
+    const { session } = useSession();
+
   useEffect(() => {
     const checkNewPlayer = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
       if (!session?.user) {
         return;
       }
@@ -97,7 +98,7 @@ const MainLayout = () => {
     };
 
     checkNewPlayer();
-  }, [location.pathname]);
+  }, [location.pathname, session]);
 
   const isHome = location.pathname === '/';
   const isPlay = location.pathname.startsWith('/play') || location.pathname.startsWith('/cybergrind');
