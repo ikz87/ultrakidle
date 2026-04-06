@@ -276,7 +276,8 @@ const MainLayout = () => {
                       <ul className="uppercase list-disc [&>*]:text-left pl-4 list-outside space-y-1 opacity-80">
                         <li>Each wave presents a random target enemy. You have <span className="text-white font-bold">6 guesses</span> to identify it.</li>
                         <li>Guess correctly to advance to the next wave. Fail to identify the target in 6 guesses and your run ends.</li>
-                        <li>Hints work the same as Classic mode: type, weight, health, total levels, and first appearance.</li>
+                          <li>Hints work the same as Classic mode: type, weight, health, total levels, and first appearance. </li>
+                          <li>Thresholds for <span className={colorblindMode ? "text-blue-500" : "text-yellow-500"}>{colorblindMode ? "BLUE" : "YELLOW"}</span> hints are also the same: 10 health, 3 total levels, and 10 level positions</li>
                       </ul>
                     </div>
 
