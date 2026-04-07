@@ -441,7 +441,7 @@ const fetchState = async () => {
                         }
                         disabled={!unlocked}
                         className={
-                          !unlocked ? "opacity-30 pointer-events-none" : ""
+                          !unlocked ? "opacity-30 pointer-events-none w-full" : "w-full"
                         }
                       >
                         {w}
