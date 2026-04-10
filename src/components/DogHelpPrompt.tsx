@@ -37,7 +37,7 @@ const DogHelpPrompt = () => {
           </div>
           <p>
             About a week and a half ago, Celeste lost her appetite and stopped
-            eating her usual ood. We recently discovered a very bad flea
+            eating her usual food. We recently discovered a very bad flea
             infestation that escalated rapidly despite treatment, leading to
             significant weight loss and visible signs of anemia.
           </p>
