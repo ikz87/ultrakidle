@@ -72,7 +72,7 @@ const DogHelpPrompt = () => {
                 &nbsp;(You will be shown in the donors board as usual)
               </li>
               <li>
-                Share the link with other who might want to help
+                Share the link with others who might want to help
               </li>
             </ul>
           </div>
