@@ -9,6 +9,44 @@ export interface Message {
 
 export const MESSAGES: Message[] = [
   {
+  id: 'dog-token-disclaimer',
+  date: '2026-04-13',
+  content: (
+    <div className="space-y-4 lg:space-y-6 text-justify">
+      <p className="text-zinc-400 text-sm">
+        SYSTEM STATUS // [13-APR-2026]
+      </p>
+      <p className="text-yellow-400 lg:text-xl text-base font-bold tracking-wide">
+        ⚠ PUBLIC NOTICE
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        Some of you may be aware that a cryptocurrency token was
+        recently created on pump.fun by community members themed
+        around my dog. I did receive support through it towards
+        her treatment, and{" "}
+        <span className="text-white font-semibold">
+          I'm genuinely grateful to everyone who contributed
+        </span>
+        . It means more than you know.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        That said, I want to be transparent:{" "}
+        <span className="text-white font-semibold">
+          I did not create this token, and I do not endorse it
+        </span>
+        . I have no involvement with it and no plans to be. Please
+        do not buy or invest in it expecting any association with
+        me or ULTRAKIDLE.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        ULTRAKIDLE will never have any cryptocurrency or token
+        associated with it. If you want to support the project,
+        Ko-fi remains the only official way to do so.
+      </p>
+    </div>
+  ),
+},
+  {
   id: 'settings-page',
   date: '2026-04-06',
   content: (
