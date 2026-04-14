@@ -6,7 +6,6 @@ import ModeTabs from "../components/ui/ModeTabs";
 import type { GameMode } from "../components/ui/ModeTabs";
 import Button from "../components/ui/Button";
 import { Typewriter } from "../components/Typewriter";
-import DogHelpPrompt from "../components/DogHelpPrompt";
 
 interface PlayLayoutProps {
     children?: ReactNode;
@@ -61,7 +60,6 @@ const PlayLayout = ({
             <div className="z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
                 <SEO title={seoTitle} description={seoDescription} />
 
-                <DogHelpPrompt />
 
                 <ModeTabs
                     activeMode={activeMode}

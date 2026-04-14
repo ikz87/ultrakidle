@@ -9,6 +9,130 @@ export interface Message {
 
 export const MESSAGES: Message[] = [
   {
+  id: 'celeste-recovery-update',
+  date: '2026-04-14',
+  content: (
+    <div className="space-y-4 lg:space-y-6 text-justify">
+      <p className="text-zinc-400 text-sm">
+        SYSTEM STATUS // [14-APR-2026]
+      </p>
+      <p className="text-green-400 lg:text-xl text-base font-bold tracking-wide">
+        CELESTE RECOVERY UPDATE (FINAL)
+      </p>
+        <p className="text-cyan-300 lg:text-base text-sm">
+          TLDR: She's no longer in real danger. Not yet healthy but recovery process should continue to go smoothly
+        </p>
+
+      <p className="text-white/70 lg:text-base">
+        First, a quick summary of how things went with the blood work and
+        latest vet visit:
+      </p>
+
+      <ul className="list-disc list-outside pl-4 text-white/70 space-y-2">
+        <li>
+          Vet came to my house on Monday morning, checked on Celeste
+          and gave us some vitamins we could give her to aid on
+          recovery.
+        </li>
+        <li>
+          For the fleas, vet said we should switch frequency of
+          bathing with the anti-flea shampoo to{" "}
+          <span className="text-white font-semibold">
+            every 8 days
+          </span>{" "}
+          to match the fleas' usual cycle of life. This is only to
+          keep them in line and we will explore stronger
+          methods (like injections) to get rid of them when Celeste gains some weight,
+          and when we do so, we should also contact an exterminator
+          to make 100% sure they are not in the environment either.
+        </li>
+        <li>
+          Vet also noticed that Celeste seems to be feeling some{" "}
+          <span className="text-white font-semibold">
+            pain in her joints
+          </span>{" "}
+          (she won't squat all the way down when peeing) but this
+          seemed to be a separate issue. Vet suggested to try out a
+          mixed BARF diet to avoid possible deficiencies and we will
+          be following that advice.
+        </li>
+        <li>
+          Blood work was done on the same day, we found evidence
+          of{" "}
+          <span className="text-white font-semibold">
+            blood parasites
+          </span>
+          . We bought a pill the vet suggested and gave it to Celeste.
+          This was a very quick-acting thing; vet said we could
+          expect Celeste to recover her usual appetite within a day,
+          and she did!
+        </li>
+      </ul>
+
+      <p className="text-white/70 lg:text-base text-sm">
+        She's still yet to gain her usual weight back but the color
+        of her gums and tongue is slowly coming back to the usual
+        pink shade. She's been eating a lot of high-iron food and
+        while she still has a couple fleas here and there, the
+        infestation is not nearly as bad as it was last week!
+      </p>
+
+      <p className="text-white/70 lg:text-base text-sm">
+        We expect to see her fully recover with time. At least now
+        we have treated the root cause and things should continue to
+        improve smoothly. We'll also keep an eye out for the
+        possible joint pain the vet noticed.
+      </p>
+
+      {/* images */}
+      <div className="grid grid-cols-4 gap-2">
+          <img src="/images/celeste-condition-1.jpeg"/>
+          <img src="/images/celeste-condition-2.jpeg"/>
+          <img src="/images/celeste-condition-3.jpeg"/>
+          <img src="/images/celeste-condition-4.jpeg"/>
+      </div>
+
+      <p className="text-white/70 lg:text-base text-sm">
+        To wrap things up, I wanna thank everyone who supported me
+        through this.{" "}
+        <span className="text-white font-semibold">
+          {`I am extremely grateful <3`}.
+        </span>
+      </p>
+
+      <div className="text-white/70 lg:text-base text-sm space-y-2">
+        <p className="text-white font-semibold">
+          Donations went to:
+        </p>
+        <ul className="list-disc list-outside pl-4 space-y-1">
+          <li>Vet visits</li>
+          <li>Blood work</li>
+          <li>
+            Treatment (Cypermethrin shampoo and powder, vitamin
+            injections, anti-parasite pill)
+          </li>
+        </ul>
+      </div>
+
+      <div className="text-white/70 lg:text-base text-sm space-y-2">
+        <p className="text-white font-semibold">
+          And they will continue to go towards:
+        </p>
+        <ul className="list-disc list-outside pl-4 space-y-1">
+          <li>Celeste's diet while recovering</li>
+          <li>Future anti-flea treatment</li>
+          <li>Exterminator services</li>
+        </ul>
+      </div>
+
+      <p className="text-white/70 lg:text-base text-sm">
+        This will be the final update on the situation. Thank you
+        all, I hope you keep enjoying ULTRAKIDLE :)
+      </p>
+    </div>
+  ),
+},
+  {
   id: 'dog-token-disclaimer',
   date: '2026-04-13',
   content: (

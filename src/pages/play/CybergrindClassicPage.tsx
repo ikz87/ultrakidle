@@ -12,7 +12,6 @@ import { motion } from "framer-motion";
 import AlertDialog from "../../components/ui/AlertDialog";
 import { EnemyIcon } from "../../components/game/EnemyIcon";
 import Tooltip from "../../components/ui/Tooltip";
-import DogHelpPrompt from "../../components/DogHelpPrompt";
 
 const MODIFIER_DISPLAY_ORDER: string[] = [
   "PENANCE",
@@ -405,7 +404,6 @@ const CybergrindClassicPage = () => {
       <>
         <div className="h-dvh w-dvw bg-black/40 fixed top-0 left-0 overflow-visible pointer-events-none" />
         <div className="z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
-          <DogHelpPrompt />
           <SEO
             title="Cybergrind"
             description="Endless enemy-guessing mode."
