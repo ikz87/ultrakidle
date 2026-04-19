@@ -773,6 +773,21 @@ const InfernoPlayPage = () => {
                             {round.correct_level.level_number}
                           </span>
                         </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-white/30 uppercase">
+                            Guess
+                          </span>
+                          <span
+                            className={`font-bold ${round.score === 100
+                                ? "text-green-500"
+                                : round.score >= 60
+                                  ? "text-yellow-500"
+                                  : "text-red-500"
+                              }`}
+                          >
+                            {round.guessed_level.level_number}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
