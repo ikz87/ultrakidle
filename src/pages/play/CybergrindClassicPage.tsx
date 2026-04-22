@@ -399,7 +399,6 @@ const CybergrindClassicPage = () => {
 
     return (
       <>
-        <div className="h-dvh w-dvw bg-black/40 fixed top-0 left-0 overflow-visible pointer-events-none" />
         <div className="z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
           <SEO
             title="Cybergrind"
@@ -415,6 +414,12 @@ const CybergrindClassicPage = () => {
               <h1 className="tracking-widest">
                 CYBERGRIND_CLASSIC
               </h1>
+            </div>
+
+            <div className="text-sm flex items-center gap-2 px-2 py-1 bg-green-500/10 border-2 border-green-500/20 max-w-[1000px] text-left w-fit text-white">
+              Leaderboards will be reset in the next few days in order to add a new modifier
+            <br/>
+              &#9888; Active runs during the update will be terminated when it drops
             </div>
 
             {bestRecord && bestRecord.best_wave > 0 && (
@@ -521,6 +526,12 @@ const CybergrindClassicPage = () => {
               </h1>
             </div>
           </div>
+          <div className="mb-4 text-sm flex items-center gap-2 px-2 py-1 bg-green-500/10 border-2 border-green-500/20 max-w-[1000px] text-left w-fit text-white">
+            Leaderboards will be reset in the next few days in order to add a new modifier
+            <br/>
+            &#9888; Active runs during the update will be terminated when it drops
+          </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 w-full md:max-w-[1000px] border-b border-white/5 pb-6">
             <div className="flex flex-col gap-1">
