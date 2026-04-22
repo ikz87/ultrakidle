@@ -246,8 +246,9 @@ const CybergrindClassicPage = () => {
 
 
       if (data.result === "correct") {
-        setGuesses(mapGuessesFromServer(data.round_guesses));
-        setGuessesLeft(0);
+        const roundGuesses = data.round_guesses || [];
+        setGuesses(mapGuessesFromServer(roundGuesses));
+        setGuessesLeft(Math.max(0, 6 - roundGuesses.length));
 
         pendingNextState.current = data.state;
 
