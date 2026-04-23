@@ -11,6 +11,7 @@ export interface GuessResult {
   correct: boolean;
   correct_id?: number;
   is_penance?: boolean;
+  is_blessed?: boolean;
   created_at?: string;
   properties: {
     enemy_type: {
@@ -217,10 +218,12 @@ export const GuessBoard = ({
               const renderCell = (col: string) => {
                 switch (col) {
                   case 'enemy_name': {
-                    const styles = getCellStyles(
-                      guess.correct ? "correct" : "incorrect",
-                      settings
-                    );
+                    const styles = guess.is_blessed
+                      ? { className: "bg-cyan-600/20 border-cyan-500 text-cyan-500" }
+                      : getCellStyles(
+                        guess.correct ? "correct" : "incorrect",
+                        settings
+                      );
                     return (
                       <td key="enemy_name"
                         className={`border-l-4 ${isPenance ? "border-l-amber-400" : "border-black/50"} ${styles.className}`}
@@ -278,18 +281,14 @@ export const GuessBoard = ({
                       >
                         <CellTooltip
                           tooltip={
-                            eclipsedType
-                              ? BADGE_TOOLTIPS["E"]
-                              : undefined
+                            guess.is_blessed
+                              ? "This enemy is BLESSED, it has all its hints obscured"
+                              : eclipsedType
+                                ? BADGE_TOOLTIPS["E"]
+                                : undefined
                           }
                         >
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
-                            {eclipsedType && (
-                              <ModifierBadge
-                                label="E"
-                                className="border-zinc-500/50 text-zinc-500"
-                              />
-                            )}
                             {!eclipsedType && (
                               <StatusIcon
                                 result={
@@ -327,18 +326,14 @@ export const GuessBoard = ({
                       >
                         <CellTooltip
                           tooltip={
-                            eclipsedWeight
-                              ? BADGE_TOOLTIPS["E"]
-                              : undefined
+                            guess.is_blessed
+                              ? "This enemy is BLESSED, it has all its hints obscured"
+                              : eclipsedWeight
+                                ? BADGE_TOOLTIPS["E"]
+                                : undefined
                           }
                         >
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
-                            {eclipsedWeight && (
-                              <ModifierBadge
-                                label="E"
-                                className="border-zinc-500/50 text-zinc-500"
-                              />
-                            )}
                             {!eclipsedWeight && (
                               <StatusIcon
                                 result={
@@ -376,18 +371,14 @@ export const GuessBoard = ({
                       >
                         <CellTooltip
                           tooltip={
-                            falsifierHealth
-                              ? BADGE_TOOLTIPS["F"]
-                              : undefined
+                            guess.is_blessed
+                              ? "This enemy is BLESSED, it has all its hints obscured"
+                              : falsifierHealth
+                                ? BADGE_TOOLTIPS["F"]
+                                : undefined
                           }
                         >
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
-                            {falsifierHealth && (
-                              <ModifierBadge
-                                label="F"
-                                className="border-orange-500/50 text-orange-400"
-                              />
-                            )}
                             <StatusIcon
                               result={guess.properties.health.result}
                               color={guess.properties.health.color}
@@ -427,18 +418,14 @@ export const GuessBoard = ({
                       >
                         <CellTooltip
                           tooltip={
-                            falsifierLevels
-                              ? BADGE_TOOLTIPS["F"]
-                              : undefined
+                            guess.is_blessed
+                              ? "This enemy is BLESSED, it has all its hints obscured"
+                              : falsifierLevels
+                                ? BADGE_TOOLTIPS["F"]
+                                : undefined
                           }
                         >
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
-                            {falsifierLevels && (
-                              <ModifierBadge
-                                label="F"
-                                className="border-orange-500/50 text-orange-400"
-                              />
-                            )}
                             <StatusIcon
                               result={
                                 guess.properties.level_count.result
@@ -490,18 +477,14 @@ export const GuessBoard = ({
                       >
                         <CellTooltip
                           tooltip={
-                            falsifierAppearance
-                              ? BADGE_TOOLTIPS["F"]
-                              : undefined
+                            guess.is_blessed
+                              ? "This enemy is BLESSED, it has all its hints obscured"
+                              : falsifierAppearance
+                                ? BADGE_TOOLTIPS["F"]
+                                : undefined
                           }
                         >
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
-                            {falsifierAppearance && (
-                              <ModifierBadge
-                                label="F"
-                                className="border-orange-500/50 text-orange-400"
-                              />
-                            )}
                             <StatusIcon
                               result={
                                 guess.properties.appearance.result
@@ -551,7 +534,7 @@ export const GuessBoard = ({
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
                   className={`border-b border-white/5 last:border-0 hover:bg-white/5 ${isPenance ? "bg-amber-500/5" : ""
-                    }`}
+                    } ${guess.is_blessed ? "relative after:absolute after:inset-0 after:bg-cyan-500/10 after:ring-cyan-500 after:ring-inset after:pointer-events-none" : ""}`}
                 >
                   {activeColumns.map(col => renderCell(col))}
                 </motion.tr>

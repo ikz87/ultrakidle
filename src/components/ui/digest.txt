@@ -1,0 +1,811 @@
+Directory structure:
+└── ui/
+    ├── AlertDialog.tsx
+    ├── Button.tsx
+    ├── ExternalLink.tsx
+    ├── Modal.tsx
+    ├── ModeTabs.tsx
+    ├── PlayExpandable.tsx
+    ├── RGBColorPicker.tsx
+    └── Tooltip.tsx
+
+================================================
+FILE: AlertDialog.tsx
+================================================
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import Button from "./Button";
+
+interface AlertDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description: ReactNode;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "danger" | "primary";
+  isConfirming?: boolean;
+}
+
+const outerClip =
+  "[clip-path:polygon(16px_0,calc(100%-16px)_0,100%_16px,100%_calc(100%-16px),calc(100%-16px)_100%,16px_100%,0_calc(100%-16px),0_16px)]";
+const innerClip =
+  "[clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)]";
+
+const AlertDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  variant = "primary",
+  isConfirming = false,
+}: AlertDialogProps) => {
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (isOpen) window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose]);
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/80 z-[100] cursor-pointer"
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-[101] p-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={`w-full max-w-md max-h-[80vh] p-[8px] bg-white ${outerClip} pointer-events-auto flex flex-col`}
+            >
+              <div
+                className={`bg-black w-full p-6 shadow-2xl relative flex flex-col min-h-0 flex-1 overflow-hidden ${innerClip}`}
+              >
+                {/* Scanline effect */}
+                <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+
+                <div className="flex flex-col gap-2 mb-6 shrink-0">
+                  <h2 className="text-xl font-bold tracking-tighter text-white uppercase">
+                    {title}
+                  </h2>
+                  <div className="text-white/60 text-sm uppercase tracking-wider">
+                    {description}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 justify-end mt-4">
+                  <Button
+                    onClick={onClose}
+                    disabled={isConfirming}
+                    variant="outline"
+                  >
+                    {cancelText}
+                  </Button>
+                  <Button
+                    variant={variant}
+                    onClick={onConfirm}
+                    disabled={isConfirming}
+                  >
+                    {isConfirming ? "PROCESSING..." : confirmText}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default AlertDialog;
+
+
+
+
+
+================================================
+FILE: Button.tsx
+================================================
+import React from 'react';
+import { motion } from 'framer-motion';
+import type { HTMLMotionProps } from 'framer-motion';
+
+interface ButtonProps extends HTMLMotionProps<"button"> {
+    variant?: 'primary' | 'outline' | 'ghost' | 'danger';
+    size?: 'sm' | 'md' | 'lg' | 'xl';
+    px?: string;
+    py?: string;
+    className?: string;
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+    ({ className = '', variant = 'primary', size = 'md', px, py, children, ...props }, ref) => {
+        // Shared clip-paths for different sizes
+        const polygons = {
+            sm: '[clip-path:polygon(2px_0,calc(100%-2px)_0,100%_2px,100%_calc(100%-2px),calc(100%-2px)_100%,2px_100%,0_calc(100%-2px),0_2px)]',
+            md: '[clip-path:polygon(4px_0,calc(100%-4px)_0,100%_4px,100%_calc(100%-4px),calc(100%-4px)_100%,4px_100%,0_calc(100%-4px),0_4px)]',
+            lg: '[clip-path:polygon(6px_0,calc(100%-6px)_0,100%_6px,100%_calc(100%-6px),calc(100%-6px)_100%,6px_100%,0_calc(100%-6px),0_6px)]',
+            xl: '[clip-path:polygon(10px_0,calc(100%-10px)_0,100%_10px,100%_calc(100%-10px),calc(100%-10px)_100%,10px_100%,0_calc(100%-10px),0_10px)]',
+        };
+
+        const poly = polygons[size];
+
+        // Button variants handling: Outer background is the border color, Inner is the fill
+        const variants = {
+            primary: {
+                outer: 'bg-white',
+                inner: 'bg-white text-black',
+            },
+            outline: {
+                outer: 'bg-white',
+                inner: 'bg-black text-white',
+            },
+            ghost: {
+                outer: 'bg-transparent',
+                inner: 'bg-transparent text-white group-hover:bg-white/10',
+            },
+            danger: {
+                outer: 'bg-white',
+                inner: 'bg-black text-[#FF8000]',
+            },
+        };
+
+        const currentVariant = variants[variant as keyof typeof variants] || variants.primary;
+
+        const sizes = {
+            sm: 'text-xs',
+            md: 'text-sm',
+            lg: 'text-base',
+            xl: 'text-xl md:text-2xl lg:text-3xl',
+        };
+
+        const padding = {
+            sm: 'p-[1px]', // 1px border
+            md: 'p-[2px]', // 2px border
+            lg: 'p-[2px]',
+            xl: 'p-[2px] md:p-[3px]', // 3px border for giant buttons
+        };
+
+        const innerPadding = {
+            sm: 'px-3 py-1',
+            md: 'px-6 py-2',
+            lg: 'px-8 py-3',
+            xl: 'px-8 py-3 md:px-10 md:py-4 lg:px-14 lg:py-5',
+        };
+
+        const currentInnerPadding = `${px || innerPadding[size].split(' ')[0]} ${py || innerPadding[size].split(' ')[1]}`;
+
+        // Motion variants logic
+        const getMotionProps = () => {
+            if (variant === 'primary') {
+                return {
+                    whileHover: {},
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        transition: { duration: 0 },
+                    },
+                };
+            }
+            if (variant === 'outline') {
+                return {
+                    whileHover: {
+                        opacity: 0.5,
+                        transition: { duration: 0.1 },
+                    },
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        transition: { duration: 0 },
+                    },
+                };
+            }
+            if (variant === 'danger') {
+                return {
+                    whileHover: {
+                        opacity: 0.5,
+                        transition: { duration: 0.1 },
+                    },
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        transition: { duration: 0 },
+                    },
+                };
+            }
+            return {};
+        };
+
+        const getInnerMotionProps = () => {
+            if (variant === 'primary') {
+                return {
+                    whileTap: {
+                        backgroundColor: '#ef4444',
+                        color: '#ffffff',
+                        transition: { duration: 0 },
+                    },
+                };
+            }
+            return {};
+        };
+
+        return (
+            <motion.button
+                ref={ref}
+                className={`group relative inline-flex items-center justify-center font-bold disabled:opacity-50 disabled:pointer-events-none uppercase tracking-tighter cursor-pointer ${poly} ${currentVariant.outer} ${padding[size]} ${className}`}
+                {...getMotionProps()}
+                {...props as HTMLMotionProps<"button">}
+            >
+                <motion.div
+                    className={`w-full h-full flex items-center justify-center ${poly} ${currentVariant.inner} ${sizes[size]} ${currentInnerPadding}`}
+                    {...getInnerMotionProps()}
+                >
+                    {children}
+                </motion.div>
+            </motion.button>
+        );
+    }
+);
+
+Button.displayName = 'Button';
+
+export default Button;
+
+
+
+================================================
+FILE: ExternalLink.tsx
+================================================
+import React from 'react';
+import { isRunningInDiscord, discordSdk } from '../../lib/discord';
+
+interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+    href: string;
+    children: React.ReactNode;
+}
+
+export const ExternalLink: React.FC<ExternalLinkProps> = ({ href, children, ...props }) => {
+    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (isRunningInDiscord() && discordSdk && href.startsWith('http')) {
+            e.preventDefault();
+            discordSdk.commands.openExternalLink({ url: href });
+        }
+    };
+
+    return (
+        <a
+            {...props}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+                handleLinkClick(e);
+                if (props.onClick) props.onClick(e);
+            }}
+        >
+            {children}
+        </a>
+    );
+};
+
+
+
+================================================
+FILE: Modal.tsx
+================================================
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import Button from "./Button";
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+  showCloseButton?: boolean;
+  allowBackdropClose?: boolean;
+  showFooterButton?: boolean;
+  footerButtonText?: string;
+  footerText?: string;
+  maxWidth?: string;
+}
+
+const outerClip =
+  "[clip-path:polygon(16px_0,calc(100%-16px)_0,100%_16px,100%_calc(100%-16px),calc(100%-16px)_100%,16px_100%,0_calc(100%-16px),0_16px)]";
+const innerClip =
+  "[clip-path:polygon(12px_0,calc(100%-12px)_0,100%_12px,100%_calc(100%-12px),calc(100%-12px)_100%,12px_100%,0_calc(100%-12px),0_12px)]";
+
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  footerText,
+  children,
+  showCloseButton = true,
+  allowBackdropClose = true,
+  showFooterButton = true,
+  footerButtonText = "Understood",
+  maxWidth = "max-w-lg",
+}: ModalProps) => {
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && allowBackdropClose) onClose();
+    };
+    if (isOpen) window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onClose, allowBackdropClose]);
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={allowBackdropClose ? onClose : undefined}
+            className={`fixed inset-0 bg-black/80 z-[100] ${!allowBackdropClose ? "cursor-default" : "cursor-pointer"}`}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-[101] p-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={`w-full ${maxWidth} max-h-[80vh] p-[8px] bg-white ${outerClip} pointer-events-auto flex flex-col`}
+            >
+              <div
+                className={`bg-black w-full p-6 shadow-2xl relative flex flex-col min-h-0 flex-1 overflow-hidden ${innerClip}`}
+              >
+                {/* Scanline effect */}
+                <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+
+                <div className="flex justify-between items-center mb-6 shrink-0">
+                  {title && (
+                    <h2 className="text-2xl font-bold tracking-tighter text-white uppercase">
+                      {title}
+                    </h2>
+                  )}
+                  {showCloseButton && (
+                    <button
+                      onClick={onClose}
+                      className="text-white/50 hover:text-white transition-colors cursor-pointer uppercase text-sm font-bold"
+                    >
+                      [CLOSE]
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-white/80 space-y-4 overflow-y-auto flex-1 min-h-0 pr-2 custom-scrollbar">
+                  {children}
+                </div>
+
+                { footerText && (
+                  <p className="pt-2 border-t-white border-t-2 text-sm">
+                    {footerText}
+                  </p>
+                )}
+                {showFooterButton && (
+                  <div className="mt-2 shrink-0">
+                    <Button
+                      onClick={onClose}
+                      variant="outline"
+                      size="lg"
+                      className="w-full"
+                    >
+                      {footerButtonText}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
+
+
+
+================================================
+FILE: ModeTabs.tsx
+================================================
+export type GameMode = "classic" | "inferno" | "infernoguessr";
+
+interface Tab {
+    id: GameMode;
+    label: string;
+}
+
+interface ModeTabsProps {
+    activeMode: GameMode;
+    onModeChange: (mode: GameMode) => void;
+    tabs: Tab[];
+}
+
+export const ModeTabs = ({ activeMode, onModeChange, tabs }: ModeTabsProps) => {
+    return (
+        <div className="flex gap-0 mb-4 w-full max-w-[450px]">
+            {tabs.map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => onModeChange(tab.id)}
+                    className={`
+            relative hover:cursor-pointer flex-1 py-2 px-4 text-sm md:text-base
+            font-bold tracking-widest uppercase
+            border-2 border-white/20 transition-colors duration-200
+            ${activeMode === tab.id
+                            ? "bg-white text-black border-white"
+                            : "bg-transparent text-white/50 hover:text-white/80 hover:border-white/40"
+                        }
+            ${tab.id === "classic" ? "border-r-0" : ""}
+          `}
+                >
+                    {tab.label}
+                </button>
+            ))}
+        </div>
+    );
+};
+
+export default ModeTabs;
+
+
+
+================================================
+FILE: PlayExpandable.tsx
+================================================
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Button from "./Button";
+
+interface PlayExpandableProps {
+  label: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onClassic: () => void;
+  onInferno: () => void;
+  classicDisabled?: boolean;
+  classicContent?: React.ReactNode;
+  infernoDisabled?: boolean;
+  infernoContent?: React.ReactNode;
+}
+
+export const PlayExpandable = ({
+  label,
+  isExpanded,
+  onToggle,
+  onClassic,
+  onInferno,
+  classicDisabled = false,
+  classicContent,
+  infernoDisabled = false,
+  infernoContent,
+}: PlayExpandableProps) => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col">
+      <Button
+        variant="primary"
+        size="xl"
+        onClick={onToggle}
+        className={classicDisabled && infernoDisabled ? "cursor-default" : ""}
+      >
+        {label}
+        <motion.span
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="ml-2 inline-block"
+        >
+          ▼
+        </motion.span>
+      </Button>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden md:px-3 px-2"
+          >
+            <div className="space-y-1 pb-2 pt-1">
+              <div className="grid grid-cols-2 gap-1">
+                <Button
+                  variant="outline"
+                  size="xl"
+                  disabled={classicDisabled}
+                  onClick={onClassic}
+                >
+                  <span className="md:text-base text-sm">
+                    {classicContent ?? "CLASSIC"}
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  disabled={infernoDisabled}
+                  onClick={onInferno}
+                >
+                  <span className="md:text-base text-sm">
+                    {infernoContent ?? "INFERNOGUESSR"}
+                  </span>
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1">
+                <div>
+                  {classicDisabled && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/play/classic")}
+                      className="opacity-50 w-full hover:opacity-100 text-xs"
+                    >
+                      VIEW BOARD
+                    </Button>
+                  )}
+                </div>
+                <div>
+                  {infernoDisabled && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate("/play/infernoguessr")}
+                      className="opacity-50 w-full hover:opacity-100 text-xs"
+                    >
+                      VIEW BOARD
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default PlayExpandable;
+
+
+
+================================================
+FILE: RGBColorPicker.tsx
+================================================
+import React from "react";
+import type { RGB } from "../../context/SettingsContext";
+
+interface RGBColorPickerProps {
+  title: string;
+  color: RGB;
+  onChange: (newColor: RGB) => void;
+  disabled?: boolean;
+}
+
+export const RGBColorPicker: React.FC<RGBColorPickerProps> = ({
+  title,
+  color,
+  onChange,
+  disabled = false,
+}) => {
+  const handleSliderChange = (channel: keyof RGB, value: string) => {
+    if (disabled) return;
+    onChange({ ...color, [channel]: parseFloat(value) });
+  };
+
+  const colorString = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+
+  return (
+    <div className="flex flex-col gap-1 w-fit mt-2">
+      <h3 className="font-bold text-sm md:text-base tracking-widest uppercase mb-1">
+        {title}
+      </h3>
+      <div className="flex gap-4 items-center">
+        <div
+          className="w-16 h-16 shrink-0 border border-white/20"
+          style={{ backgroundColor: colorString }}
+        />
+
+        <div
+          className={`flex flex-col justify-between h-16 w-48 transition-opacity ${disabled ? "opacity-40 pointer-events-none" : ""}`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-red-500 font-bold uppercase w-3">R</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={color.r}
+              onChange={(e) => handleSliderChange("r", e.target.value)}
+              disabled={disabled}
+              className="flex-1 accent-red-500 h-2 bg-red-950 rounded-full appearance-none outline-none cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className="text-sm w-8 text-right shrink-0">
+              {color.r.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-green-500 font-bold uppercase w-3">G</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={color.g}
+              onChange={(e) => handleSliderChange("g", e.target.value)}
+              disabled={disabled}
+              className="flex-1 accent-green-500 h-2 bg-green-950 rounded-full appearance-none outline-none cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className="text-sm w-8 text-right shrink-0">
+              {color.g.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-blue-500 font-bold uppercase w-3">B</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={color.b}
+              onChange={(e) => handleSliderChange("b", e.target.value)}
+              disabled={disabled}
+              className="flex-1 accent-blue-500 h-2 bg-blue-950 rounded-full appearance-none outline-none cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className="text-sm w-8 text-right shrink-0">
+              {color.b.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+================================================
+FILE: Tooltip.tsx
+================================================
+import { useState, type ReactNode, cloneElement, isValidElement } from "react";
+import {
+    useFloating,
+    autoUpdate,
+    offset,
+    flip,
+    shift,
+    useHover,
+    useFocus,
+    useDismiss,
+    useRole,
+    useInteractions,
+    useClick,
+    FloatingPortal,
+} from "@floating-ui/react";
+
+import type { Placement } from "@floating-ui/react";
+import { AnimatePresence, motion } from "framer-motion";
+
+interface TooltipProps {
+    content: ReactNode;
+    children: ReactNode;
+    placement?: Placement;
+    className?: string;
+    wrapperClassName?: string;
+}
+
+const tooltipOuterClip =
+    "[clip-path:polygon(6px_0,calc(100%-6px)_0,100%_6px,100%_calc(100%-6px),calc(100%-6px)_100%,6px_100%,0_calc(100%-6px),0_6px)]";
+const tooltipInnerClip =
+    "[clip-path:polygon(4px_0,calc(100%-4px)_0,100%_4px,100%_calc(100%-4px),calc(100%-4px)_100%,4px_100%,0_calc(100%-4px),0_4px)]";
+
+export default function Tooltip({
+    content,
+    children,
+    placement = "top",
+    className = "",
+    wrapperClassName = "w-max",
+}: TooltipProps) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const { refs, floatingStyles, context } = useFloating({
+        open: isOpen,
+        onOpenChange: setIsOpen,
+        placement,
+        whileElementsMounted: autoUpdate,
+        middleware: [
+            offset(8),
+            flip({
+                fallbackAxisSideDirection: "start",
+            }),
+            shift({ padding: 8 }),
+        ],
+    });
+
+    const hover = useHover(context, { move: false });
+    const focus = useFocus(context);
+    const dismiss = useDismiss(context);
+    const role = useRole(context, { role: "tooltip" });
+    const click = useClick(context);
+
+    // Apply interactions
+    const { getReferenceProps, getFloatingProps } = useInteractions([
+        hover,
+        focus,
+        dismiss,
+        role,
+        click, // Adding click gives robust tap behavior on mobile
+    ]);
+
+    // Clone element so we don't introduce a wrapper div which can mess with hover hitboxes
+    const referenceElement = isValidElement(children) ? (
+        cloneElement(children as React.ReactElement<any>, {
+            ref: refs.setReference,
+            ...getReferenceProps({
+                ...(children.props as any),
+            }),
+        })
+    ) : (
+        <span ref={refs.setReference} {...getReferenceProps()} className={wrapperClassName}>
+            {children}
+        </span>
+    );
+
+    return (
+        <>
+            {referenceElement}
+            <FloatingPortal>
+                <AnimatePresence>
+                    {isOpen && (
+                        <div
+                            ref={refs.setFloating}
+                            style={floatingStyles}
+                            className="z-[150] pointer-events-none"
+                        >
+                            <motion.div
+                                {...getFloatingProps()}
+                                initial={{ opacity: 0, scale: 0.95, y: placement.startsWith("top") ? 5 : placement.startsWith("bottom") ? -5 : 0 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: placement.startsWith("top") ? 5 : placement.startsWith("bottom") ? -5 : 0 }}
+                                transition={{ duration: 0.15, ease: "easeOut" }}
+                                className={`p-[2px] bg-white pointer-events-auto ${tooltipOuterClip} ${className}`}
+                            >
+                                <div
+                                    className={`bg-black text-white px-3 py-1.5 text-sm font-bold uppercase tracking-tighter relative overflow-hidden ${tooltipInnerClip}`}
+                                >
+                                    <div className="absolute inset-0 pointer-events-none opacity-[0.05] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]" />
+                                    <div className="relative z-20 max-w-[60vw]">
+                                        {content}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </FloatingPortal>
+        </>
+    );
+}
+
+

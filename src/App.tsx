@@ -32,7 +32,7 @@ import { MessagesProvider } from "./context/MessagesContext";
 import { SessionContext, useSessionProvider } from "./hooks/useSession";
 import VersionUpdateModal from "./components/VersionUpdateModal";
 
-const SHOW_EXPERIMENTAL_MESSAGE = true;
+const SHOW_EXPERIMENTAL_MESSAGE = false;
 
 function AppContent() {
   const { updateAvailable } = useVersion();

@@ -30,26 +30,26 @@ export const CybergrindLeaderboard = () => {
 
       <AnimatePresence initial={false}>
         {entries.map((entry, index) => {
-          const prevRank =
-            index > 0 ? entries[index - 1].rank : entry.rank - 1;
-          const hasGap = entry.rank - prevRank > 1;
+          const displayRank = entry.calculatedRank || (index < 10 ? index + 1 : undefined);
+          const prevRank = index > 0 ? (entries[index - 1].calculatedRank || (index <= 10 ? index : undefined)) : undefined;
+          const hasGap = displayRank && prevRank ? displayRank - prevRank > 1 : false;
 
-          const isTop3 = entry.rank <= 3;
+          const isTop3 = displayRank && displayRank <= 3;
           const medalColor =
-            entry.rank === 1
+            displayRank === 1
               ? "text-yellow-500"
-              : entry.rank === 2
+              : displayRank === 2
                 ? "text-zinc-300"
-                : entry.rank === 3
+                : displayRank === 3
                   ? "text-amber-600"
                   : "text-white/40";
 
           const borderAccent =
-            entry.rank === 1
+            displayRank === 1
               ? "border-yellow-500/20"
-              : entry.rank === 2
+              : displayRank === 2
                 ? "border-zinc-300/20"
-                : entry.rank === 3
+                : displayRank === 3
                   ? "border-amber-600/20"
                   : "border-white/5";
 
@@ -70,16 +70,15 @@ export const CybergrindLeaderboard = () => {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className={`flex items-center gap-3 px-2 py-2 border transition-colors ${
-                  isTop3
+                className={`flex items-center gap-3 px-2 py-2 border transition-colors ${isTop3
                     ? `bg-white/5 ${borderAccent}`
                     : "bg-white/[0.02] border-white/5"
-                } hover:bg-white/[0.07]`}
+                  } hover:bg-white/[0.07]`}
               >
                 <div
                   className={`text-lg font-black w-8 text-center ${medalColor} flex-shrink-0 italic tracking-tighter`}
                 >
-                  {entry.rank}
+                  {displayRank || "#"}
                 </div>
 
                 <img

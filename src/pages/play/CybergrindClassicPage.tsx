@@ -18,6 +18,7 @@ const MODIFIER_DISPLAY_ORDER: string[] = [
   "FALSIFIER",
   "LETHE",
   "ECLIPSE",
+  "IDOL",
   "RADIANCE",
 ];
 
@@ -27,6 +28,7 @@ const RADIANCE_DESCRIPTIONS: Record<string, string> = {
     "RADIANCE: Flips 2 arrows instead of 1. Can flip the same arrow twice, canceling itself out",
   LETHE: "RADIANCE: Only your most recent guess is visible",
   ECLIPSE: "RADIANCE: Both Type and Weight columns are hidden",
+  IDOL: "RADIANCE: 4 enemies from the previous 2 rounds become BLESSED",
 };
 
 const MODIFIER_TOOLTIPS: Record<string, string> = {
@@ -37,6 +39,7 @@ const MODIFIER_TOOLTIPS: Record<string, string> = {
   LETHE: "You can only see your 2 most recent guesses",
   ECLIPSE:
     "Completely obscures a random column without arrows for the entire round",
+  IDOL: "2 enemies guessed from the last round become BLESSED. BLESSED enemies have all their hints obscured",
   RADIANCE:
     "Double the effects of 1 random modifier. Starting at wave 36, select 1 additional modifier every 15 waves",
 };
@@ -54,6 +57,7 @@ const mapGuess = (
   guess_enemy_id: number,
   hint_data: any,
   is_penance: boolean,
+  is_blessed: boolean,
   created_at?: string,
 ): GuessResult => {
   const enemyData = enemies.find((e) => e.id === guess_enemy_id);
@@ -62,6 +66,7 @@ const mapGuess = (
     enemy_name: enemyData?.name ?? "UNKNOWN",
     correct: hint_data.correct,
     is_penance,
+    is_blessed,
     created_at,
     properties: {
       enemy_type: hint_data.properties.enemy_type || defaultHintData,
@@ -77,7 +82,13 @@ const mapGuess = (
 
 const mapGuessesFromServer = (guesses: any[]): GuessResult[] =>
   (guesses || []).map((g: any) =>
-    mapGuess(g.guess_enemy_id, g.hint_data, g.is_penance, g.created_at),
+    mapGuess(
+      g.guess_enemy_id,
+      g.hint_data,
+      g.is_penance,
+      g.is_blessed,
+      g.created_at,
+    ),
   );
 
 interface BestRecord {
@@ -137,7 +148,10 @@ const CybergrindClassicPage = () => {
 
   const updateSelectedStartWave = (wave: number) => {
     setSelectedStartWave(wave);
-    localStorage.setItem("ultrakidle_cybergrind_start_wave", wave.toString());
+    localStorage.setItem(
+      "ultrakidle_cybergrind_start_wave",
+      wave.toString(),
+    );
   };
 
   const handleVersionError = (error: any) => {
@@ -159,7 +173,6 @@ const CybergrindClassicPage = () => {
         throw error;
       }
 
-      // Existing run was returned via get_cybergrind_state
       if (data.status === "active") {
         setStatus("active");
         if (data.best) setBestRecord(data.best);
@@ -167,7 +180,6 @@ const CybergrindClassicPage = () => {
         return;
       }
 
-      // New run was created
       setStatus("active");
       setCurrentWave(data.round_number);
       setModifiers(data.modifiers || []);
@@ -203,7 +215,9 @@ const CybergrindClassicPage = () => {
           if (waveNum === 1 || unlockedWaves.includes(waveNum)) {
             setSelectedStartWave(waveNum);
           } else {
-            localStorage.removeItem("ultrakidle_cybergrind_start_wave");
+            localStorage.removeItem(
+              "ultrakidle_cybergrind_start_wave",
+            );
             setSelectedStartWave(1);
           }
         } else {
@@ -243,7 +257,6 @@ const CybergrindClassicPage = () => {
         }
         throw error;
       }
-
 
       if (data.result === "correct") {
         const roundGuesses = data.round_guesses || [];
@@ -416,12 +429,6 @@ const CybergrindClassicPage = () => {
               </h1>
             </div>
 
-            <div className="text-sm flex items-center gap-2 px-2 py-1 bg-green-500/10 border-2 border-green-500/20 max-w-[1000px] text-left w-fit text-white">
-              Leaderboards will be reset in the next few days in order to add a new modifier
-            <br/>
-              &#9888; Active runs during the update will be terminated when it drops
-            </div>
-
             {bestRecord && bestRecord.best_wave > 0 && (
               <div className="flex text-left flex-col gap-1 text-white/50 text-sm font-bold uppercase tracking-widest">
                 <span>
@@ -452,10 +459,15 @@ const CybergrindClassicPage = () => {
                 {allWaves.map((w) => {
                   const unlocked = startWaves.includes(w);
                   const button = (
-                    <span className={!unlocked ? "cursor-not-allowed" : ""}>
+                    <span
+                      className={
+                        !unlocked ? "cursor-not-allowed" : ""
+                      }
+                    >
                       <Button
                         onClick={() =>
-                          unlocked && updateSelectedStartWave(w)
+                          unlocked &&
+                          updateSelectedStartWave(w)
                         }
                         variant={
                           selectedStartWave === w
@@ -464,7 +476,9 @@ const CybergrindClassicPage = () => {
                         }
                         disabled={!unlocked}
                         className={
-                          !unlocked ? "opacity-30 pointer-events-none w-full" : "w-full"
+                          !unlocked
+                            ? "opacity-30 pointer-events-none w-full"
+                            : "w-full"
                         }
                       >
                         {w}
@@ -490,9 +504,7 @@ const CybergrindClassicPage = () => {
             <Button
               variant="outline"
               size="lg"
-              onClick={() =>
-                handleStartRun(selectedStartWave)
-              }
+              onClick={() => handleStartRun(selectedStartWave)}
               disabled={isSubmitting}
               className="mt-2"
             >
@@ -526,12 +538,6 @@ const CybergrindClassicPage = () => {
               </h1>
             </div>
           </div>
-          <div className="mb-4 text-sm flex items-center gap-2 px-2 py-1 bg-green-500/10 border-2 border-green-500/20 max-w-[1000px] text-left w-fit text-white">
-            Leaderboards will be reset in the next few days in order to add a new modifier
-            <br/>
-            &#9888; Active runs during the update will be terminated when it drops
-          </div>
-
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 w-full md:max-w-[1000px] border-b border-white/5 pb-6">
             <div className="flex flex-col gap-1">
@@ -578,12 +584,13 @@ const CybergrindClassicPage = () => {
                           wrapperClassName=""
                         >
                           <span
-                            className={`font-bold uppercase italic tracking-wider cursor-help ${isRadiance
-                              ? "text-purple-400"
-                              : isTarget
-                                ? "text-yellow-400"
-                                : "text-red-500"
-                              }`}
+                            className={`font-bold uppercase italic tracking-wider cursor-help ${
+                              isRadiance
+                                ? "text-purple-400"
+                                : isTarget
+                                  ? "text-yellow-400"
+                                  : "text-red-500"
+                            }`}
                           >
                             {mod}
                             {isTarget && (
@@ -618,15 +625,15 @@ const CybergrindClassicPage = () => {
             animate={
               shouldFlash
                 ? {
-                  backgroundColor: [
-                    "rgba(255, 255, 255, 0.6)",
-                    "rgba(255, 255, 255, 0)",
-                  ],
-                }
+                    backgroundColor: [
+                      "rgba(255, 255, 255, 0.6)",
+                      "rgba(255, 255, 255, 0)",
+                    ],
+                  }
                 : {
-                  backgroundColor:
-                    "rgba(255, 255, 255, 0)",
-                }
+                    backgroundColor:
+                      "rgba(255, 255, 255, 0)",
+                  }
             }
             transition={
               shouldFlash
@@ -712,12 +719,13 @@ const CybergrindClassicPage = () => {
                   delay={0.7}
                 />
                 <Typewriter
-                  text={`GUESS ACCURACY: ${gameOverStats.avg_accuracy
-                    ? (
-                      gameOverStats.avg_accuracy * 20
-                    ).toFixed(2)
-                    : "0.00"
-                    }%`}
+                  text={`GUESS ACCURACY: ${
+                    gameOverStats.avg_accuracy
+                      ? (
+                          gameOverStats.avg_accuracy * 20
+                        ).toFixed(2)
+                      : "0.00"
+                  }%`}
                   className="opacity-50"
                   speed={0.02}
                   delay={1.0}
