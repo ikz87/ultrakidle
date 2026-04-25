@@ -9,6 +9,49 @@ export interface Message {
 
 export const MESSAGES: Message[] = [
   {
+  id: 'cybergrind-idol-modifier',
+  date: '2026-04-25',
+  content: (
+    <div className="space-y-4 lg:space-y-6 text-justify">
+      <p className="text-zinc-400 text-sm">
+        SYSTEM UPDATE LOG // [25-APR-2026]
+      </p>
+      <p className="text-green-500 lg:text-xl text-base font-bold tracking-wide">
+        CYBERGRIND UPDATE: NEW MODIFIER
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        A new modifier has been added to the Cybergrind rotation:{" "}
+        <span className="text-yellow-400 font-bold">IDOL</span>.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        When active, some enemies from your recent rounds will be
+        marked as{" "}
+        <span className="text-cyan-500 font-semibold">
+          blessed
+        </span>
+        . Guessing a blessed enemy shows{" "}
+        <span className="text-white font-semibold">
+            no hints.
+        </span>{" "}
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        IDOL joins the modifier pool starting at wave 6 and can be
+        amplified by{" "}
+        <span className="text-purple-400 font-bold">RADIANCE</span>
+        , which increases the number of blessed enemies and the
+        range of rounds they're pulled from.
+      </p>
+      <p className="text-white/70 lg:text-base text-sm">
+        Additionally, the maximum modifier count has been raised
+        from 5 to{" "}
+        <span className="text-white font-semibold">6</span> for
+        waves beyond 35, and radiance scaling has been adjusted
+        across all waves.
+      </p>
+    </div>
+  ),
+},
+  {
   id: 'celeste-recovery-update',
   date: '2026-04-14',
   content: (
