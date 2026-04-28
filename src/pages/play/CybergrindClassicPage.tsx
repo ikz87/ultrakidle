@@ -198,6 +198,7 @@ const CybergrindClassicPage = () => {
     try {
       const { data, error } = await supabase.rpc(
         "get_cybergrind_state",
+        { p_version: CURRENT_VERSION }
       );
       if (error) throw error;
 
@@ -584,13 +585,12 @@ const CybergrindClassicPage = () => {
                           wrapperClassName=""
                         >
                           <span
-                            className={`font-bold uppercase italic tracking-wider cursor-help ${
-                              isRadiance
+                            className={`font-bold uppercase italic tracking-wider cursor-help ${isRadiance
                                 ? "text-purple-400"
                                 : isTarget
                                   ? "text-yellow-400"
                                   : "text-red-500"
-                            }`}
+                              }`}
                           >
                             {mod}
                             {isTarget && (
@@ -625,15 +625,15 @@ const CybergrindClassicPage = () => {
             animate={
               shouldFlash
                 ? {
-                    backgroundColor: [
-                      "rgba(255, 255, 255, 0.6)",
-                      "rgba(255, 255, 255, 0)",
-                    ],
-                  }
+                  backgroundColor: [
+                    "rgba(255, 255, 255, 0.6)",
+                    "rgba(255, 255, 255, 0)",
+                  ],
+                }
                 : {
-                    backgroundColor:
-                      "rgba(255, 255, 255, 0)",
-                  }
+                  backgroundColor:
+                    "rgba(255, 255, 255, 0)",
+                }
             }
             transition={
               shouldFlash
@@ -719,13 +719,12 @@ const CybergrindClassicPage = () => {
                   delay={0.7}
                 />
                 <Typewriter
-                  text={`GUESS ACCURACY: ${
-                    gameOverStats.avg_accuracy
+                  text={`GUESS ACCURACY: ${gameOverStats.avg_accuracy
                       ? (
-                          gameOverStats.avg_accuracy * 20
-                        ).toFixed(2)
+                        gameOverStats.avg_accuracy * 20
+                      ).toFixed(2)
                       : "0.00"
-                  }%`}
+                    }%`}
                   className="opacity-50"
                   speed={0.02}
                   delay={1.0}
