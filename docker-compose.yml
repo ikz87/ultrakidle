@@ -1,0 +1,16 @@
+include:
+  - path: ./supabase/docker-compose.yml
+    env_file: ./supabase/.env
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./src:/app/src
+
+networks:
+  default:
+    name: ultrakidle
