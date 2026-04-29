@@ -21,6 +21,10 @@ export function resolveExternalUrl(url: string): string {
             return url.replace('https://img.icons8.com', '/external/icons8');
         }
 
+        if (url.startsWith('https://bucket.ultrakidle.online')) {
+            return url.replace('https://bucket.ultrakidle.online', '/external/infernoguessr-images');
+        }
+
         return url;
     }
 

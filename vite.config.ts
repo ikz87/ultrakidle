@@ -52,6 +52,12 @@ export default defineConfig(({ mode }) => {
       secure: true,
       rewrite: (path: string) => path.replace(/^\/external\/icons8/, ''),
     },
+    '/external/infernoguessr-images': {
+      target: 'https://bucket.ultrakidle.online',
+      changeOrigin: true,
+      secure: true,
+      rewrite: (path: string) => path.replace(/^\/external\/infernoguessr-images/, ''),
+    },
   };
 
   return {
