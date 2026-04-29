@@ -1,30 +1,41 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts";
 import { extname } from "https://deno.land/std@0.208.0/path/mod.ts";
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+} from "https://esm.sh/@aws-sdk/client-s3@3.484.0";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+const r2Client = new S3Client({
+  region: "auto",
+  endpoint: `https://${Deno.env.get("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: Deno.env.get("R2_ACCESS_KEY_ID")!,
+    secretAccessKey: Deno.env.get("R2_SECRET_ACCESS_KEY")!,
+  },
+});
+
 const DEST_BUCKET = "inferno-daily";
 const SOURCE_BUCKET = "level-images";
 const DAYS_TO_KEEP = 2;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
+const PUBLIC_DOMAIN = "https://bucket.ultrakidle.online";
 
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  label: string
-): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await fn();
     } catch (err) {
       if (attempt === MAX_RETRIES) throw err;
-      console.warn(
-        `${label} failed (attempt ${attempt}/${MAX_RETRIES}): ${err}`
-      );
+      console.warn(`${label} failed (attempt ${attempt}/${MAX_RETRIES}): ${err}`);
       await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
     }
   }
@@ -67,15 +78,12 @@ Deno.serve(async (req) => {
 
       const fileBuffer = await withRetry(async () => {
         if (sub.storage_path) {
-          const { data, error } = await supabase.storage
-            .from(SOURCE_BUCKET)
-            .download(sub.storage_path);
-
-          if (error)
+          const res = await fetch(`https://gallery.ultrakidle.online/${sub.storage_path}`);
+          if (!res.ok)
             throw new Error(
-              `Failed to download from ${SOURCE_BUCKET}/${sub.storage_path}: ${error.message}`
+              `Failed to fetch from R2 Gallery: ${res.statusText} (${sub.storage_path})`
             );
-          return data.arrayBuffer();
+          return res.arrayBuffer();
         } else {
           const res = await fetch(sub.image_url);
           if (!res.ok) throw new Error(`Failed to fetch ${sub.image_url}`);
@@ -83,18 +91,16 @@ Deno.serve(async (req) => {
         }
       }, `Download round ${round.round_number}`);
 
-      const { error: uploadErr } = await supabase.storage
-        .from(DEST_BUCKET)
-        .upload(destPath, fileBuffer, {
-          contentType: `image/${ext.replace(".", "")}`,
-          upsert: true,
-        });
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: DEST_BUCKET,
+          Key: destPath,
+          Body: new Uint8Array(fileBuffer),
+          ContentType: `image/${ext.replace(".", "")}`,
+        })
+      );
 
-      if (uploadErr) throw uploadErr;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(DEST_BUCKET).getPublicUrl(destPath);
+      const publicUrl = `${PUBLIC_DOMAIN}/${destPath}`;
 
       const { error: updateErr } = await supabase
         .from("inferno_daily_rounds")
@@ -120,22 +126,38 @@ Deno.serve(async (req) => {
 });
 
 async function cleanupOldFolders(currentDate: string) {
-  const cutoff = new Date(currentDate);
-  cutoff.setDate(cutoff.getDate() - DAYS_TO_KEEP);
+  const cutoffDate = new Date(currentDate);
+  cutoffDate.setDate(cutoffDate.getDate() - DAYS_TO_KEEP);
+  const cutoffStr = cutoffDate.toISOString().split("T")[0];
 
-  const { data: folders } = await supabase.storage
-    .from(DEST_BUCKET)
-    .list("", { limit: 100 });
-  if (!folders) return;
+  const listResponse = await r2Client.send(
+    new ListObjectsV2Command({
+      Bucket: DEST_BUCKET,
+      Delimiter: "/",
+    })
+  );
 
-  for (const folder of folders) {
-    if (folder.name < cutoff.toISOString().split("T")[0]) {
-      const { data: files } = await supabase.storage
-        .from(DEST_BUCKET)
-        .list(folder.name);
-      if (files?.length) {
-        const paths = files.map((f) => `${folder.name}/${f.name}`);
-        await supabase.storage.from(DEST_BUCKET).remove(paths);
+  if (!listResponse.CommonPrefixes) return;
+
+  for (const prefix of listResponse.CommonPrefixes) {
+    const folderName = prefix.Prefix?.replace("/", "");
+    if (folderName && folderName < cutoffStr) {
+      const folderObjects = await r2Client.send(
+        new ListObjectsV2Command({
+          Bucket: DEST_BUCKET,
+          Prefix: prefix.Prefix,
+        })
+      );
+
+      if (folderObjects.Contents && folderObjects.Contents.length > 0) {
+        await r2Client.send(
+          new DeleteObjectsCommand({
+            Bucket: DEST_BUCKET,
+            Delete: {
+              Objects: folderObjects.Contents.map((obj) => ({ Key: obj.Key })),
+            },
+          })
+        );
       }
     }
   }
