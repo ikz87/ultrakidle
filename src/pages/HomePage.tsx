@@ -215,7 +215,9 @@ const HomePage = () => {
                       className={
                         classicStatus === "COMPLETED"
                           ? "text-green-500"
-                          : ""
+                          : classicStatus === "FAILED"
+                            ? "text-red-500"
+                            : ""
                       }
                     />
                     {ranks?.classic.rank != null && classicStatus !== "READY" && (
@@ -448,22 +450,22 @@ const HomePage = () => {
                 </div>
               </div>
               <div className="flex gap-2 flex-row w-full">
-              <Button
-                variant="outline"
-                size="xl"
-                onClick={() => navigate("/enemies")}
-                className="w-full"
-              >
-                ENEMIES
-              </Button>
-              <Button
-                variant="outline"
-                size="xl"
-                onClick={() => navigate("/levels")}
-                className="w-full"
-              >
-                LEVELS
-              </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate("/enemies")}
+                  className="w-full"
+                >
+                  ENEMIES
+                </Button>
+                <Button
+                  variant="outline"
+                  size="xl"
+                  onClick={() => navigate("/levels")}
+                  className="w-full"
+                >
+                  LEVELS
+                </Button>
               </div>
               <Button
                 variant="outline"
