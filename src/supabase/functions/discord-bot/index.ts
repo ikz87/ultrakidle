@@ -54,17 +54,17 @@ serve(async (req) => {
   }
 
   if (payload.type === 2) {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
     if (payload.data.type === 4) {
       return Response.json({ type: 12 });
     }
 
     if (payload.data.name === "channel-unsubscribe") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
       const { error, count } = await supabase
         .from("daily_notification_channels")
         .delete({ count: "exact" })
@@ -91,14 +91,7 @@ serve(async (req) => {
     }
 
     if (payload.data.name === "ping-me") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
       const discordId = payload.member.user.id;
-
       const { error, count } = await supabase
         .from("profiles")
         .update({ pings_opted_in: true }, { count: "exact" })
@@ -118,22 +111,14 @@ serve(async (req) => {
       return Response.json({
         type: 4,
         data: {
-          content:
-            "✅ You'll be pinged in daily notifications from now on.",
+          content: "✅ You'll be pinged in daily notifications from now on.",
           flags: 64,
         },
       });
     }
 
     if (payload.data.name === "dont-ping-me") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
       const discordId = payload.member.user.id;
-
       const { error, count } = await supabase
         .from("profiles")
         .update({ pings_opted_in: false }, { count: "exact" })
@@ -153,23 +138,15 @@ serve(async (req) => {
       return Response.json({
         type: 4,
         data: {
-          content:
-            "🛑 You'll no longer be pinged in daily notifications.",
+          content: "🛑 You'll no longer be pinged in daily notifications.",
           flags: 64,
         },
       });
     }
 
     if (payload.data.name === "stats") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
       const { data: stats, error } = await supabase.rpc("get_daily_stats");
 
-      // Get today's inferno set
       const now = new Date();
       const nicaraguaNow = new Date(
         now.toLocaleString("en-US", { timeZone: "America/Managua" }),
@@ -227,15 +204,6 @@ serve(async (req) => {
         ];
       }
 
-      if (error || !stats) {
-        if (infernoLines.length === 0) {
-          return Response.json({
-            type: 4,
-            data: { content: "Failed to fetch stats.", flags: 64 },
-          });
-        }
-      }
-
       const nextMidnight = new Date(nicaraguaNow);
       nextMidnight.setDate(nextMidnight.getDate() + 1);
       nextMidnight.setHours(0, 0, 0, 0);
@@ -285,12 +253,6 @@ serve(async (req) => {
     }
 
     if (payload.data.name === "random-level") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
       const { data: levels } = await supabase
         .from("levels")
         .select("level_number, level_name, thumbnail_url, wiki_url");
@@ -324,12 +286,6 @@ serve(async (req) => {
     }
 
     if (payload.data.name === "random-enemy") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
       const { data: enemies } = await supabase
         .from("ultrakill_enemies")
         .select("name, icon_urls, wiki_link")
@@ -346,7 +302,6 @@ serve(async (req) => {
       const urls: string[] = enemy.icon_urls ?? [];
       const wikiUrl = enemy.wiki_link ?? "https://ultrakidle.online";
 
-      // First embed has the title, rest are image-only (Discord renders them as a gallery)
       const embeds = urls.map((url: string, i: number) => ({
         ...(i === 0 ? { title: enemy.name, color: 0xff0000 } : {}),
         image: { url },
@@ -363,45 +318,28 @@ serve(async (req) => {
     }
 
     if (payload.data.name === "channel-subscribe") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
-
-      // Ensure guild exists before linking notification channel
       const { error: guildError } = await supabase.from("guilds").upsert(
         { guild_id: payload.guild_id },
         { onConflict: "guild_id" },
       );
 
       if (guildError) {
-        console.error("Error upserting guild:", guildError);
         return Response.json({
           type: 4,
-          data: {
-            content: "Failed to initialize guild data.",
-            flags: 64,
-          },
+          data: { content: "Failed to initialize guild data.", flags: 64 },
         });
       }
 
-      const { error } = await supabase
-        .from("daily_notification_channels")
-        .upsert({
-          guild_id: payload.guild_id,
-          channel_id: payload.channel_id,
-          configured_by: payload.member.user.id,
-        });
+      const { error } = await supabase.from("daily_notification_channels").upsert({
+        guild_id: payload.guild_id,
+        channel_id: payload.channel_id,
+        configured_by: payload.member.user.id,
+      });
 
       if (error) {
-        console.error("Error upserting notification channel:", error);
         return Response.json({
           type: 4,
-          data: {
-            content: "Failed to set notification channel.",
-            flags: 64,
-          },
+          data: { content: "Failed to set notification channel.", flags: 64 },
         });
       }
 
@@ -442,6 +380,93 @@ serve(async (req) => {
       });
     }
 
+    if (payload.data.name === "cg-top") {
+      const { data, error } = await supabase
+        .from("cybergrind_leaderboard")
+        .select("rank, discord_name, best_wave, avg_accuracy")
+        .order("rank", { ascending: true })
+        .limit(10);
+
+      if (error || !data) {
+        return Response.json({
+          type: 4,
+          data: { content: "Failed to fetch leaderboard.", flags: 64 },
+        });
+      }
+
+      const rows = data
+        .map(
+          (r) =>
+            `${r.rank.toString().padEnd(3)} ${r.discord_name.slice(0, 16).padEnd(17)} Wave ${r.best_wave.toString().padEnd(3)} (${Math.round(r.avg_accuracy * 20)}%)`,
+        )
+        .join("\n");
+
+      return Response.json({
+        type: 4,
+        data: {
+          content: `### 🏆 Cybergrind Top 10\n\`\`\`\nRank Name              Wave     Acc\n${rows}\n\`\`\``,
+        },
+      });
+    }
+
+    if (payload.data.name === "cg-rank") {
+      const discordId = payload.member.user.id;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("discord_id", discordId)
+        .maybeSingle();
+
+      if (!profile) {
+        return Response.json({
+          type: 4,
+          data: { content: "Profile not found.", flags: 64 },
+        });
+      }
+
+      const { data, error } = await supabase
+        .from("cybergrind_leaderboard")
+        .select("*")
+        .eq("user_id", profile.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        return Response.json({
+          type: 4,
+          data: {
+            content: "You don't have a Cybergrind record yet!",
+            flags: 64,
+          },
+        });
+      }
+
+      return Response.json({
+        type: 4,
+        data: {
+          embeds: [
+            {
+              title: `Cybergrind Stats: ${data.discord_name}`,
+              color: 0xff0000,
+              fields: [
+                { name: "Rank", value: `#${data.rank}`, inline: true },
+                { name: "Best Wave", value: `${data.best_wave}`, inline: true },
+                {
+                  name: "Accuracy",
+                  value: `${Math.round(data.avg_accuracy * 20)}%`,
+                  inline: true,
+                },
+                {
+                  name: "Total Guesses",
+                  value: `${data.total_guesses}`,
+                  inline: true,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+
     if (payload.data.name === "share") {
       const discordId = payload.member.user.id;
       const displayName =
@@ -449,20 +474,29 @@ serve(async (req) => {
         payload.member.user.global_name ||
         payload.member.user.username;
 
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
+      const [dailyRes, infernoRes, profileRes] = await Promise.all([
+        supabase.rpc("get_daily_share", { p_discord_id: discordId }),
+        supabase.rpc("get_daily_inferno_share", { p_discord_id: discordId }),
+        supabase
+          .from("profiles")
+          .select("id")
+          .eq("discord_id", discordId)
+          .maybeSingle(),
+      ]);
 
-      const { data, error } = await supabase.rpc("get_daily_share", {
-        p_discord_id: discordId,
-      });
+      const { data, error } = dailyRes;
+      const { data: infernoData } = infernoRes;
+      let streak = 0;
 
-      const { data: infernoData } = await supabase.rpc(
-        "get_daily_inferno_share",
-        { p_discord_id: discordId },
-      );
+      if (profileRes.data?.id) {
+        const { data: streakData } = await supabase
+          .from("streak_cache")
+          .select("current_streak")
+          .eq("user_id", profileRes.data.id)
+          .maybeSingle();
+
+        streak = streakData?.current_streak ?? 0;
+      }
 
       if ((error || !data) && !infernoData) {
         return Response.json({
@@ -479,8 +513,9 @@ serve(async (req) => {
 
       if (data) {
         const result = data.is_win ? `${data.attempts}/5` : "X/5";
+        const streakText = streak > 0 ? ` | 🔥STREAK: ${streak}` : "";
         parts.push(
-          `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}\n\n${data.grid}`,
+          `**${displayName}** — ULTRAKIDLE #${data.day_number} ${result}${streakText}\n\n${data.grid}`,
         );
       }
 
@@ -504,7 +539,35 @@ serve(async (req) => {
         },
       });
     }
-  } // <-- This closing brace was missing in your previous version
+  }
+
+  if (payload.data.name === "help") {
+      return Response.json({
+        type: 4,
+        data: {
+          embeds: [
+            {
+              title: "ULTRAKIDLE Bot Commands",
+              color: 0xff0000,
+              description: [
+                "**/ultrakidle**: Open ULTRAKIDLE in Discord.",
+                "**/how-to-play**: Show game rules and mechanics.",
+                "**/share**: Share your results for today.",
+                "**/stats**: Show global stats for today's player activity.",
+                "**/cg-top**: View Cybergrind top 10 leaderboard.",
+                "**/cg-rank**: View your personal Cybergrind stats.",
+                "**/random-level**: Roll a random main level.",
+                "**/random-enemy**: Roll a random enemy from the roster.",
+                "**/channel-subscribe**: Enable daily notifications for this channel.",
+                "**/channel-unsubscribe**: Stop notifications in this channel.",
+                "**/ping-me**: Opt-in to being pinged by notifications.",
+                "**/dont-ping-me**: Opt-out of notification pings.",
+              ].join("\n"),
+            },
+          ],
+        },
+      });
+    }
 
   if (payload.type === 3) {
     if (payload.data.custom_id === "launch_activity") {
