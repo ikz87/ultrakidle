@@ -384,6 +384,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from("cybergrind_leaderboard")
         .select("rank, discord_name, best_wave, avg_accuracy")
+        .eq("client_version", "1.3.0")
         .order("rank", { ascending: true })
         .limit(10);
 
@@ -410,7 +411,7 @@ serve(async (req) => {
     }
 
     if (payload.data.name === "cg-rank") {
-      const discordId = payload.member.user.id;
+      const discordId = payload.member?.user?.id ?? payload.user?.id;;
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
@@ -428,6 +429,7 @@ serve(async (req) => {
         .from("cybergrind_leaderboard")
         .select("*")
         .eq("user_id", profile.id)
+        .eq("client_version", "1.3.0")
         .maybeSingle();
 
       if (error || !data) {
