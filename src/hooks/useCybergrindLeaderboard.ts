@@ -3,17 +3,6 @@ import { supabase } from "../lib/supabaseClient";
 import { CURRENT_VERSION } from "../context/VersionContext";
 
 export interface CGLeaderboardEntry {
-    user_id: string;
-    discord_name: string;
-    avatar_url: string;
-    best_wave: number;
-    total_guesses: number;
-    hint_accuracy: number;
-    achieved_at: string;
-    avg_accuracy: number;
-    calculatedRank?: number;
-}
-export interface CGLeaderboardEntry {
   user_id: string;
   discord_name: string;
   avatar_url: string;
@@ -27,8 +16,8 @@ export interface CGLeaderboardEntry {
 
 export const useCybergrindLeaderboard = () => {
   const [entries, setEntries] = useState<CGLeaderboardEntry[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasEllipsis, setHasEllipsis] = useState(false);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -36,7 +25,8 @@ export const useCybergrindLeaderboard = () => {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        const userId = session?.user?.id;
+        const userId = session?.user?.id || null;
+        setCurrentUserId(userId);
 
         const { data: top10Data, error: top10Error } = await supabase
           .from("cybergrind_leaderboard")
@@ -50,7 +40,6 @@ export const useCybergrindLeaderboard = () => {
 
         if (!userId) {
           setEntries(top10);
-          setHasEllipsis(false);
           return;
         }
 
@@ -65,7 +54,6 @@ export const useCybergrindLeaderboard = () => {
 
         if (!userStats || userStats.rank <= 10) {
           setEntries(top10);
-          setHasEllipsis(false);
           return;
         }
 
@@ -81,7 +69,6 @@ export const useCybergrindLeaderboard = () => {
         if (neighborError) throw neighborError;
 
         setEntries([...top10, ...(neighbors as CGLeaderboardEntry[])]);
-        setHasEllipsis(userRank > 11);
       } catch (err) {
         console.error("Error fetching cybergrind leaderboard:", err);
       } finally {
@@ -92,5 +79,5 @@ export const useCybergrindLeaderboard = () => {
     fetchLeaderboard();
   }, []);
 
-  return { entries, loading, hasEllipsis };
+  return { entries, currentUserId, loading };
 };

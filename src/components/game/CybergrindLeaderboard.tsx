@@ -20,7 +20,7 @@ export const CybergrindLeaderboard = () => {
     );
   }
 
-  return (
+return (
     <div className="flex flex-col gap-1 w-full">
       <div className="flex items-center gap-2 px-2 py-1 border-b border-white/10 mb-1">
         <span className="text-white/50 font-bold tracking-widest text-xs uppercase">
@@ -30,26 +30,25 @@ export const CybergrindLeaderboard = () => {
 
       <AnimatePresence initial={false}>
         {entries.map((entry, index) => {
-          const displayRank = entry.calculatedRank || (index < 10 ? index + 1 : undefined);
-          const prevRank = index > 0 ? (entries[index - 1].calculatedRank || (index <= 10 ? index : undefined)) : undefined;
-          const hasGap = displayRank && prevRank ? displayRank - prevRank > 1 : false;
+          const prevEntry = index > 0 ? entries[index - 1] : null;
+          const hasGap = prevEntry && entry.rank > prevEntry.rank + 1;
 
-          const isTop3 = displayRank && displayRank <= 3;
+          const isTop3 = entry.rank <= 3;
           const medalColor =
-            displayRank === 1
+            entry.rank === 1
               ? "text-yellow-500"
-              : displayRank === 2
+              : entry.rank === 2
                 ? "text-zinc-300"
-                : displayRank === 3
+                : entry.rank === 3
                   ? "text-amber-600"
                   : "text-white/40";
 
           const borderAccent =
-            displayRank === 1
+            entry.rank === 1
               ? "border-yellow-500/20"
-              : displayRank === 2
+              : entry.rank === 2
                 ? "border-zinc-300/20"
-                : displayRank === 3
+                : entry.rank === 3
                   ? "border-amber-600/20"
                   : "border-white/5";
 
@@ -60,9 +59,9 @@ export const CybergrindLeaderboard = () => {
           return (
             <div key={entry.user_id}>
               {hasGap && (
-                <div className="flex justify-center my-1 opacity-30 py-1">
-                  <span className="text-white tracking-[0.3em] text-xs">
-                    · · ·
+                <div className="flex justify-center my-2 opacity-50 py-2">
+                  <span className="text-white tracking-[0.5em] text-sm font-bold">
+                    ■ ■ ■
                   </span>
                 </div>
               )}
@@ -70,15 +69,16 @@ export const CybergrindLeaderboard = () => {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
-                className={`flex items-center gap-3 px-2 py-2 border transition-colors ${isTop3
+                className={`flex items-center gap-3 px-2 py-2 border transition-colors ${
+                  isTop3
                     ? `bg-white/5 ${borderAccent}`
                     : "bg-white/[0.02] border-white/5"
-                  } hover:bg-white/[0.07]`}
+                } hover:bg-white/[0.07]`}
               >
                 <div
                   className={`text-lg font-black w-8 text-center ${medalColor} flex-shrink-0 italic tracking-tighter`}
                 >
-                  {displayRank || "#"}
+                  {entry.rank}
                 </div>
 
                 <img
