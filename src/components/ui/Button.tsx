@@ -121,7 +121,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         return (
             <motion.button
                 ref={ref}
-                className={`group relative inline-flex items-center justify-center font-bold disabled:opacity-50 disabled:pointer-events-none uppercase tracking-tighter cursor-pointer ${poly} ${currentVariant.outer} ${padding[size]} ${className}`}
+                className={`group relative inline-flex items-center justify-center font-bold select-none disabled:!opacity-50 disabled:pointer-events-none uppercase tracking-tighter cursor-pointer ${poly} ${currentVariant.outer} ${padding[size]} ${className}`}
                 {...getMotionProps()}
                 {...props as HTMLMotionProps<"button">}
             >

@@ -129,6 +129,7 @@ const CybergrindClassicPage = () => {
 
   const [startWaves, setStartWaves] = useState<number[]>([]);
   const [selectedStartWave, setSelectedStartWave] = useState(1);
+  const [pagerWave, setPagerWave] = useState(30);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shouldFlash, setShouldFlash] = useState(false);
@@ -215,6 +216,7 @@ const CybergrindClassicPage = () => {
           const waveNum = parseInt(savedWave, 10);
           if (waveNum === 1 || unlockedWaves.includes(waveNum)) {
             setSelectedStartWave(waveNum);
+            if (waveNum >= 30) setPagerWave(waveNum);
           } else {
             localStorage.removeItem(
               "ultrakidle_cybergrind_start_wave",
@@ -409,7 +411,18 @@ const CybergrindClassicPage = () => {
   }
 
   if (status === "no_run") {
-    const allWaves = [5, 10, 15, 20, 25, 30, 35, 40];
+    const staticWaves = [5, 10, 15, 20, 25];
+    const hasAnyPagerWaves = startWaves.some((w) => w >= 30);
+    const isPagerUnlocked = startWaves.includes(pagerWave);
+    const maxStartWave = Math.max(...startWaves, 30);
+
+    const handlePagerChange = (dir: number) => {
+      const nextVal = Math.max(30, pagerWave + dir * 5);
+      setPagerWave(nextVal);
+      if (startWaves.includes(nextVal)) {
+        updateSelectedStartWave(nextVal);
+      }
+    };
 
     return (
       <>
@@ -425,19 +438,14 @@ const CybergrindClassicPage = () => {
             className="flex flex-col w-full items-start gap-6"
           >
             <div className="flex flex-col gap-0 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left">
-              <h1 className="tracking-widest">
-                CYBERGRIND_CLASSIC
-              </h1>
+              <h1 className="tracking-widest">CYBERGRIND_CLASSIC</h1>
             </div>
 
             {bestRecord && bestRecord.best_wave > 0 && (
               <div className="flex text-left flex-col gap-1 text-white/50 text-sm font-bold uppercase tracking-widest">
+                <span>PERSONAL BEST: WAVE {bestRecord.best_wave}</span>
                 <span>
-                  PERSONAL BEST: WAVE {bestRecord.best_wave}
-                </span>
-                <span>
-                  ACCURACY:{" "}
-                  {(bestRecord.avg_accuracy * 20).toFixed(2)}%
+                  ACCURACY: {(bestRecord.avg_accuracy * 20).toFixed(2)}%
                 </span>
               </div>
             )}
@@ -449,32 +457,17 @@ const CybergrindClassicPage = () => {
               <div className="gap-2 grid grid-cols-3">
                 <Button
                   onClick={() => updateSelectedStartWave(1)}
-                  variant={
-                    selectedStartWave === 1
-                      ? "primary"
-                      : "outline"
-                  }
+                  variant={selectedStartWave === 1 ? "primary" : "outline"}
                 >
                   1
                 </Button>
-                {allWaves.map((w) => {
+                {staticWaves.map((w) => {
                   const unlocked = startWaves.includes(w);
                   const button = (
-                    <span
-                      className={
-                        !unlocked ? "cursor-not-allowed" : ""
-                      }
-                    >
+                    <span className={!unlocked ? "cursor-not-allowed" : ""}>
                       <Button
-                        onClick={() =>
-                          unlocked &&
-                          updateSelectedStartWave(w)
-                        }
-                        variant={
-                          selectedStartWave === w
-                            ? "primary"
-                            : "outline"
-                        }
+                        onClick={() => unlocked && updateSelectedStartWave(w)}
+                        variant={selectedStartWave === w ? "primary" : "outline"}
                         disabled={!unlocked}
                         className={
                           !unlocked
@@ -500,6 +493,57 @@ const CybergrindClassicPage = () => {
                   );
                 })}
               </div>
+
+              {hasAnyPagerWaves && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePagerChange(-1)}
+                    disabled={pagerWave <= 30}
+                    className=""
+                  >
+                    &lt;&lt;
+                  </Button>
+
+                  <div className="flex-1 min-w-[100px]">
+                    {!isPagerUnlocked ? (
+                      <Tooltip
+                        content={`Reach wave ${pagerWave * 2} to unlock`}
+                        wrapperClassName="w-full"
+                      >
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="opacity-30 pointer-events-none w-full"
+                        >
+                          {pagerWave}
+                        </Button>
+                      </Tooltip>
+                    ) : (
+                      <Button
+                        onClick={() => updateSelectedStartWave(pagerWave)}
+                        variant={
+                          selectedStartWave === pagerWave
+                            ? "primary"
+                            : "outline"
+                        }
+                        className="w-full"
+                      >
+                        {pagerWave}
+                      </Button>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePagerChange(1)}
+                    disabled={pagerWave >= maxStartWave}
+                    className=""
+                  >
+                    &gt;&gt;
+                  </Button>
+                </div>
+              )}
             </div>
 
             <Button
@@ -586,10 +630,10 @@ const CybergrindClassicPage = () => {
                         >
                           <span
                             className={`font-bold uppercase italic tracking-wider cursor-help ${isRadiance
-                                ? "text-purple-400"
-                                : isTarget
-                                  ? "text-yellow-400"
-                                  : "text-red-500"
+                              ? "text-purple-400"
+                              : isTarget
+                                ? "text-yellow-400"
+                                : "text-red-500"
                               }`}
                           >
                             {mod}
@@ -720,10 +764,10 @@ const CybergrindClassicPage = () => {
                 />
                 <Typewriter
                   text={`GUESS ACCURACY: ${gameOverStats.avg_accuracy
-                      ? (
-                        gameOverStats.avg_accuracy * 20
-                      ).toFixed(2)
-                      : "0.00"
+                    ? (
+                      gameOverStats.avg_accuracy * 20
+                    ).toFixed(2)
+                    : "0.00"
                     }%`}
                   className="opacity-50"
                   speed={0.02}
