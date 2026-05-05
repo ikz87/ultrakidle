@@ -82,33 +82,51 @@ serve(async (req) => {
         ? `https://cdn.discordapp.com/avatars/${author.id}/${author.avatar}.png`
         : null;
 
-      // Update source of truth for user profile
-      await supabase.from("submitter_profiles").upsert(
-        {
-          discord_user_id: author.id,
-          discord_name: author.global_name ?? author.username,
-          discord_avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "discord_user_id" }
+      const attachment = msg.attachments.find(
+        (a: any) =>
+          a.content_type?.startsWith("image/") ||
+          /\.(png|jpe?g|webp|gif)$/i.test(a.filename ?? "")
       );
 
-      // Insert submission referencing the profile
+      const { data: profile, error: profileErr } = await supabase
+        .from("submitter_profiles")
+        .upsert(
+          {
+            discord_user_id: author.id,
+            discord_name: author.global_name ?? author.username,
+            discord_avatar_url: avatarUrl,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "discord_user_id" }
+        )
+        .select("id")
+        .single();
+
+      if (profileErr || !profile) {
+        console.error(`[profile] Error for ${author.id}:`, profileErr);
+        continue;
+      }
+
       const { error: insErr } = await supabase.from("image_submissions").insert({
         level_id: levelId,
-        discord_user_id: author.id,
+        submitter_id: profile.id,
         channel_id: thread.id,
         message_id: thread.id,
+        guild_id: thread.guild_id,
+        image_url: attachment.url,
         status: "pending",
       });
 
-      if (!insErr) {
-        await discordFetch(
-          `${DISCORD_API}/channels/${thread.id}/messages/${thread.id}/reactions/%F0%9F%91%80/@me`,
-          { method: "PUT", headers: discordHeaders }
-        );
-        ingested++;
+      if (insErr) {
+        console.error(`[insert] Error for thread ${thread.id}:`, insErr);
+        continue;
       }
+
+      await discordFetch(
+        `${DISCORD_API}/channels/${thread.id}/messages/${thread.id}/reactions/%F0%9F%91%80/@me`,
+        { method: "PUT", headers: discordHeaders }
+      );
+      ingested++;
     } catch (e) {
       console.error(`[ingest] Error processing thread ${thread.id}:`, e);
     }

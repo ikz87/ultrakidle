@@ -47,8 +47,8 @@ serve(async (req) => {
 
       const { data, error } = await supabase
         .from("image_submissions")
-        .select("status")
-        .eq("discord_user_id", discordId);
+        .select("status, submitter_profiles!inner(discord_user_id)")
+        .eq("submitter_profiles.discord_user_id", discordId);
 
       if (error) {
         console.error("Error fetching submissions:", error);
