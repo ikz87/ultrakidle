@@ -34,7 +34,7 @@ import { TimeProvider } from "./context/TimeContext";
 import { SessionContext, useSessionProvider } from "./hooks/useSession";
 import VersionUpdateModal from "./components/VersionUpdateModal";
 
-const SHOW_EXPERIMENTAL_MESSAGE = false;
+const SHOW_EXPERIMENTAL_MESSAGE = true;
 
 function AppContent() {
   const { updateAvailable } = useVersion();
