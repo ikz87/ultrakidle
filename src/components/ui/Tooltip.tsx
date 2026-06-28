@@ -16,6 +16,7 @@ import {
 
 import type { Placement } from "@floating-ui/react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useSettings } from "../../context/SettingsContext";
 
 interface TooltipProps {
     content: ReactNode;
@@ -81,6 +82,9 @@ export default function Tooltip({
             {children}
         </span>
     );
+  const { settings } = useSettings();
+  const fontClass = settings.fontFamily === "atkinson" ? "font-atkinson" : "font-vcr";
+
 
     return (
         <>
@@ -91,7 +95,7 @@ export default function Tooltip({
                         <div
                             ref={refs.setFloating}
                             style={floatingStyles}
-                            className="z-[150] pointer-events-none"
+                            className={`${fontClass} z-[150] pointer-events-none`}
                         >
                             <motion.div
                                 {...getFloatingProps()}

@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Button from "./Button";
+import { useSettings } from "../../context/SettingsContext";
 
 interface ModalProps {
   isOpen: boolean;
@@ -41,10 +42,14 @@ const Modal = ({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose, allowBackdropClose]);
 
+  const { settings } = useSettings();
+  const fontClass = settings.fontFamily === "atkinson" ? "font-atkinson" : "font-vcr";
+
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className={fontClass}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -105,7 +110,7 @@ const Modal = ({
               </div>
             </motion.div>
           </div>
-        </>
+        </div>
       )}
     </AnimatePresence>,
     document.body

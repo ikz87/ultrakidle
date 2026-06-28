@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Button from "./Button";
+import { useSettings } from "../../context/SettingsContext";
 
 interface AlertDialogProps {
   isOpen: boolean;
@@ -38,11 +39,14 @@ const AlertDialog = ({
     if (isOpen) window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
+  const { settings } = useSettings();
+  const fontClass = settings.fontFamily === "atkinson" ? "font-atkinson" : "font-vcr";
+
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <>
+        <div className={fontClass}>
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -91,7 +95,7 @@ const AlertDialog = ({
               </div>
             </motion.div>
           </div>
-        </>
+        </div>
       )}
     </AnimatePresence>,
     document.body
