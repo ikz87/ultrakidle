@@ -3,6 +3,8 @@ import { enemies } from "../../lib/enemy_list";
 import { EnemyIcon } from "./EnemyIcon";
 import { useSettings } from "../../context/SettingsContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { levels } from "../../lib/levels_list";
+
 import Tooltip from "../ui/Tooltip";
 
 export interface GuessResult {
@@ -51,6 +53,44 @@ const BADGE_TOOLTIPS: Record<string, string> = {
   P: "PENANCE: Automatically selected wrong guess",
   F: "FALSIFIER: This hint's arrow might be flipped",
   E: "ECLIPSE: This column is completely obscured for this round",
+};
+
+const getRangeText = (
+  col: "health" | "level_count",
+  value: number,
+  color?: "green" | "yellow" | "red"
+): string | undefined => {
+  if (color !== "yellow") return undefined;
+  const delta = col === "health" ? 10 : 3;
+  const min = Math.max(0, value - delta);
+  const max = value + delta;
+  return `Target is between ${min} and ${max}`;
+};
+
+const getAppearanceRangeText = (
+  value: string | number,
+  color?: "green" | "yellow" | "red"
+): string | undefined => {
+  if (color !== "yellow") return undefined;
+  const sorted = [...levels].sort((a, b) => a.orderIndex - b.orderIndex);
+  const idx = sorted.findIndex((l) => `${l.levelNumber}: ${l.name.toUpperCase()}` === value);
+  if (idx === -1) return undefined;
+  const minIdx = Math.max(0, idx - 11);
+  const maxIdx = Math.min(sorted.length - 1, idx + 10);
+  return `Target is between ${sorted[minIdx].levelNumber} and ${sorted[maxIdx].levelNumber}`;
+};
+
+const TooltipContent = ({ items }: { items: any[] }) => {
+  return (
+    <div className="flex flex-col gap-2 py-0.5">
+      {items.filter(Boolean).map((item, i) => (
+        <div key={i} className="flex flex-col gap-2">
+          {i > 0 && <div className="h-px w-full bg-white/20" />}
+          <div className="whitespace-pre-line leading-tight">{item}</div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const isEclipsed = (prop: { result: any }): boolean =>
@@ -136,7 +176,7 @@ const CellTooltip = ({
   tooltip,
   children,
 }: {
-  tooltip?: string;
+  tooltip?: ReactNode;
   children: ReactNode;
 }) => {
   if (!tooltip) return <>{children}</>;
@@ -161,6 +201,7 @@ const COLUMN_HEADERS: Record<string, string> = {
   level_count: "Total Levels",
   appearance: "Registered at",
 };
+
 
 export const GuessBoard = ({
   guesses,
@@ -196,13 +237,15 @@ export const GuessBoard = ({
 
               const eclipsedType =
                 hasEclipse &&
+                !guess.is_blessed &&
                 isEclipsed(guess.properties.enemy_type);
               const eclipsedWeight =
                 hasEclipse &&
+                !guess.is_blessed &&
                 isEclipsed(guess.properties.weight_class);
 
               const showFalsifier =
-                hasFalsifier && !guess.correct;
+                hasFalsifier && !guess.correct && !guess.is_blessed;
 
               const falsifierHealth =
                 showFalsifier &&
@@ -360,54 +403,42 @@ export const GuessBoard = ({
                       </td>
                     );
                   }
-                  case 'health': {
+case 'health': {
                     const styles = getCellStyles(
                       hasValue(guess.properties.health.value) ? guess.properties.health.result : "gray",
                       settings,
                       hasValue(guess.properties.health.value) ? guess.properties.health.color : undefined
                     );
+                    
+                    const tooltipItems = [];
+                    if (guess.is_blessed) tooltipItems.push("This enemy is BLESSED, it has all its hints obscured");
+                    else if (falsifierHealth) tooltipItems.push(BADGE_TOOLTIPS["F"]);
+                    
+                    const rangeText = getRangeText("health", guess.properties.health.value, guess.properties.health.color);
+                    if (rangeText) tooltipItems.push(rangeText);
+
                     return (
                       <td key="health"
                         className={`border-l-4 border-black/50 ${styles.className}`}
                         style={styles.style}
                       >
-                        <CellTooltip
-                          tooltip={
-                            guess.is_blessed
-                              ? "This enemy is BLESSED, it has all its hints obscured"
-                              : falsifierHealth
-                                ? BADGE_TOOLTIPS["F"]
-                                : undefined
-                          }
-                        >
+                        <CellTooltip tooltip={tooltipItems.length > 0 ? <TooltipContent items={tooltipItems} /> : undefined}>
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
                             {falsifierHealth && (
-                              <ModifierBadge
-                                label="F"
-                                className="border-orange-500/50 text-orange-400"
-                              />
+                              <ModifierBadge label="F" className="border-orange-500/50 text-orange-400" />
                             )}
                             <StatusIcon
                               result={guess.properties.health.result}
                               color={guess.properties.health.color}
-                              enabled={
-                                showIcons &&
-                                hasValue(guess.properties.health.value)
-                              }
+                              enabled={showIcons && hasValue(guess.properties.health.value)}
                             />
-                            {hasValue(guess.properties.health.value)
-                              ? guess.properties.health.value
-                              : "[ECLIPSED]"}
-                            {hasValue(guess.properties.health.value) &&
-                              guess.properties.health.result ===
-                              "higher" && (
+                            {hasValue(guess.properties.health.value) ? guess.properties.health.value : "[ECLIPSED]"}
+                            {hasValue(guess.properties.health.value) && guess.properties.health.result === "higher" && (
                                 <span className="text-lg">▲</span>
-                              )}
-                            {hasValue(guess.properties.health.value) &&
-                              guess.properties.health.result ===
-                              "lower" && (
+                            )}
+                            {hasValue(guess.properties.health.value) && guess.properties.health.result === "lower" && (
                                 <span className="text-lg">▼</span>
-                              )}
+                            )}
                           </div>
                         </CellTooltip>
                       </td>
@@ -419,60 +450,36 @@ export const GuessBoard = ({
                       settings,
                       hasValue(guess.properties.level_count.value) ? guess.properties.level_count.color : undefined
                     );
+
+                    const tooltipItems = [];
+                    if (guess.is_blessed) tooltipItems.push("This enemy is BLESSED, it has all its hints obscured");
+                    else if (falsifierLevels) tooltipItems.push(BADGE_TOOLTIPS["F"]);
+                    
+                    const rangeText = getRangeText("level_count", guess.properties.level_count.value, guess.properties.level_count.color);
+                    if (rangeText) tooltipItems.push(rangeText);
+
                     return (
                       <td key="level_count"
                         className={`border-l-4 border-black/50 ${styles.className}`}
                         style={styles.style}
                       >
-                        <CellTooltip
-                          tooltip={
-                            guess.is_blessed
-                              ? "This enemy is BLESSED, it has all its hints obscured"
-                              : falsifierLevels
-                                ? BADGE_TOOLTIPS["F"]
-                                : undefined
-                          }
-                        >
+                        <CellTooltip tooltip={tooltipItems.length > 0 ? <TooltipContent items={tooltipItems} /> : undefined}>
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
                             {falsifierLevels && (
-                              <ModifierBadge
-                                label="F"
-                                className="border-orange-500/50 text-orange-400"
-                              />
+                              <ModifierBadge label="F" className="border-orange-500/50 text-orange-400" />
                             )}
                             <StatusIcon
-                              result={
-                                guess.properties.level_count.result
-                              }
-                              color={
-                                guess.properties.level_count.color
-                              }
-                              enabled={
-                                showIcons &&
-                                hasValue(
-                                  guess.properties.level_count.value,
-                                )
-                              }
+                              result={guess.properties.level_count.result}
+                              color={guess.properties.level_count.color}
+                              enabled={showIcons && hasValue(guess.properties.level_count.value)}
                             />
-                            {hasValue(
-                              guess.properties.level_count.value,
-                            )
-                              ? guess.properties.level_count.value
-                              : "[ECLIPSED]"}
-                            {hasValue(
-                              guess.properties.level_count.value,
-                            ) &&
-                              guess.properties.level_count.result ===
-                              "higher" && (
+                            {hasValue(guess.properties.level_count.value) ? guess.properties.level_count.value : "[ECLIPSED]"}
+                            {hasValue(guess.properties.level_count.value) && guess.properties.level_count.result === "higher" && (
                                 <span className="text-lg">▲</span>
-                              )}
-                            {hasValue(
-                              guess.properties.level_count.value,
-                            ) &&
-                              guess.properties.level_count.result ===
-                              "lower" && (
+                            )}
+                            {hasValue(guess.properties.level_count.value) && guess.properties.level_count.result === "lower" && (
                                 <span className="text-lg">▼</span>
-                              )}
+                            )}
                           </div>
                         </CellTooltip>
                       </td>
@@ -484,58 +491,36 @@ export const GuessBoard = ({
                       settings,
                       hasValue(guess.properties.appearance.value) ? guess.properties.appearance.color : undefined
                     );
+
+                    const tooltipItems = [];
+                    if (guess.is_blessed) tooltipItems.push("This enemy is BLESSED, it has all its hints obscured");
+                    else if (falsifierAppearance) tooltipItems.push(BADGE_TOOLTIPS["F"]);
+                    
+                    const rangeText = getAppearanceRangeText(guess.properties.appearance.value, guess.properties.appearance.color);
+                    if (rangeText) tooltipItems.push(rangeText);
+
                     return (
                       <td key="appearance"
                         className={`border-l-4 border-black/50 ${styles.className}`}
                         style={styles.style}
                       >
-                        <CellTooltip
-                          tooltip={
-                            guess.is_blessed
-                              ? "This enemy is BLESSED, it has all its hints obscured"
-                              : falsifierAppearance
-                                ? BADGE_TOOLTIPS["F"]
-                                : undefined
-                          }
-                        >
+                        <CellTooltip tooltip={tooltipItems.length > 0 ? <TooltipContent items={tooltipItems} /> : undefined}>
                           <div className="flex items-center gap-2 px-3 py-4 font-bold">
                             {falsifierAppearance && (
-                              <ModifierBadge
-                                label="F"
-                                className="border-orange-500/50 text-orange-400"
-                              />
+                              <ModifierBadge label="F" className="border-orange-500/50 text-orange-400" />
                             )}
                             <StatusIcon
-                              result={
-                                guess.properties.appearance.result
-                              }
+                              result={guess.properties.appearance.result}
                               color={guess.properties.appearance.color}
-                              enabled={
-                                showIcons &&
-                                hasValue(
-                                  guess.properties.appearance.value,
-                                )
-                              }
+                              enabled={showIcons && hasValue(guess.properties.appearance.value)}
                             />
-                            {hasValue(
-                              guess.properties.appearance.value,
-                            ) &&
-                              guess.properties.appearance.result ===
-                              "earlier" && (
+                            {hasValue(guess.properties.appearance.value) && guess.properties.appearance.result === "earlier" && (
                                 <span className="text-lg">◄</span>
-                              )}
-                            {hasValue(
-                              guess.properties.appearance.value,
-                            )
-                              ? guess.properties.appearance.value
-                              : "[ECLIPSED]"}
-                            {hasValue(
-                              guess.properties.appearance.value,
-                            ) &&
-                              guess.properties.appearance.result ===
-                              "later" && (
+                            )}
+                            {hasValue(guess.properties.appearance.value) ? guess.properties.appearance.value : "[ECLIPSED]"}
+                            {hasValue(guess.properties.appearance.value) && guess.properties.appearance.result === "later" && (
                                 <span className="text-lg">►</span>
-                              )}
+                            )}
                           </div>
                         </CellTooltip>
                       </td>
