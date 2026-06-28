@@ -1,10 +1,17 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 @font-face {
   font-family: 'VCR OSD Mono';
   src: url('/fonts/VCR_OSD_MONO_1.001.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
+}
+
+
+@theme {
+  --font-vcr: "VCR OSD Mono", monospace;
+  --font-atkinson: "Atkinson Hyperlegible", sans-serif;
 }
 
 :root {

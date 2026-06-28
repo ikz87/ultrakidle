@@ -18,6 +18,7 @@ export interface RGB {
 export interface UserSettings {
   cellColors: "default" | "colorblind" | "custom";
   showHintIcons: boolean;
+  fontFamily: "vcr" | "atkinson";
   guessboardColumns: GuessboardColumn[];
   allowRandomGuess: {
     classic: boolean;
@@ -43,6 +44,7 @@ export interface UserSettings {
 export const DEFAULT_SETTINGS: UserSettings = {
   cellColors: "default",
   showHintIcons: false,
+  fontFamily: "vcr",
   guessboardColumns: [
     "enemy_name",
     "enemy_type",

@@ -219,6 +219,42 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* Visual Section */}
+        <div className="flex flex-col gap-2 border-t border-white/10 pt-4">
+          <h2 className="text-left text-lg font-bold tracking-wider opacity-80 uppercase">
+            Visual
+          </h2>
+          <p className="opacity-50 text-left text-sm mb-2 uppercase tracking-widest">
+            Change font displayed across the site.
+          </p>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer uppercase text-sm tracking-widest">
+              <input
+                type="radio"
+                name="fontFamily"
+                checked={settings.fontFamily === "vcr"}
+                onChange={() => updateSettings({ fontFamily: "vcr" })}
+                className="accent-green-500"
+              />
+              <span style={{ fontFamily: "VCR OSD Mono, monospace" }}>
+                VCR OSD Mono
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer uppercase text-sm tracking-widest">
+              <input
+                type="radio"
+                name="fontFamily"
+                checked={settings.fontFamily === "atkinson"}
+                onChange={() => updateSettings({ fontFamily: "atkinson" })}
+                className="accent-green-500"
+              />
+              <span style={{ fontFamily: "Atkinson Hyperlegible, sans-serif" }}>
+                Atkinson Hyperlegible
+              </span>
+            </label>
+          </div>
+        </div>
+
         {/* Behavior Section */}
         <div className="flex flex-col gap-2 border-t border-white/10 pt-4 pb-8">
           <h2 className="text-lg text-left font-bold tracking-wider opacity-80 uppercase">

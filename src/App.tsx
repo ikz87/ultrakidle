@@ -30,6 +30,7 @@ import "./App.css";
 
 import { VersionProvider, useVersion } from "./context/VersionContext";
 import { SettingsProvider } from "./context/SettingsContext";
+import { useSettings } from "./context/SettingsContext";
 import { MessagesProvider } from "./context/MessagesContext";
 import { TimeProvider } from "./context/TimeContext";
 import { SessionContext, useSessionProvider } from "./hooks/useSession";
@@ -59,8 +60,11 @@ function AppContent() {
     );
   }
 
+  const { settings } = useSettings();
+  const fontClass = settings.fontFamily === "atkinson" ? "font-atkinson" : "font-vcr";
+
   return (
-    <>
+    <div className={fontClass}>
       <VersionUpdateModal isOpen={updateAvailable} />
       <Routes>
         <Route path="/" element={<MainLayout />}>
@@ -95,7 +99,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </>
+    </div>
   );
 }
 
