@@ -73,9 +73,11 @@ const getAppearanceRangeText = (
 ): string | undefined => {
   if (color !== "yellow") return undefined;
   const sorted = [...levels].sort((a, b) => a.orderIndex - b.orderIndex);
-  const idx = sorted.findIndex((l) => `${l.levelNumber}: ${l.name.toUpperCase()}` === value);
+  const idx = sorted.findIndex(
+    (l) => `${l.levelNumber}: ${l.name.toUpperCase()}` === value
+  );
   if (idx === -1) return undefined;
-  const minIdx = Math.max(0, idx - 11);
+  const minIdx = Math.max(0, idx - 10);
   const maxIdx = Math.min(sorted.length - 1, idx + 10);
   return `Target is between ${sorted[minIdx].levelNumber} and ${sorted[maxIdx].levelNumber}`;
 };
