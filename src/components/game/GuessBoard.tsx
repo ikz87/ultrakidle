@@ -60,26 +60,36 @@ const getRangeText = (
   value: number,
   color?: "green" | "yellow" | "red"
 ): string | undefined => {
-  if (color !== "yellow") return undefined;
+  if (color === "green" || !color) return undefined;
   const delta = col === "health" ? 10 : 3;
   const min = Math.max(0, value - delta);
   const max = value + delta;
-  return `Target is between ${min} and ${max}`;
+
+  if (color === "yellow") {
+    return `Target is between ${min} and ${max}`;
+  }
+  return `Target is NOT between ${min} and ${max}`;
 };
 
 const getAppearanceRangeText = (
   value: string | number,
   color?: "green" | "yellow" | "red"
 ): string | undefined => {
-  if (color !== "yellow") return undefined;
+  if (color === "green" || !color) return undefined;
   const sorted = [...levels].sort((a, b) => a.orderIndex - b.orderIndex);
   const idx = sorted.findIndex(
     (l) => `${l.levelNumber}: ${l.name.toUpperCase()}` === value
   );
   if (idx === -1) return undefined;
+
   const minIdx = Math.max(0, idx - 10);
   const maxIdx = Math.min(sorted.length - 1, idx + 10);
-  return `Target is between ${sorted[minIdx].levelNumber} and ${sorted[maxIdx].levelNumber}`;
+  const rangeStr = `${sorted[minIdx].levelNumber} and ${sorted[maxIdx].levelNumber}`;
+
+  if (color === "yellow") {
+    return `Target is between ${rangeStr}`;
+  }
+  return `Target is NOT between ${rangeStr}`;
 };
 
 const TooltipContent = ({ items }: { items: any[] }) => {
