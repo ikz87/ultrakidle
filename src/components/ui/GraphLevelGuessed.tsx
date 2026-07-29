@@ -46,6 +46,7 @@ const GraphLevelGuessed = ({
             (96 * guessCount) / maxGuessesFromPlayers
           );
           const isPlayerGuess = player_guess_id === level.id;
+          const isCorrect = correct_level_id === level.id;
 
           const tooltipContent = (
             <div className="text-center">
@@ -64,7 +65,7 @@ const GraphLevelGuessed = ({
                 <div
                   className={`w-1 md:w-3 mx-[1px] opacity-60 hover:opacity-100 transition-opacity
                     ${
-                      correct_level_id == level.id
+                      isCorrect
                         ? "bg-green-500"
                         : isPlayerGuess
                           ? "bg-red-500"
@@ -79,8 +80,14 @@ const GraphLevelGuessed = ({
               </Tooltip>
               {isPlayerGuess && (
                 <div className="absolute top-full flex flex-col items-center mt-1">
-                  <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] border-b-red-500" />
-                  <span className="text-[10px] font-bold text-red-500 leading-none mt-[2px]">
+                  <div
+                    className={`w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] 
+                    ${isCorrect ? "border-b-green-500" : "border-b-red-500"}`}
+                  />
+                  <span
+                    className={`text-[10px] font-bold leading-none mt-[2px] 
+                    ${isCorrect ? "text-green-500" : "text-red-500"}`}
+                  >
                     YOU
                   </span>
                 </div>
