@@ -1652,7 +1652,7 @@ begin
   from ig_cybergrind_rounds
   where run_id = v_run.id;
 
-  select jsonb_agg(r_data) into v_rounds
+select jsonb_agg(r_data) into v_rounds
     from (
       select 
         r.id as round_id,
@@ -1673,7 +1673,12 @@ begin
               'level_name', l.level_name
             ) 
           else null 
-        end as correct_level
+        end as correct_level,
+        (
+          SELECT COALESCE(jsonb_object_agg(icg.id_level::text, icg.amount), '{}'::jsonb)
+          FROM inferno_image_guesses icg
+          WHERE icg.id_image_submit = r.image_submission_id
+        ) as image_guess_stats
       from ig_cybergrind_rounds r
       left join submitter_profiles p on r.submitter_id = p.id
       left join levels l on l.id = r.correct_level_id
@@ -2032,6 +2037,33 @@ $$;
 
 
 ALTER FUNCTION "public"."get_user_streak_by_id"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_inferno_guess"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    id_image int8;
+BEGIN
+    SELECT image_submission_id INTO id_image
+    FROM inferno_daily_rounds
+    WHERE id = NEW.round_id;
+
+    UPDATE inferno_image_guesses
+    SET amount = amount + 1
+    WHERE id_level = NEW.guessed_level_id AND id_image_submit = id_image;
+
+    IF NOT FOUND THEN
+        INSERT INTO inferno_image_guesses (id_level, id_image_submit, amount)
+        VALUES (NEW.guessed_level_id, id_image, 1);
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_inferno_guess"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."has_never_played"() RETURNS boolean
@@ -3759,7 +3791,12 @@ begin
       'score',
       v_computed_score,
       'time_spent_seconds',
-      v_computed_time_seconds
+      v_computed_time_seconds,
+      'image_guess_stats', (
+        SELECT COALESCE(json_object_agg(id_level::text, amount), '{}'::json)
+        FROM inferno_image_guesses
+        WHERE id_image_submit = v_round_row.image_submission_id
+      )
     );
   end if;
 
@@ -3784,7 +3821,12 @@ begin
     'score', v_computed_score,
     'time_spent_seconds', v_computed_time_seconds,
     'health', round(v_new_health::numeric, 2),
-    'game_over', false
+    'game_over', false,
+    'image_guess_stats', (
+        SELECT COALESCE(json_object_agg(id_level::text, amount), '{}'::json)
+        FROM inferno_image_guesses
+        WHERE id_image_submit = v_round_row.image_submission_id
+      )
   );
 end;
 $$;
@@ -3876,6 +3918,12 @@ begin
     'correct_level', json_build_object('id', round_row.correct_level_id, 'level_number', correct_level_info.level_number, 'level_name', correct_level_info.level_name),
     'distance', computed_dist,
     'score', computed_score,
+    'image_guess_stats', (
+    SELECT COALESCE(json_object_agg(id_level::text, amount), '{}'::json)
+    FROM inferno_image_guesses icg
+    INNER JOIN inferno_daily_rounds idr ON icg.id_image_submit = idr.image_submission_id
+    WHERE idr.id = p_round_id
+    ),
     'time_spent_seconds', computed_time_seconds,
     'game_complete', (guess_count = TOTAL_ROUNDS - 1),
     'total_score', t_total_score
@@ -4034,6 +4082,25 @@ $$;
 ALTER FUNCTION "public"."trigger_poll_submissions"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_cg_image_guesses"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    -- Only increment if a guess was just made and an image exists
+    IF NEW.guessed_level_id IS NOT NULL AND OLD.guessed_level_id IS NULL AND NEW.image_submission_id IS NOT NULL THEN
+        INSERT INTO inferno_image_guesses (id_level, id_image_submit, amount)
+        VALUES (NEW.guessed_level_id, NEW.image_submission_id, 1)
+        ON CONFLICT (id_level, id_image_submit)
+        DO UPDATE SET amount = inferno_image_guesses.amount + 1;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_cg_image_guesses"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_daily_stats_cache"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -4054,6 +4121,47 @@ $$;
 
 
 ALTER FUNCTION "public"."update_daily_stats_cache"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_ig_image_guesses"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+    v_image_id int8;
+BEGIN
+    -- Get the actual image ID from the round
+    SELECT image_submission_id INTO v_image_id
+    FROM inferno_daily_rounds
+    WHERE id = NEW.round_id;
+
+    IF (TG_OP = 'INSERT') THEN
+        INSERT INTO inferno_image_guesses (id_level, id_image_submit, amount)
+        VALUES (NEW.guessed_level_id, v_image_id, 1)
+        ON CONFLICT (id_level, id_image_submit)
+        DO UPDATE SET amount = inferno_image_guesses.amount + 1;
+
+    ELSIF (TG_OP = 'UPDATE') THEN
+        -- Only run if the level actually changed
+        IF (OLD.guessed_level_id IS DISTINCT FROM NEW.guessed_level_id) THEN
+            -- Decrement previous level count
+            UPDATE inferno_image_guesses
+            SET amount = GREATEST(0, amount - 1)
+            WHERE id_level = OLD.guessed_level_id AND id_image_submit = v_image_id;
+
+            -- Increment new level count
+            INSERT INTO inferno_image_guesses (id_level, id_image_submit, amount)
+            VALUES (NEW.guessed_level_id, v_image_id, 1)
+            ON CONFLICT (id_level, id_image_submit)
+            DO UPDATE SET amount = inferno_image_guesses.amount + 1;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_ig_image_guesses"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_inferno_stats_caches"() RETURNS "trigger"
@@ -5080,11 +5188,6 @@ ALTER TABLE ONLY "public"."inferno_guesses"
 
 
 
-ALTER TABLE ONLY "public"."inferno_image_guesses"
-    ADD CONSTRAINT "inferno_image_guesses_pkey" PRIMARY KEY ("id_level");
-
-
-
 ALTER TABLE ONLY "public"."inferno_results"
     ADD CONSTRAINT "inferno_results_pkey" PRIMARY KEY ("id");
 
@@ -5167,6 +5270,11 @@ ALTER TABLE ONLY "public"."ultrakill_enemies"
 
 ALTER TABLE ONLY "public"."daily_choices"
     ADD CONSTRAINT "unique_daily_enemy" UNIQUE ("chosen_at");
+
+
+
+ALTER TABLE ONLY "public"."inferno_image_guesses"
+    ADD CONSTRAINT "unique_level_per_image" UNIQUE ("id_level", "id_image_submit");
 
 
 
@@ -5268,7 +5376,15 @@ CREATE INDEX "idx_user_wins_daily" ON "public"."user_wins" USING "btree" ("daily
 
 
 
+CREATE OR REPLACE TRIGGER "trg_update_cg_image_guesses" AFTER UPDATE OF "guessed_level_id" ON "public"."ig_cybergrind_rounds" FOR EACH ROW EXECUTE FUNCTION "public"."update_cg_image_guesses"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_update_daily_stats" AFTER INSERT ON "public"."user_wins" FOR EACH ROW EXECUTE FUNCTION "public"."update_daily_stats_cache"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_update_ig_image_guesses" AFTER INSERT OR UPDATE ON "public"."inferno_guesses" FOR EACH ROW EXECUTE FUNCTION "public"."update_ig_image_guesses"();
 
 
 
@@ -6004,6 +6120,12 @@ GRANT ALL ON FUNCTION "public"."get_user_streak_by_id"("p_user_id" "uuid") TO "s
 
 
 
+GRANT ALL ON FUNCTION "public"."handle_inferno_guess"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_inferno_guess"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_inferno_guess"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "anon";
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "service_role";
@@ -6102,9 +6224,21 @@ GRANT ALL ON FUNCTION "public"."trigger_poll_submissions"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."update_cg_image_guesses"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_cg_image_guesses"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_cg_image_guesses"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."update_daily_stats_cache"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_daily_stats_cache"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_daily_stats_cache"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."update_ig_image_guesses"() TO "anon";
+GRANT ALL ON FUNCTION "public"."update_ig_image_guesses"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_ig_image_guesses"() TO "service_role";
 
 
 
