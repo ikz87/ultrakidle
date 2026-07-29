@@ -1666,7 +1666,7 @@ select jsonb_agg(r_data) into v_rounds
         p.discord_name as submitter_name,
         p.discord_avatar_url as submitter_avatar,
         case 
-          when r.round_number = v_run.current_wave then 
+          when r.completed_at is not null then 
             jsonb_build_object(
               'id', l.id, 
               'level_number', l.level_number, 
@@ -1674,6 +1674,15 @@ select jsonb_agg(r_data) into v_rounds
             ) 
           else null 
         end as correct_level,
+        case 
+          when r.completed_at is not null then 
+            jsonb_build_object(
+              'id', gl.id, 
+              'level_number', gl.level_number, 
+              'level_name', gl.level_name
+            ) 
+          else null 
+        end as guessed_level,
         (
           SELECT COALESCE(jsonb_object_agg(icg.id_level::text, icg.amount), '{}'::jsonb)
           FROM inferno_image_guesses icg
@@ -1682,6 +1691,7 @@ select jsonb_agg(r_data) into v_rounds
       from ig_cybergrind_rounds r
       left join submitter_profiles p on r.submitter_id = p.id
       left join levels l on l.id = r.correct_level_id
+      left join levels gl on gl.id = r.guessed_level_id
       where r.run_id = v_run.id
         and r.round_number >= v_run.current_wave 
         and r.round_number <= v_run.current_wave + 1
@@ -1692,7 +1702,7 @@ select jsonb_agg(r_data) into v_rounds
       'status', 'active',
       'run_id', v_run.id,
       'current_wave', v_run.current_wave,
-      'is_first_wave', v_is_first_wave,
+      'is_first_round', v_is_first_wave,
       'health', v_run.health,
       'round_status', case 
         when (v_rounds->0->>'completed_at') is not null then 'ended' 
@@ -1709,7 +1719,7 @@ select jsonb_agg(r_data) into v_rounds
       else null end
     );
   end;
-  $$;
+$$;
 
 
 ALTER FUNCTION "public"."get_ig_cybergrind_state"() OWNER TO "postgres";
@@ -2037,33 +2047,6 @@ $$;
 
 
 ALTER FUNCTION "public"."get_user_streak_by_id"("p_user_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."handle_inferno_guess"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    id_image int8;
-BEGIN
-    SELECT image_submission_id INTO id_image
-    FROM inferno_daily_rounds
-    WHERE id = NEW.round_id;
-
-    UPDATE inferno_image_guesses
-    SET amount = amount + 1
-    WHERE id_level = NEW.guessed_level_id AND id_image_submit = id_image;
-
-    IF NOT FOUND THEN
-        INSERT INTO inferno_image_guesses (id_level, id_image_submit, amount)
-        VALUES (NEW.guessed_level_id, id_image, 1);
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."handle_inferno_guess"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."has_never_played"() RETURNS boolean
@@ -6120,12 +6103,6 @@ GRANT ALL ON FUNCTION "public"."get_user_streak_by_id"("p_user_id" "uuid") TO "s
 
 
 
-GRANT ALL ON FUNCTION "public"."handle_inferno_guess"() TO "anon";
-GRANT ALL ON FUNCTION "public"."handle_inferno_guess"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."handle_inferno_guess"() TO "service_role";
-
-
-
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "anon";
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "service_role";
@@ -6224,6 +6201,7 @@ GRANT ALL ON FUNCTION "public"."trigger_poll_submissions"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."update_cg_image_guesses"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_cg_image_guesses"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_cg_image_guesses"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_cg_image_guesses"() TO "service_role";
@@ -6236,6 +6214,7 @@ GRANT ALL ON FUNCTION "public"."update_daily_stats_cache"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."update_ig_image_guesses"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_ig_image_guesses"() TO "anon";
 GRANT ALL ON FUNCTION "public"."update_ig_image_guesses"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_ig_image_guesses"() TO "service_role";

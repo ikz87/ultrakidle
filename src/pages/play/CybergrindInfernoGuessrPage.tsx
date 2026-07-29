@@ -39,6 +39,7 @@ interface RoundState {
   score?: number | null;
   time_spent_seconds?: number | null;
   correct_level?: Level | null;
+  guessed_level?: Level | null;
   image_guess_stats?: Record<string, number>;
 }
 
@@ -196,41 +197,21 @@ const CybergrindInfernoGuessrPage = () => {
         setRounds(data.rounds || []);
         prefetchImages(data.rounds || []);
 
+        
         const currentRound = data.rounds?.[0];
-        if (currentRound && currentRound.completed_at !== null && currentRound.completed_at !== undefined) {
-          const correctLevelInfo = currentRound.correct_level;
-          let guessedLevel = null;
-
-          if (correctLevelInfo) {
-            const correctIdx = sortedLevels.findIndex((l) => l.id === correctLevelInfo.id);
-            if (correctIdx !== -1) {
-              let guessedIdx = correctIdx - (currentRound.distance || 0);
-              if (guessedIdx < 0 || guessedIdx >= sortedLevels.length) {
-                guessedIdx = correctIdx + (currentRound.distance || 0);
-              }
-              if (guessedIdx >= 0 && guessedIdx < sortedLevels.length) {
-                const lvl = sortedLevels[guessedIdx];
-                guessedLevel = {
-                  id: lvl.id,
-                  level_number: lvl.levelNumber,
-                  level_name: lvl.name,
-                };
-              }
-            }
-          }
-
+        if (currentRound?.completed_at) {
           setLastRoundResult({
             round_number: currentRound.round_number,
-            guessed_level: guessedLevel || {
-              id: correctLevelInfo?.id || 0,
-              level_number: correctLevelInfo?.level_number || "",
-              level_name: correctLevelInfo?.level_name || "",
+            guessed_level: currentRound.guessed_level || {
+              id: 0,
+              level_number: "",
+              level_name: "",
             },
-            correct_level: correctLevelInfo ? {
-              id: correctLevelInfo.id,
-              level_number: correctLevelInfo.level_number,
-              level_name: correctLevelInfo.level_name,
-            } : { id: 0, level_number: "", level_name: "" },
+            correct_level: currentRound.correct_level || {
+              id: 0,
+              level_number: "",
+              level_name: "",
+            },
             distance: currentRound.distance ?? 0,
             score: currentRound.score ?? 0,
             time_spent_seconds: currentRound.time_spent_seconds ?? 0,
