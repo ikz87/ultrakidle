@@ -325,6 +325,7 @@ const CybergrindClassicPage = () => {
 
   const handleNextRound = async () => {
     setGuesses([]);
+    setExcludedEnemyIds([]);
     setTimeout(async () => {
       if (pendingNextState.current) {
         applyRoundState(pendingNextState.current);
@@ -388,6 +389,7 @@ const CybergrindClassicPage = () => {
   const handleNewRun = async () => {
     setGameOverStats(null);
     setGuesses([]);
+    setExcludedEnemyIds([]);
     setGuessesLeft(6);
     setModifiers([]);
     setRadianceTargets([]);
