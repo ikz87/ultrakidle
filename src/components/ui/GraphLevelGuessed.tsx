@@ -41,7 +41,10 @@ const GraphLevelGuessed = ({
           const percent = Math.round(
             (guessCount / totalGuessesFromPlayers) * 100
           );
-          const barHeight = Math.max(4, (96 * guessCount) / maxGuessesFromPlayers);
+          const barHeight = Math.max(
+            4,
+            (96 * guessCount) / maxGuessesFromPlayers
+          );
           const isPlayerGuess = player_guess_id === level.id;
 
           const tooltipContent = (
@@ -57,17 +60,6 @@ const GraphLevelGuessed = ({
               key={level.id}
               className="relative flex flex-col items-center h-full justify-end"
             >
-              {isPlayerGuess && (
-                <div
-                  className="absolute flex flex-col items-center mb-1 pb-[2px]"
-                  style={{ bottom: `${barHeight}%` }}
-                >
-                  <span className="text-[10px] font-bold text-red-500 leading-none">
-                    YOU
-                  </span>
-                  <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-red-500" />
-                </div>
-              )}
               <Tooltip content={tooltipContent} placement="top">
                 <div
                   className={`w-1 md:w-3 mx-[1px] opacity-60 hover:opacity-100 transition-opacity
@@ -85,11 +77,19 @@ const GraphLevelGuessed = ({
                   }}
                 />
               </Tooltip>
+              {isPlayerGuess && (
+                <div className="absolute top-full flex flex-col items-center mt-1">
+                  <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] border-b-red-500" />
+                  <span className="text-[10px] font-bold text-red-500 leading-none mt-[2px]">
+                    YOU
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-      <p className="text-white/50 text-center text-[10px]">
+      <p className="text-white/50 text-center text-[10px] pt-2">
         GLOBAL GUESS DISTRIBUTION
       </p>
     </div>
