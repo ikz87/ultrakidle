@@ -131,6 +131,8 @@ const CybergrindClassicPage = () => {
   const [bestRecord, setBestRecord] = useState<BestRecord | null>(
     null,
   );
+  const [lastGuessedEnemies, setLastGuessedEnemies] = useState<number[]>([]);
+
 
   const [startWaves, setStartWaves] = useState<number[]>([]);
   const [selectedStartWave, setSelectedStartWave] = useState(1);
@@ -162,6 +164,8 @@ const CybergrindClassicPage = () => {
       s.guesses_left ?? Math.max(0, 6 - (s.guess_count || 0)),
     );
     setGuesses(mapGuessesFromServer(s.guesses));
+    setLastGuessedEnemies(s.last_guessed_enemies || []);
+    console.log(s.last_guessed_enemies);
   };
 
   const updateSelectedStartWave = (wave: number) => {
@@ -942,6 +946,7 @@ const CybergrindClassicPage = () => {
         onToggleEnemy={toggleEnemyHighlight}
         onHighlightAll={highlightAll}
         onClearAll={clearAll}
+        lastGuessedEnemies={lastGuessedEnemies}
       />
     </>
   );

@@ -27,7 +27,7 @@ export const EnemyIcon = ({
     if (icons.length === 1) {
       return (
         <div
-          className="flex items-center justify-center"
+          className="flex items-center justify-center bg-white/10 rounded-sm"
           style={{ width: size, height: size }}
         >
           <img
@@ -42,7 +42,7 @@ export const EnemyIcon = ({
 
     return (
       <div
-        className="absolute inset-0 flex items-center justify-center"
+        className="absolute inset-0 flex items-center justify-center bg-white/10 rounded-sm"
         style={{ scale: isSpawn ? '0.5' : '1' }}
       >
         <img
