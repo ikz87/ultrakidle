@@ -963,6 +963,7 @@ declare
   v_all_time_best record;
   v_all_records json;
   v_min_client_version text;
+  v_last_guesses bigint[];
 begin
   caller_id := auth.uid();
   if caller_id is null then
@@ -1061,21 +1062,13 @@ begin
   from cybergrind_guesses
   where round_id = v_round.id;
 
-  select coalesce(json_agg(t order by t.created_at, t.id), '[]'::json)
-  into v_guesses
-  from (
-    select
-      cg.id,
-      cg.guess_enemy_id,
-      cg.hint_data,
-      cg.is_penance,
-      cg.is_blessed,
-      cg.created_at
-    from cybergrind_guesses cg
-    where cg.round_id = v_round.id
-    order by cg.created_at desc, cg.id desc
-    limit v_lethe_limit
-  ) t;
+select coalesce(array_agg(distinct guess_enemy_id), '{}')
+  into v_last_guesses
+  from cybergrind_guesses cg
+  join cybergrind_rounds cr on cr.id = cg.round_id
+  where cr.run_id = v_run.id
+    and cr.round_number < v_run.current_wave
+    and cr.round_number >= (v_run.current_wave - 4);
 
   return json_build_object(
     'status', 'active',
@@ -1090,6 +1083,7 @@ begin
     'lethe_active', v_lethe,
     'client_version', v_run.client_version,
     'all_records', v_all_records,
+    'last_guessed_enemies', v_last_guesses,
     'all_time_best', case when v_all_time_best is not null then
         json_build_object(
           'best_wave', v_all_time_best.best_wave,
@@ -2877,6 +2871,7 @@ declare
   v_correct_id bigint;
   v_is_new_record boolean;
   v_waves_reached int;
+  v_last_guesses bigint[];
 begin
   select decrypted_secret
   into v_min_client_version
@@ -3275,6 +3270,14 @@ begin
     limit v_lethe_limit
   ) t;
 
+  select coalesce(array_agg(distinct guess_enemy_id), '{}')
+  into v_last_guesses
+  from cybergrind_guesses cg
+  join cybergrind_rounds cr on cr.id = cg.round_id
+  where cr.run_id = v_run.id
+    and cr.round_number < v_state_wave
+    and cr.round_number >= (v_state_wave - 4);
+
   return json_build_object(
     'result',
     case
@@ -3322,7 +3325,9 @@ begin
       'guesses_left',
       greatest(0, 6 - v_state_guess_count),
       'lethe_active',
-      v_lethe
+      v_lethe,
+      'last_guessed_enemies',
+      v_last_guesses
     )
   );
 end;
