@@ -12,6 +12,7 @@ import { Typewriter } from "../../components/Typewriter";
 import { motion } from "framer-motion";
 import { copyToClipboard } from "../../lib/clipboard";
 import { getMsUntilNicaraguaMidnight } from "../../lib/time";
+import { EnemyBoardModal } from "../../components/game/EnemyBoardModal";
 import PlayLayout from "../../layouts/PlayLayout";
 
 const ClassicPlayPage = () => {
@@ -31,6 +32,18 @@ const ClassicPlayPage = () => {
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [audioRankPlayed, setAudioRankPlayed] = useState(false)
+
+    const [isBoardOpen, setIsBoardOpen] = useState(false);
+    const [excludedEnemyIds, setExcludedEnemyIds] = useState<number[]>([]);
+
+    const toggleEnemyHighlight = (id: number) => {
+        setExcludedEnemyIds((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    };
+
+    const highlightAll = () => setExcludedEnemyIds([]);
+    const clearAll = () => setExcludedEnemyIds(enemies.map((e) => e.id));
 
     const event = dayNumber === 100 ? 'PARTY' : undefined;
 
@@ -292,6 +305,13 @@ const ClassicPlayPage = () => {
                 </motion.div>
 
                 <div className="mt-2 text-white flex flex-col items-start gap-1 font-bold uppercase tracking-wider">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsBoardOpen(true)}
+                        className="mb-4"
+                    >
+                        OPEN JOURNAL
+                    </Button>
                     <span>
                         <span className="opacity-50">
                             GUESSES REMAINING: {Math.max(0, 5 - guesses.length)} / 5
@@ -498,6 +518,14 @@ const ClassicPlayPage = () => {
                 </div>
                 <div ref={bottomRef} />
             </motion.div >
+                <EnemyBoardModal
+                isOpen={isBoardOpen}
+                onClose={() => setIsBoardOpen(false)}
+                excludedIds={excludedEnemyIds}
+                onToggleEnemy={toggleEnemyHighlight}
+                onHighlightAll={highlightAll}
+                onClearAll={clearAll}
+            />
         </PlayLayout >
     );
 };

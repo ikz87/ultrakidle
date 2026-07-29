@@ -14,6 +14,7 @@ import { EnemyIcon } from "../../components/game/EnemyIcon";
 import Tooltip from "../../components/ui/Tooltip";
 import ModeTabs from "../../components/ui/ModeTabs";
 import type { GameMode } from "../../components/ui/ModeTabs";
+import { EnemyBoardModal } from "../../components/game/EnemyBoardModal";
 import { useNavigate } from "react-router-dom";
 
 const MODIFIER_DISPLAY_ORDER: string[] = [
@@ -134,6 +135,18 @@ const CybergrindClassicPage = () => {
   const [startWaves, setStartWaves] = useState<number[]>([]);
   const [selectedStartWave, setSelectedStartWave] = useState(1);
   const [pagerWave, setPagerWave] = useState(30);
+
+  const [isBoardOpen, setIsBoardOpen] = useState(false);
+  const [excludedEnemyIds, setExcludedEnemyIds] = useState<number[]>([]);
+
+  const toggleEnemyHighlight = (id: number) => {
+      setExcludedEnemyIds((prev) =>
+          prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      );
+  };
+
+  const highlightAll = () => setExcludedEnemyIds([]);
+  const clearAll = () => setExcludedEnemyIds(enemies.map((e) => e.id));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shouldFlash, setShouldFlash] = useState(false);
@@ -728,24 +741,19 @@ const CybergrindClassicPage = () => {
           </motion.div>
 
           <div className="mt-2 text-white flex flex-col items-start gap-1 font-bold uppercase tracking-wider md:max-w-[1000px] w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsBoardOpen(true)}
+                  className="mb-4"
+                >
+                  OPEN JOURNAL
+                </Button>
             <span>
-              <span className="opacity-50">
-                GUESSES REMAINING: {guessesLeft} / 6
-              </span>
-              {(isRoundOver) && (
-                <div className="ml-4 w-6 float-right items-center rounded-sm bg-white/5">
-                  {
-                    {
-                      '0': <div className="text-blue-500">D</div>,
-                      '1': <div className="text-green-500">C</div>,
-                      '2': <div className="text-yellow-500">B</div>,
-                      '3': <div className="text-orange-500">A</div>,
-                      '4': <div className="text-red-500">S</div>,
-                      '5': <div className="text-white rounded-sm" style={{ backgroundColor: '#FFAE00' }}>P</div>
-                    }[guessesLeft]
-                  }
-                </div>
-              )}
+              <div className="flex items-center gap-4">
+                <span className="opacity-50">
+                  GUESSES REMAINING: {guessesLeft} / 6
+                </span>
+              </div>
             </span>
             {!isRoundOver && !isGameOver && (
               <Button
@@ -924,6 +932,14 @@ const CybergrindClassicPage = () => {
         confirmText="Terminate Run"
         cancelText="Return"
         isConfirming={isSubmitting}
+      />
+      <EnemyBoardModal
+        isOpen={isBoardOpen}
+        onClose={() => setIsBoardOpen(false)}
+        excludedIds={excludedEnemyIds}
+        onToggleEnemy={toggleEnemyHighlight}
+        onHighlightAll={highlightAll}
+        onClearAll={clearAll}
       />
     </>
   );

@@ -13,49 +13,13 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE EXTENSION IF NOT EXISTS "pg_cron" WITH SCHEMA "pg_catalog";
+CREATE SCHEMA IF NOT EXISTS "public";
 
 
-
-
-
-
-CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
-
-
-
-
+ALTER SCHEMA "public" OWNER TO "pg_database_owner";
 
 
 COMMENT ON SCHEMA "public" IS 'standard public schema';
-
-
-
-CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
-
-
-
-
-
-
-CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
-
-
-
-
-
-
-CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
-
-
-
-
-
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
-
-
-
 
 
 
@@ -123,6 +87,9 @@ CREATE OR REPLACE FUNCTION "public"."abandon_cybergrind_run"("version" "text" DE
 declare
   v_min_client_version text;
   v_is_experimental boolean;
+  v_run_id bigint;
+  v_enemy_id bigint;
+  v_end_status json;
 begin
   select decrypted_secret into v_min_client_version
   from vault.decrypted_secrets
@@ -139,14 +106,27 @@ begin
     raise exception 'User must be authenticated.';
   end if;
 
-  if not exists (
-    select 1 from cybergrind_runs
-    where user_id = auth.uid() and status = 'active'
-  ) then
+  select id into v_run_id 
+  from cybergrind_runs
+  where user_id = auth.uid() and status = 'active';
+
+  if v_run_id is null then
     raise exception 'No active Cybergrind run found.';
   end if;
 
-  return public.end_cybergrind_run('abandoned');
+  -- Get enemy_id from the latest round of this run
+  select enemy_id into v_enemy_id
+  from cybergrind_rounds
+  where run_id = v_run_id
+  order by round_number desc
+  limit 1;
+
+  v_end_status := public.end_cybergrind_run('abandoned');
+
+  return json_build_object(
+    'status_data', v_end_status,
+    'enemy_id', v_enemy_id
+  );
 end;
 $$;
 
@@ -300,6 +280,91 @@ $$;
 
 
 ALTER FUNCTION "public"."advance_ig_cybergrind_setup"("version" "text", "caller_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."advance_ig_cybergrind_setup_bucketless"("version" "text", "caller_id" "uuid") RETURNS json
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'auth', 'extensions'
+    AS $$
+declare
+  v_run record;
+  v_enc_key text;
+  v_salt text;
+  v_round_rec record;
+  v_sub record;
+  v_token text;
+  v_iv bytea;
+  v_proxy_domain text := 'https://proxy.ultrakidle.online';
+begin
+  if version is null or version <> (
+    select decrypted_secret from vault.decrypted_secrets 
+    where name = 'min_client_version'
+  ) then
+    raise exception 'CLIENT_OUTDATED';
+  end if;
+
+  select * into v_run from ig_cybergrind_runs
+  where user_id = caller_id and status = 'active' for update;
+
+  if v_run.id is null then raise exception 'No active run found.'; end if;
+
+  select id, completed_at into v_round_rec
+  from ig_cybergrind_rounds
+  where run_id = v_run.id and round_number = v_run.current_wave;
+
+  if v_round_rec.completed_at is null then 
+    raise exception 'Round not completed.'; 
+  end if;
+
+  update ig_cybergrind_runs 
+  set current_wave = v_run.current_wave + 1 
+  where id = v_run.id;
+
+  select decrypted_secret into v_enc_key from vault.decrypted_secrets 
+    where name = 'proxy_encryption_key';
+  select decrypted_secret into v_salt from vault.decrypted_secrets 
+    where name = 'cybergrind_seed_salt';
+  
+  select s.id, s.level_id, s.submitter_id, s.storage_path into v_sub
+  from image_submissions s
+  where s.status = 'approved'
+  order by md5(v_run.seed || v_salt || (v_run.current_wave + 3)::text || s.id::text)
+  limit 1;
+
+  -- 16-byte IV from MD5 hash
+  v_iv := decode(md5(v_run.seed || (v_run.current_wave + 3)::text), 'hex');
+
+  v_token := encode(
+    v_iv || encrypt_iv(
+      v_sub.storage_path::bytea,
+      v_enc_key::bytea,
+      v_iv,
+      'aes-cbc'
+    ),
+    'hex'
+  );
+  
+  insert into ig_cybergrind_rounds 
+    (run_id, round_number, image_submission_id, correct_level_id, 
+     submitter_id, public_image_url)
+  values (
+    v_run.id, 
+    v_run.current_wave + 3, 
+    v_sub.id, 
+    v_sub.level_id, 
+    v_sub.submitter_id,
+    v_proxy_domain || '/render/' || v_token
+  ) on conflict do nothing;
+
+  update ig_cybergrind_rounds set started_at = now() 
+  where run_id = v_run.id and round_number = v_run.current_wave + 1;
+
+  return public.get_ig_cybergrind_state();
+end;
+$$;
+
+
+ALTER FUNCTION "public"."advance_ig_cybergrind_setup_bucketless"("version" "text", "caller_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."apply_hint_modifiers"("p_hint" "jsonb", "p_modifiers" "public"."cybergrind_modifier_enum"[], "p_eclipsed_column" smallint, "p_radiance_targets" "public"."cybergrind_modifier_enum"[]) RETURNS "jsonb"
@@ -719,9 +784,9 @@ begin
   set total_time_ms = round(v_total_time_seconds * 1000)::bigint
   where id = p_run_id;
 
-  -- Use the leaderboard view to check existing record stats
   select best_wave, avg_accuracy into v_existing_record
-  from ig_cybergrind_leaderboard where user_id = v_caller_id;
+  from ig_cybergrind_records 
+  where user_id = v_caller_id and client_version = v_run.client_version;
 
   if v_existing_record is null 
      or v_highest_wave > v_existing_record.best_wave 
@@ -734,19 +799,18 @@ begin
     ) values (
       v_caller_id, v_highest_wave, v_avg_score, p_run_id, now(), v_run.client_version
     )
-    on conflict (user_id) do update set 
+    on conflict (user_id, client_version) do update set 
       best_wave = excluded.best_wave,
       avg_accuracy = excluded.avg_accuracy,
       run_id = excluded.run_id,
-      achieved_at = excluded.achieved_at,
-      client_version = excluded.client_version;
+      achieved_at = excluded.achieved_at;
 
     if v_highest_wave > 0 then
       select discord_id, discord_name, pings_opted_in, channel_id, avatar_url
       into v_profile from profiles where id = v_caller_id;
 
       if v_profile.channel_id is not null then
-        -- Retrieve the rank directly from the leaderboard view
+        -- Rank retrieval depends on external leaderboard view
         select rank into v_rank 
         from ig_cybergrind_leaderboard 
         where user_id = v_caller_id;
@@ -1553,19 +1617,16 @@ begin
   from vault.decrypted_secrets
   where name = 'min_client_version';
 
-  -- Get Personal Best
   select best_wave, avg_accuracy, client_version
   into v_best
   from ig_cybergrind_records
-  where user_id = v_caller_id;
+  where user_id = v_caller_id and client_version = v_min_client_version;
 
-  -- Get active run
   select * into v_run
   from ig_cybergrind_runs
   where user_id = v_caller_id and status = 'active'
   limit 1;
 
-  -- Abandon if version mismatch
   if v_run.id is not null and coalesce(v_run.client_version, '') <> coalesce(v_min_client_version, '') then
     update ig_cybergrind_runs
     set status = 'abandoned', ended_at = now()
@@ -1573,7 +1634,6 @@ begin
     v_run := null;
   end if;
 
-  -- No run view
   if v_run is null or v_run.id is null then
     return json_build_object(
       'status', 'no_run',
@@ -1588,12 +1648,10 @@ begin
     );
   end if;
 
-  -- Default to true if somehow no rounds exist, otherwise check against min round
   select (v_run.current_wave = coalesce(min(round_number), v_run.current_wave)) into v_is_first_wave
   from ig_cybergrind_rounds
   where run_id = v_run.id;
 
-  -- Active run: Get exactly the current round and the next pre-fetched round
   select jsonb_agg(r_data) into v_rounds
     from (
       select 
@@ -1646,7 +1704,7 @@ begin
       else null end
     );
   end;
-$$;
+  $$;
 
 
 ALTER FUNCTION "public"."get_ig_cybergrind_state"() OWNER TO "postgres";
@@ -2002,6 +2060,7 @@ declare
   result_stats json;
   result_streak int;
   result_donors json;
+  result_all_donors json;
   day_number bigint;
   today_set_id bigint;
   inferno_total json;
@@ -2158,9 +2217,16 @@ begin
     end if;
   end if;
 
-  -- Donors
+ -- Donors (Current Board)
   select coalesce(json_agg(json_build_object('name', s.name, 'amount', s.amount, 'currency', s.currency, 'created_at', s.created_at) order by s.created_at desc), '[]'::json)
   into result_donors from supporters s where s.board_expiry > now();
+
+  -- All Donors (Ranked Leaderboard)
+  select coalesce(json_agg(json_build_object('name', sub.name, 'email_hash', sub.email_hash, 'amount', sub.amount, 'currency', sub.currency)), '[]'::json)
+  into result_all_donors
+
+  from supporters sub
+  where sub.name is not null and upper(sub.name) != 'ANONYMOUS';
 
   select settings into result_settings
   from user_settings
@@ -2168,6 +2234,7 @@ begin
 
   return json_build_object(
     'daily_id', current_choice, 'day_number', day_number, 'history', result_history, 'stats', result_stats, 'streak', result_streak, 'donors', result_donors,
+    'all_donors', result_all_donors,
 	'settings', coalesce(result_settings, '{}'::jsonb),
     'ranks', json_build_object(
       'classic', json_build_object(
@@ -2645,6 +2712,103 @@ $$;
 
 
 ALTER FUNCTION "public"."start_ig_cybergrind_run"("version" "text", "start_wave" integer, "caller_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") RETURNS json
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'auth', 'extensions'
+    AS $$
+declare
+  v_min_version text;
+  v_enc_key text;
+  v_salt text;
+  v_seed text := uuid_generate_v4()::text;
+  v_run_id bigint;
+  v_rounds_created jsonb := '[]'::jsonb;
+  v_proxy_domain text := 'https://proxy.ultrakidle.online';
+begin
+  select decrypted_secret into v_min_version from vault.decrypted_secrets 
+    where name = 'min_client_version';
+  select decrypted_secret into v_enc_key from vault.decrypted_secrets 
+    where name = 'proxy_encryption_key';
+  select decrypted_secret into v_salt from vault.decrypted_secrets 
+    where name = 'cybergrind_seed_salt';
+
+  if version is null or version <> v_min_version then
+    raise exception 'CLIENT_OUTDATED';
+  end if;
+
+  insert into ig_cybergrind_runs (user_id, current_wave, status, client_version, health, seed)
+  values (caller_id, start_wave, 'active', version, 100, v_seed)
+  returning id into v_run_id;
+
+  for i in 0..2 loop
+    declare
+      v_round_num int := start_wave + i;
+      v_sub record;
+      v_token text;
+      v_iv bytea;
+    begin
+      select s.id, s.level_id, s.submitter_id, s.storage_path into v_sub
+      from image_submissions s
+      where s.status = 'approved'
+      order by md5(v_seed || v_salt || v_round_num::text || s.id::text)
+      limit 1;
+
+      v_iv := decode(md5(v_seed || v_round_num::text), 'hex');
+
+      v_token := encode(
+        v_iv || encrypt_iv(
+          v_sub.storage_path::bytea,
+          v_enc_key::bytea,
+          v_iv,
+          'aes-cbc'
+        ),
+        'hex'
+      );
+
+      insert into ig_cybergrind_rounds 
+        (run_id, round_number, image_submission_id, correct_level_id, 
+         submitter_id, started_at, public_image_url)
+      values (
+        v_run_id, 
+        v_round_num, 
+        v_sub.id, 
+        v_sub.level_id, 
+        v_sub.submitter_id,
+        case when i = 0 then now() else null end,
+        v_proxy_domain || '/render/' || v_token
+      );
+    end;
+  end loop;
+
+  return jsonb_build_object(
+    'run_id', v_run_id,
+    'seed', v_seed,
+    'health', 100,
+    'is_first_wave', true,
+    'started_at', now(),
+    'rounds', (
+      select jsonb_agg(r_data) from (
+        select 
+          r.id as round_id, 
+          r.round_number, 
+          r.public_image_url, 
+          r.started_at,
+          p.discord_name as submitter_name,
+          p.discord_avatar_url as submitter_avatar
+        from ig_cybergrind_rounds r
+        left join submitter_profiles p on r.submitter_id = p.id
+        where r.run_id = v_run_id 
+        order by r.round_number asc
+      ) r_data
+    )
+  );
+end;
+$$;
+
+
+ALTER FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."submit_cybergrind_guess"("guess_id" bigint, "version" "text" DEFAULT NULL::"text") RETURNS json
@@ -3984,6 +4148,66 @@ $$;
 ALTER FUNCTION "public"."update_streak_cache"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."vacuum_clean_maintenance"() RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+begin
+  -- 1. Optimized Inactivity Purge (The fastest way to check sub-tables)
+  delete from public.cybergrind_runs r
+  where not exists (
+    select 1 from public.cybergrind_rounds rnd
+    where rnd.run_id = r.id
+    and rnd.created_at >= now() - interval '20 days'
+  );
+
+  delete from public.ig_cybergrind_runs r
+  where not exists (
+    select 1 from public.ig_cybergrind_rounds rnd
+    where rnd.run_id = r.id
+    and rnd.started_at >= now() - interval '20 days'
+  );
+
+  -- 2. Status Purge
+  delete from public.cybergrind_runs 
+  where status != 'active' and ended_at < now() - interval '1 week';
+  
+  delete from public.ig_cybergrind_runs 
+  where status != 'active' and ended_at < now() - interval '1 week';
+
+  -- 3. High-Speed Bulk Deletes for Independent Tables
+  -- Using a single scan for date-based deletes
+  delete from public.inferno_guesses where created_at < now() - interval '2 days';
+  delete from public.inferno_round_views where viewed_at < now() - interval '2 days';
+  delete from public.user_guesses where created_at < now() - interval '2 days';
+  delete from public.guess_colors where created_at < now() - interval '2 days';
+
+  -- 4. Fast Purge for specific data points
+  delete from public.inferno_results where total_score is null;
+
+  -- 5. Auth Cleanup (Depends on indices for last_sign_in_at/updated_at)
+  delete from auth.refresh_tokens 
+  where revoked = true or updated_at < now() - interval '14 days';
+  
+  delete from auth.sessions 
+  where not_after < now() or updated_at < now() - interval '60 days';
+
+  -- 6. Instant Cleanup (TRUNCATE is much faster than DELETE)
+  truncate table public.debug_logs restart identity;
+  truncate table net._http_response restart identity;
+  truncate table cron.job_run_details restart identity;
+
+  -- 7. Statistics Update (Lightweight maintenance)
+  -- We only analyze the heavy-hitters to keep the cron job short
+  analyze public.cybergrind_runs;
+  analyze public.ig_cybergrind_runs;
+  analyze auth.users;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."vacuum_clean_maintenance"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."wipe_user_data"("p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -4094,7 +4318,8 @@ CREATE TABLE IF NOT EXISTS "public"."cybergrind_rounds" (
     "eclipsed_column" smallint,
     "radiance_targets" "public"."cybergrind_modifier_enum"[] DEFAULT '{}'::"public"."cybergrind_modifier_enum"[],
     "penance_enemy_ids" bigint[],
-    "blessed_enemy_ids" bigint[] DEFAULT '{}'::bigint[]
+    "blessed_enemy_ids" bigint[] DEFAULT '{}'::bigint[],
+    "created_at" timestamp with time zone DEFAULT "now"()
 );
 
 
@@ -4245,7 +4470,7 @@ CREATE TABLE IF NOT EXISTS "public"."ig_cybergrind_records" (
     "user_id" "uuid" NOT NULL,
     "best_wave" integer NOT NULL,
     "avg_accuracy" real NOT NULL,
-    "run_id" bigint NOT NULL,
+    "run_id" bigint,
     "achieved_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "client_version" "text" DEFAULT '1.3.0'::"text" NOT NULL
 );
@@ -4311,7 +4536,9 @@ CREATE TABLE IF NOT EXISTS "public"."ig_cybergrind_runs" (
     "ended_at" timestamp with time zone,
     "client_version" "text" DEFAULT '1.3.0'::"text" NOT NULL,
     "health" real DEFAULT '100'::real NOT NULL,
-    "total_time_ms" bigint DEFAULT '0'::bigint NOT NULL
+    "total_time_ms" bigint DEFAULT '0'::bigint NOT NULL,
+    "cleaned_at" timestamp with time zone,
+    "seed" "text" DEFAULT ("extensions"."uuid_generate_v4"())::"text" NOT NULL
 );
 
 
@@ -4444,6 +4671,16 @@ ALTER TABLE "public"."inferno_guesses" ALTER COLUMN "id" ADD GENERATED ALWAYS AS
     CACHE 1
 );
 
+
+
+CREATE TABLE IF NOT EXISTS "public"."inferno_image_guesses" (
+    "id_level" bigint NOT NULL,
+    "id_image_submit" bigint NOT NULL,
+    "amount" bigint DEFAULT '0'::bigint NOT NULL
+);
+
+
+ALTER TABLE "public"."inferno_image_guesses" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."inferno_results" (
@@ -4596,7 +4833,7 @@ CREATE TABLE IF NOT EXISTS "public"."supporters" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "kofi_transaction_id" "text" NOT NULL,
     "name" "text",
-    "email" "text",
+    "email_hash" "text",
     "amount" numeric(10,2),
     "currency" "text" DEFAULT 'USD'::"text",
     "message" "text",
@@ -4629,7 +4866,8 @@ CREATE TABLE IF NOT EXISTS "public"."ultrakill_enemies" (
     "debut_level_id" bigint,
     "icon_urls" "text"[],
     "wiki_link" "text",
-    "active" boolean DEFAULT true NOT NULL
+    "active" boolean DEFAULT true NOT NULL,
+    "full_body_url" "text"
 );
 
 
@@ -4783,7 +5021,7 @@ ALTER TABLE ONLY "public"."guilds"
 
 
 ALTER TABLE ONLY "public"."ig_cybergrind_records"
-    ADD CONSTRAINT "ig_cybergrind_records_pkey" PRIMARY KEY ("user_id");
+    ADD CONSTRAINT "ig_cybergrind_records_pkey" PRIMARY KEY ("user_id", "client_version");
 
 
 
@@ -4839,6 +5077,11 @@ ALTER TABLE ONLY "public"."inferno_guesses"
 
 ALTER TABLE ONLY "public"."inferno_guesses"
     ADD CONSTRAINT "inferno_guesses_user_id_round_id_key" UNIQUE ("user_id", "round_id");
+
+
+
+ALTER TABLE ONLY "public"."inferno_image_guesses"
+    ADD CONSTRAINT "inferno_image_guesses_pkey" PRIMARY KEY ("id_level");
 
 
 
@@ -4981,6 +5224,10 @@ CREATE INDEX "idx_guess_colors_daily_user" ON "public"."guess_colors" USING "btr
 
 
 
+CREATE INDEX "idx_ig_rounds_started_at" ON "public"."ig_cybergrind_rounds" USING "btree" ("started_at");
+
+
+
 CREATE INDEX "idx_inferno_daily_rounds_set" ON "public"."inferno_daily_rounds" USING "btree" ("set_id");
 
 
@@ -4998,6 +5245,10 @@ CREATE INDEX "idx_inferno_guesses_user" ON "public"."inferno_guesses" USING "btr
 
 
 CREATE INDEX "idx_inferno_results_set" ON "public"."inferno_results" USING "btree" ("set_id");
+
+
+
+CREATE INDEX "idx_rounds_created_at" ON "public"."cybergrind_rounds" USING "btree" ("created_at");
 
 
 
@@ -5050,7 +5301,7 @@ ALTER TABLE ONLY "public"."cybergrind_guesses"
 
 
 ALTER TABLE ONLY "public"."cybergrind_records"
-    ADD CONSTRAINT "cybergrind_records_run_id_fkey" FOREIGN KEY ("run_id") REFERENCES "public"."cybergrind_runs"("id") ON DELETE CASCADE;
+    ADD CONSTRAINT "cybergrind_records_run_id_fkey" FOREIGN KEY ("run_id") REFERENCES "public"."cybergrind_runs"("id") ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 
@@ -5100,7 +5351,7 @@ ALTER TABLE ONLY "public"."guess_colors"
 
 
 ALTER TABLE ONLY "public"."ig_cybergrind_records"
-    ADD CONSTRAINT "ig_cybergrind_records_run_id_fkey" FOREIGN KEY ("run_id") REFERENCES "public"."ig_cybergrind_runs"("id") ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "ig_cybergrind_records_run_id_fkey" FOREIGN KEY ("run_id") REFERENCES "public"."ig_cybergrind_runs"("id") ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 
@@ -5191,6 +5442,16 @@ ALTER TABLE ONLY "public"."inferno_guesses"
 
 ALTER TABLE ONLY "public"."inferno_guesses"
     ADD CONSTRAINT "inferno_guesses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."inferno_image_guesses"
+    ADD CONSTRAINT "inferno_image_guesses_id_image_submit_fkey" FOREIGN KEY ("id_image_submit") REFERENCES "public"."image_submissions"("id");
+
+
+
+ALTER TABLE ONLY "public"."inferno_image_guesses"
+    ADD CONSTRAINT "inferno_image_guesses_id_level_fkey" FOREIGN KEY ("id_level") REFERENCES "public"."levels"("id");
 
 
 
@@ -5335,6 +5596,10 @@ CREATE POLICY "Anyone can view approved submissions" ON "public"."image_submissi
 
 
 CREATE POLICY "Enable insert for users based on user_id" ON "public"."user_settings" TO "authenticated", "anon" USING ((( SELECT "auth"."uid"() AS "uid") = "user_id")) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+
+
+
+CREATE POLICY "Enable read access for all users" ON "public"."level_enemies" FOR SELECT USING (true);
 
 
 
@@ -5502,6 +5767,9 @@ ALTER TABLE "public"."inferno_daily_stats_cache" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."inferno_guesses" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."inferno_image_guesses" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."inferno_results" ENABLE ROW LEVEL SECURITY;
 
 
@@ -5553,213 +5821,10 @@ ALTER TABLE "public"."user_settings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."user_wins" ENABLE ROW LEVEL SECURITY;
 
 
-
-
-ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
-
-
-
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."current_daily_choice";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."guess_colors";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."inferno_guesses";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."inferno_results";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."user_wins";
-
-
-
-
-
-
-
-
-
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -5779,6 +5844,12 @@ REVOKE ALL ON FUNCTION "public"."advance_ig_cybergrind_setup"("version" "text", 
 GRANT ALL ON FUNCTION "public"."advance_ig_cybergrind_setup"("version" "text", "caller_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."advance_ig_cybergrind_setup"("version" "text", "caller_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."advance_ig_cybergrind_setup"("version" "text", "caller_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."advance_ig_cybergrind_setup_bucketless"("version" "text", "caller_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."advance_ig_cybergrind_setup_bucketless"("version" "text", "caller_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."advance_ig_cybergrind_setup_bucketless"("version" "text", "caller_id" "uuid") TO "service_role";
 
 
 
@@ -5982,6 +6053,12 @@ GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run"("version" "text", "star
 
 
 
+GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."submit_cybergrind_guess"("guess_id" bigint, "version" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."submit_cybergrind_guess"("guess_id" bigint, "version" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."submit_cybergrind_guess"("guess_id" bigint, "version" "text") TO "service_role";
@@ -6043,28 +6120,13 @@ GRANT ALL ON FUNCTION "public"."update_streak_cache"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."vacuum_clean_maintenance"() TO "anon";
+GRANT ALL ON FUNCTION "public"."vacuum_clean_maintenance"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."vacuum_clean_maintenance"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."wipe_user_data"("p_user_id" "uuid") TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -6272,6 +6334,12 @@ GRANT ALL ON SEQUENCE "public"."inferno_guesses_id_seq" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."inferno_image_guesses" TO "anon";
+GRANT ALL ON TABLE "public"."inferno_image_guesses" TO "authenticated";
+GRANT ALL ON TABLE "public"."inferno_image_guesses" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."inferno_results" TO "anon";
 GRANT ALL ON TABLE "public"."inferno_results" TO "authenticated";
 GRANT ALL ON TABLE "public"."inferno_results" TO "service_role";
@@ -6404,12 +6472,6 @@ GRANT ALL ON SEQUENCE "public"."user_wins_id_seq" TO "service_role";
 
 
 
-
-
-
-
-
-
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
@@ -6434,30 +6496,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -1121,9 +1121,9 @@ const InfernoPlayPage = () => {
                 </span>
 
                 {lastRoundResult && (
-                  <div>
-                    <div style={{ 'display': 'flex', 'flexDirection': 'row' }}>
-                      <div className="flex flex-col gap-1 items-start">
+                  <div className="w-full">
+                    <div className="flex flex-col md:flex-row md:items-end gap-4">
+                      <div className="flex flex-col gap-1 items-start flex-shrink-0">
                         <Typewriter
                           text={
                             lastRoundResult.distance === 0
@@ -1160,18 +1160,19 @@ const InfernoPlayPage = () => {
                         <div className="md:block hidden">
                           <Typewriter
                             text={`(CLICK OR PRESS ENTER)`}
-                            className="lg:block hidden text-sm opacity-50"
+                            className="text-sm opacity-50"
                             speed={0.02}
                             delay={1.2}
                           />
                         </div>
                       </div>
-                      <GraphLevelGuessed
-                        guessesFromPlayers={lastRoundResult.image_guess_stats}
-                        correct_level_id={lastRoundResult.correct_level.id}
-                        player_guess_id={lastRoundResult.guessed_level.id}
-                      >
-                      </GraphLevelGuessed>
+                      <div className="w-full overflow-x-auto custom-scrollbar pb-2">
+                        <GraphLevelGuessed
+                          guessesFromPlayers={lastRoundResult.image_guess_stats}
+                          correct_level_id={lastRoundResult.correct_level.id}
+                          player_guess_id={lastRoundResult.guessed_level.id}
+                        />
+                      </div>
                     </div>
                     <motion.div
                       initial={{ opacity: 0 }}

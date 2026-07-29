@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, Fragment } from "react";
+import GraphLevelGuessed from "../../components/ui/GraphLevelGuessed";
 import { supabase } from "../../lib/supabaseClient";
 import SEO from "../../components/SEO";
 import { CURRENT_VERSION, useVersion } from "../../context/VersionContext";
@@ -59,6 +60,7 @@ interface GuessResult {
   score: number;
   time_spent_seconds: number;
   game_over: boolean;
+  image_guess_stats?: Map<string, number>;
 }
 
 const CybergrindInfernoGuessrPage = () => {
@@ -317,15 +319,26 @@ const CybergrindInfernoGuessrPage = () => {
         throw error;
       }
 
-      setLastRoundResult(data);
-      setIsFirstRound(false);
-      setHealth(data.health);
+      const result = data as any;
+      const processedResult: GuessResult = {
+        ...result,
+        image_guess_stats: new Map<string, number>(
+          Object.entries(result.image_guess_stats || {}).map(([key, value]) => [
+            String(key),
+            typeof value === "number" ? value : Number(value),
+          ]),
+        ),
+      };
 
-      if (data.game_over) {
+      setLastRoundResult(processedResult);
+      setIsFirstRound(false);
+      setHealth(result.health);
+
+      if (result.game_over) {
         setGameOverStats({
-          highest_wave_reached: data.highest_wave_reached,
-          avg_score: data.avg_score,
-          new_record: data.new_record,
+          highest_wave_reached: result.highest_wave_reached,
+          avg_score: result.avg_score,
+          new_record: result.new_record,
         });
         setStatus("game_over");
       }
@@ -977,39 +990,62 @@ const CybergrindInfernoGuessrPage = () => {
 
                 {status === "active" && lastRoundResult && (
                   <div className="flex flex-col gap-1 items-start mt-4">
-                    <Typewriter text={`DISTANCE: ${lastRoundResult.distance}`} className="opacity-50" speed={0.02} delay={0.2} />
-                    <Typewriter
-                      text={`TIME: ${(lastRoundResult.time_spent_seconds ?? 0).toFixed(3)}`}
-                      className="opacity-50"
-                      speed={0.02}
-                      delay={0.4}
-                    />
-                    {lastRoundResult.distance < 2 ? (
-                      lastRoundResult.distance === 0 ? (
+                    <div style={{ display: "flex", flexDirection: "row" }}>
+                      <div className="flex flex-col gap-1 items-start">
                         <Typewriter
-                          text="HEALTH +20"
-                          className="text-green-500 font-bold"
+                          text={`DISTANCE: ${lastRoundResult.distance}`}
+                          className="opacity-50"
                           speed={0.02}
-                          delay={0.6}
+                          delay={0.2}
                         />
-                      ) : (
                         <Typewriter
-                          text="HEALTH +0"
-                          className="text-green-500/50 font-bold"
+                          text={`TIME: ${(lastRoundResult.time_spent_seconds ?? 0).toFixed(3)}`}
+                          className="opacity-50"
                           speed={0.02}
-                          delay={0.6}
+                          delay={0.4}
                         />
-                      )
-                    ) : (
-                      <Typewriter
-                        text={`HEALTH -${(100 - lastRoundResult.score) / 2}`}
-                        className="text-red-500 font-bold"
-                        speed={0.02}
-                        delay={0.6}
-                      />
-                    )}
-                    <div className="md:block hidden">
-                      <Typewriter text={`(CLICK OR PRESS ENTER)`} className="lg:block hidden text-sm opacity-50" speed={0.02} delay={0.8} />
+                        {lastRoundResult.distance < 2 ? (
+                          lastRoundResult.distance === 0 ? (
+                            <Typewriter
+                              text="HEALTH +20"
+                              className="text-green-500 font-bold"
+                              speed={0.02}
+                              delay={0.6}
+                            />
+                          ) : (
+                            <Typewriter
+                              text="HEALTH +0"
+                              className="text-green-500/50 font-bold"
+                              speed={0.02}
+                              delay={0.6}
+                            />
+                          )
+                        ) : (
+                          <Typewriter
+                            text={`HEALTH -${
+                              (100 - lastRoundResult.score) / 2
+                            }`}
+                            className="text-red-500 font-bold"
+                            speed={0.02}
+                            delay={0.6}
+                          />
+                        )}
+                        <div className="md:block hidden">
+                          <Typewriter
+                            text={`(CLICK OR PRESS ENTER)`}
+                            className="lg:block hidden text-sm opacity-50"
+                            speed={0.02}
+                            delay={0.8}
+                          />
+                        </div>
+                      </div>
+                      {lastRoundResult.image_guess_stats && (
+                        <GraphLevelGuessed
+                          guessesFromPlayers={lastRoundResult.image_guess_stats}
+                          correct_level_id={lastRoundResult.correct_level.id}
+                          player_guess_id={lastRoundResult.guessed_level.id}
+                        />
+                      )}
                     </div>
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -1050,19 +1086,39 @@ const CybergrindInfernoGuessrPage = () => {
                 {/* If game over is due to a wrong guess, show the guess details above the game over stats */}
                 {status === "game_over" && lastRoundResult?.game_over && (
                   <div className="flex flex-col gap-1 items-start mt-4">
-                    <Typewriter text={`DISTANCE: ${lastRoundResult.distance}`} className="opacity-50" speed={0.02} delay={0.2} />
-                    <Typewriter
-                      text={`TIME: ${(lastRoundResult.time_spent_seconds ?? 0).toFixed(3)}`}
-                      className="opacity-50"
-                      speed={0.02}
-                      delay={0.4}
-                    />
-                    <Typewriter
-                      text={`HEALTH -${(100 - (lastRoundResult.score ?? 0)) / 2}`}
-                      className="text-red-500 font-bold"
-                      speed={0.02}
-                      delay={0.6}
-                    />
+                    <div style={{ display: "flex", flexDirection: "row" }}>
+                      <div className="flex flex-col gap-1 items-start">
+                        <Typewriter
+                          text={`DISTANCE: ${lastRoundResult.distance}`}
+                          className="opacity-50"
+                          speed={0.02}
+                          delay={0.2}
+                        />
+                        <Typewriter
+                          text={`TIME: ${(
+                            lastRoundResult.time_spent_seconds ?? 0
+                          ).toFixed(3)}`}
+                          className="opacity-50"
+                          speed={0.02}
+                          delay={0.4}
+                        />
+                        <Typewriter
+                          text={`HEALTH -${
+                            (100 - (lastRoundResult.score ?? 0)) / 2
+                          }`}
+                          className="text-red-500 font-bold"
+                          speed={0.02}
+                          delay={0.6}
+                        />
+                      </div>
+                      {lastRoundResult.image_guess_stats && (
+                        <GraphLevelGuessed
+                          guessesFromPlayers={lastRoundResult.image_guess_stats}
+                          correct_level_id={lastRoundResult.correct_level.id}
+                          player_guess_id={lastRoundResult.guessed_level.id}
+                        />
+                      )}
+                    </div>
                   </div>
                 )}
 
