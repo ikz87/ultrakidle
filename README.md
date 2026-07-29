@@ -34,24 +34,31 @@ The Supabase docker-compose is based on the [official documentation](https://sup
 ### Import the database
 (Note: The import process is in WIP. In the future, manual imports will no longer be necessary)
 
-Import the db schema
+#### Import the db schema
 ```sh
 docker exec -i supabase-db psql -U supabase_admin -d postgres < schema.sql
 ```
 
-Import the data
+#### Import the data
 ```sh
 docker exec -i supabase-db psql -U supabase_admin -d postgres < data/import.sql
 ```
 
-Select a daily enemy in the classic mode (usable multiple times)
+#### Launch a daily enemy in the classic mode
+(Usable multiple times)
 ```sh
 docker exec -i supabase-db psql -U supabase_admin -d postgres -c "SELECT pick_daily_enemy();"
 ```
 
-#### Reset the database
+#### Launch a daily infernoguessr in the classic mode
+The ig rounds are the first 5 levels: 0-1 to 0-5 
+```sh
+docker exec -i supabase-db psql -U supabase_admin -d postgres < data/daily_ig.sql
+```
 
+#### Reset the database
 You cannot reset the database by simply stopping the db container. You must delete the `supabase/volumes/db/data` folder (Root access required) **after stopping the services**:
 ```sh
 sudo rm -rf supabase/volumes/db/data
 ```
+

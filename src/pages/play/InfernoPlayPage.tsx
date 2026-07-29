@@ -12,6 +12,7 @@ import { Typewriter } from "../../components/Typewriter";
 import AlertDialog from "../../components/ui/AlertDialog";
 import { getMsUntilNicaraguaMidnight } from "../../lib/time";
 import { useSettings } from "../../context/SettingsContext";
+import GraphLevelGuessed from "../../components/ui/GraphLevelGuessed";
 
 interface Submitter {
   name: string;
@@ -33,6 +34,7 @@ interface RoundResult {
   guessed_level: Level;
   correct_level: Level;
   submitted_by: Submitter;
+  image_guess_stats: Map<string, number>;
 }
 
 interface GameInProgress {
@@ -92,7 +94,7 @@ const InfernoPlayPage = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioRankPlayed, setAudioRankPlayed] = useState(false)
-  
+
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -324,7 +326,10 @@ const InfernoPlayPage = () => {
         time_spent_seconds: result.time_spent_seconds,
         image_url: resolveRoundImage(result.round_number, gameData.image_url),
         submitted_by: gameData.submitted_by,
+        image_guess_stats: new Map<string, number>(Object.entries(result.image_guess_stats || {}).map(([key, value]) => [String(key), typeof value === 'number' ? value : Number(value)])),
       };
+
+      console.log(currentRoundResult);
 
       setLastRoundResult(currentRoundResult);
 
@@ -813,10 +818,10 @@ const InfernoPlayPage = () => {
                           </span>
                           <span
                             className={`font-bold ${round.score === 100
-                                ? "text-green-500"
-                                : round.score >= 60
-                                  ? "text-yellow-500"
-                                  : "text-red-500"
+                              ? "text-green-500"
+                              : round.score >= 60
+                                ? "text-yellow-500"
+                                : "text-red-500"
                               }`}
                           >
                             {round.guessed_level.level_number}
@@ -1116,47 +1121,57 @@ const InfernoPlayPage = () => {
                 </span>
 
                 {lastRoundResult && (
-                  <div className="flex flex-col gap-1 items-start">
-                    <Typewriter
-                      text={
-                        lastRoundResult.distance === 0
-                          ? "STATUS: SUCCESS"
-                          : "STATUS: FAILED"
-                      }
-                      className={
-                        lastRoundResult.distance === 0
-                          ? "text-green-500 opacity-50"
-                          : "text-red-500 opacity-50"
-                      }
-                      speed={0.02}
-                    />
-                    <Typewriter
-                      text={`DISTANCE: ${lastRoundResult.distance}`}
-                      className="opacity-50"
-                      speed={0.02}
-                      delay={0.4}
-                    />
-                    <Typewriter
-                      text={`TIME: ${lastRoundResult.time_spent_seconds.toFixed(
-                        3
-                      )}`}
-                      className="opacity-50"
-                      speed={0.02}
-                      delay={0.6}
-                    />
-                    <Typewriter
-                      text={`SCORE: +${lastRoundResult.score}`}
-                      className="text-green-500 opacity-50"
-                      speed={0.02}
-                      delay={0.8}
-                    />
-                    <div className="md:block hidden">
-                      <Typewriter
-                        text={`(CLICK OR PRESS ENTER)`}
-                        className="lg:block hidden text-sm opacity-50"
-                        speed={0.02}
-                        delay={1.2}
-                      />
+                  <div>
+                    <div style={{ 'display': 'flex', 'flexDirection': 'row' }}>
+                      <div className="flex flex-col gap-1 items-start">
+                        <Typewriter
+                          text={
+                            lastRoundResult.distance === 0
+                              ? "STATUS: SUCCESS"
+                              : "STATUS: FAILED"
+                          }
+                          className={
+                            lastRoundResult.distance === 0
+                              ? "text-green-500 opacity-50"
+                              : "text-red-500 opacity-50"
+                          }
+                          speed={0.02}
+                        />
+                        <Typewriter
+                          text={`DISTANCE: ${lastRoundResult.distance}`}
+                          className="opacity-50"
+                          speed={0.02}
+                          delay={0.4}
+                        />
+                        <Typewriter
+                          text={`TIME: ${lastRoundResult.time_spent_seconds.toFixed(
+                            3
+                          )}`}
+                          className="opacity-50"
+                          speed={0.02}
+                          delay={0.6}
+                        />
+                        <Typewriter
+                          text={`SCORE: +${lastRoundResult.score}`}
+                          className="text-green-500 opacity-50"
+                          speed={0.02}
+                          delay={0.8}
+                        />
+                        <div className="md:block hidden">
+                          <Typewriter
+                            text={`(CLICK OR PRESS ENTER)`}
+                            className="lg:block hidden text-sm opacity-50"
+                            speed={0.02}
+                            delay={1.2}
+                          />
+                        </div>
+                      </div>
+                      <GraphLevelGuessed
+                        guessesFromPlayers={lastRoundResult.image_guess_stats}
+                        correct_level_id={lastRoundResult.correct_level.id}
+                        player_guess_id={lastRoundResult.guessed_level.id}
+                      >
+                      </GraphLevelGuessed>
                     </div>
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -1167,6 +1182,7 @@ const InfernoPlayPage = () => {
                           preventScroll: true,
                         });
                       }}
+                      style={{ 'display': 'flex', 'flexDirection': 'column', 'maxWidth': '180px' }}
                     >
                       {isGameFinished ? (
                         <Button
