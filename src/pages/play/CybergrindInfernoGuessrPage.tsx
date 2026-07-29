@@ -31,6 +31,7 @@ interface RoundState {
   round_number: number;
   started_at: string | null;
   public_image_url: string;
+  image_submission_id?: number | null;
   submitter_name: string;
   submitter_avatar: string;
   completed_at?: string | null;
@@ -38,6 +39,7 @@ interface RoundState {
   score?: number | null;
   time_spent_seconds?: number | null;
   correct_level?: Level | null;
+  image_guess_stats?: Record<string, number>;
 }
 
 interface GameOverStats {
@@ -233,6 +235,14 @@ const CybergrindInfernoGuessrPage = () => {
             score: currentRound.score ?? 0,
             time_spent_seconds: currentRound.time_spent_seconds ?? 0,
             game_over: false,
+            image_guess_stats: currentRound.image_guess_stats
+              ? new Map<string, number>(
+                  Object.entries(currentRound.image_guess_stats).map(([k, v]) => [
+                    k,
+                    Number(v),
+                  ]),
+                )
+              : undefined,
           });
         } else {
           setLastRoundResult(null);
@@ -989,9 +999,9 @@ const CybergrindInfernoGuessrPage = () => {
                 )}
 
                 {status === "active" && lastRoundResult && (
-                  <div className="flex flex-col gap-1 items-start mt-4">
-                    <div style={{ display: "flex", flexDirection: "row" }}>
-                      <div className="flex flex-col gap-1 items-start">
+                  <div className="flex flex-col gap-1 items-start mt-4 w-full">
+                    <div className="flex flex-col md:flex-row md:items-end gap-4 w-full">
+                      <div className="flex flex-col gap-1 items-start flex-shrink-0">
                         <Typewriter
                           text={`DISTANCE: ${lastRoundResult.distance}`}
                           className="opacity-50"
@@ -999,7 +1009,9 @@ const CybergrindInfernoGuessrPage = () => {
                           delay={0.2}
                         />
                         <Typewriter
-                          text={`TIME: ${(lastRoundResult.time_spent_seconds ?? 0).toFixed(3)}`}
+                          text={`TIME: ${(
+                            lastRoundResult.time_spent_seconds ?? 0
+                          ).toFixed(3)}`}
                           className="opacity-50"
                           speed={0.02}
                           delay={0.4}
@@ -1033,18 +1045,20 @@ const CybergrindInfernoGuessrPage = () => {
                         <div className="md:block hidden">
                           <Typewriter
                             text={`(CLICK OR PRESS ENTER)`}
-                            className="lg:block hidden text-sm opacity-50"
+                            className="text-sm opacity-50"
                             speed={0.02}
                             delay={0.8}
                           />
                         </div>
                       </div>
                       {lastRoundResult.image_guess_stats && (
-                        <GraphLevelGuessed
-                          guessesFromPlayers={lastRoundResult.image_guess_stats}
-                          correct_level_id={lastRoundResult.correct_level.id}
-                          player_guess_id={lastRoundResult.guessed_level.id}
-                        />
+                        <div className="w-full overflow-x-auto custom-scrollbar pb-2">
+                          <GraphLevelGuessed
+                            guessesFromPlayers={lastRoundResult.image_guess_stats}
+                            correct_level_id={lastRoundResult.correct_level.id}
+                            player_guess_id={lastRoundResult.guessed_level.id}
+                          />
+                        </div>
                       )}
                     </div>
                     <motion.div
@@ -1085,9 +1099,9 @@ const CybergrindInfernoGuessrPage = () => {
 
                 {/* If game over is due to a wrong guess, show the guess details above the game over stats */}
                 {status === "game_over" && lastRoundResult?.game_over && (
-                  <div className="flex flex-col gap-1 items-start mt-4">
-                    <div style={{ display: "flex", flexDirection: "row" }}>
-                      <div className="flex flex-col gap-1 items-start">
+                  <div className="flex flex-col gap-1 items-start mt-4 w-full">
+                    <div className="flex flex-col md:flex-row md:items-end gap-4 w-full">
+                      <div className="flex flex-col gap-1 items-start flex-shrink-0">
                         <Typewriter
                           text={`DISTANCE: ${lastRoundResult.distance}`}
                           className="opacity-50"
@@ -1112,11 +1126,13 @@ const CybergrindInfernoGuessrPage = () => {
                         />
                       </div>
                       {lastRoundResult.image_guess_stats && (
-                        <GraphLevelGuessed
-                          guessesFromPlayers={lastRoundResult.image_guess_stats}
-                          correct_level_id={lastRoundResult.correct_level.id}
-                          player_guess_id={lastRoundResult.guessed_level.id}
-                        />
+                        <div className="w-full overflow-x-auto custom-scrollbar pb-2">
+                          <GraphLevelGuessed
+                            guessesFromPlayers={lastRoundResult.image_guess_stats}
+                            correct_level_id={lastRoundResult.correct_level.id}
+                            player_guess_id={lastRoundResult.guessed_level.id}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
