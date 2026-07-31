@@ -130,43 +130,54 @@ const InfernoPlayPage = () => {
   }, [searchQuery, sortedLevels]);
 
   const fetchGameState = async ({ silent = false } = {}) => {
-    if (!silent) {
-      setLoading(true);
-      setError(null);
-    }
-    try {
-      const { data, error: rpcError } = await supabase.rpc(
-        "get_inferno_round",
-        { version: CURRENT_VERSION }
-      );
+  if (!silent) {
+    setLoading(true);
+    setError(null);
+  }
+  try {
+    const { data, error: rpcError } = await supabase.rpc("get_inferno_round", {
+      version: CURRENT_VERSION,
+    });
 
-      if (rpcError) {
-        if (rpcError.message.includes("CLIENT_OUTDATED")) {
-          setUpdateAvailable(true);
-          if (!silent) setError("Client version is outdated. Please refresh.");
-        } else {
-          if (!silent) setError(rpcError.message);
-        }
-        return;
+    if (rpcError) {
+      if (rpcError.message.includes("CLIENT_OUTDATED")) {
+        setUpdateAvailable(true);
+        if (!silent) setError("Client version is outdated. Please refresh.");
+      } else {
+        if (!silent) setError(rpcError.message);
       }
-
-      const res = data as any;
-      setGameData(res);
-      syncWithDbSettings(res.settings ?? null);
-
-      if (res.status === "in_progress") {
-        setActiveTimer(res.elapsed_seconds);
-      } else if (res.status === "completed") {
-        setIsGameFinished(true);
-        setShowFinalResults(true);
-      }
-    } catch (err) {
-      console.error("Fetch game state error:", err);
-      if (!silent) setError("Failed to load game state.");
-    } finally {
-      if (!silent) setLoading(false);
+      return;
     }
-  };
+
+    const res = data as any;
+
+    const mapStats = (r: any) => ({
+      ...r,
+      image_guess_stats: new Map(Object.entries(r.image_guess_stats || {})),
+    });
+
+    if (res.status === "completed" && res.rounds) {
+      res.rounds = res.rounds.map(mapStats);
+    } else if (res.status === "in_progress" && res.previous_rounds) {
+      res.previous_rounds = res.previous_rounds.map(mapStats);
+    }
+
+    setGameData(res);
+    syncWithDbSettings(res.settings ?? null);
+
+    if (res.status === "in_progress") {
+      setActiveTimer(res.elapsed_seconds);
+    } else if (res.status === "completed") {
+      setIsGameFinished(true);
+      setShowFinalResults(true);
+    }
+  } catch (err) {
+    console.error("Fetch game state error:", err);
+    if (!silent) setError("Failed to load game state.");
+  } finally {
+    if (!silent) setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (!listRef.current || loading || gameData?.status !== "in_progress")
@@ -805,27 +816,32 @@ const InfernoPlayPage = () => {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-white/30 uppercase">
-                            Target
-                          </span>
+                          <span className="text-white/30 uppercase">Target</span>
                           <span className="font-bold text-green-400 uppercase truncate max-w-[120px]">
                             {round.correct_level.level_number}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-white/30 uppercase">
-                            Guess
-                          </span>
+                          <span className="text-white/30 uppercase">Guess</span>
                           <span
-                            className={`font-bold ${round.score === 100
-                              ? "text-green-500"
-                              : round.score >= 60
-                                ? "text-yellow-500"
-                                : "text-red-500"
-                              }`}
+                            className={`font-bold ${
+                              round.score === 100
+                                ? "text-green-500"
+                                : round.score >= 60
+                                  ? "text-yellow-500"
+                                  : "text-red-500"
+                            }`}
                           >
                             {round.guessed_level.level_number}
                           </span>
+                        </div>
+                        <div className="w-full overflow-x-auto custom-scrollbar mt-2 pt-2 border-t border-white/5">
+                          <GraphLevelGuessed
+                            guessesFromPlayers={round.image_guess_stats}
+                            correct_level_id={round.correct_level.id}
+                            player_guess_id={round.guessed_level.id}
+                            showLabel={false}
+                          />
                         </div>
                       </div>
                     </div>

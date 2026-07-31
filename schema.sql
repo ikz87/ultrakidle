@@ -1062,7 +1062,23 @@ begin
   from cybergrind_guesses
   where round_id = v_round.id;
 
-select coalesce(array_agg(distinct guess_enemy_id), '{}')
+  select coalesce(json_agg(t order by t.created_at, t.id), '[]'::json)
+  into v_guesses
+  from (
+    select
+      cg.id,
+      cg.guess_enemy_id,
+      cg.hint_data,
+      cg.is_penance,
+      cg.is_blessed,
+      cg.created_at
+    from cybergrind_guesses cg
+    where cg.round_id = v_round.id
+    order by cg.created_at desc, cg.id desc
+    limit v_lethe_limit
+  ) t;
+
+  select coalesce(array_agg(distinct guess_enemy_id), '{}')
   into v_last_guesses
   from cybergrind_guesses cg
   join cybergrind_rounds cr on cr.id = cg.round_id
@@ -2395,7 +2411,7 @@ begin
             select idr.image_submission_id
             from inferno_daily_rounds idr
             join inferno_daily_sets ids on ids.id = idr.set_id
-            where ids.game_date > today_nicaragua - interval '30 days'
+            where ids.game_date > today_nicaragua - interval '90 days'
           )
         order by random()
         limit 5

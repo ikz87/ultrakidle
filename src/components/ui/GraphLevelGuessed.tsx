@@ -6,12 +6,14 @@ interface GraphLevelGuessedProps {
   guessesFromPlayers: Map<string, number>;
   correct_level_id: number;
   player_guess_id: number;
+  showLabel: boolean;
 }
 
 const GraphLevelGuessed = ({
   guessesFromPlayers,
   correct_level_id,
   player_guess_id,
+  showLabel = true,
 }: GraphLevelGuessedProps) => {
   const { totalGuessesFromPlayers, maxGuessesFromPlayers } = useMemo(() => {
     let total = 0;
@@ -32,8 +34,8 @@ const GraphLevelGuessed = ({
   }, [guessesFromPlayers]);
 
   return (
-    <div className="space-y-3 w-fit pt-6">
-      <div className="flex flex-row items-end h-[100px] min-w-max px-1">
+    <div className="w-full pt-6">
+      <div className="flex flex-row items-end h-[100px] w-full px-1 gap-[1px] pb-6">
         {levels.map((level) => {
           const guessCount = guessesFromPlayers.has(level.id.toString())
             ? guessesFromPlayers.get(level.id.toString()) ?? 0
@@ -59,11 +61,11 @@ const GraphLevelGuessed = ({
           return (
             <div
               key={level.id}
-              className="relative flex flex-col items-center h-full justify-end"
+              className="relative flex flex-col items-center h-full justify-end flex-1"
             >
               <Tooltip content={tooltipContent} placement="top">
                 <div
-                  className={`w-1 md:w-3 mx-[1px] opacity-60 hover:opacity-100 transition-opacity
+                  className={`w-full opacity-60 hover:opacity-100 transition-opacity
                     ${
                       isCorrect
                         ? "bg-green-500"
@@ -85,7 +87,7 @@ const GraphLevelGuessed = ({
                     ${isCorrect ? "border-b-green-500" : "border-b-red-500"}`}
                   />
                   <span
-                    className={`text-[10px] font-bold leading-none mt-[2px] 
+                    className={`text-[10px] font-bold leading-none mt-[2px] whitespace-nowrap
                     ${isCorrect ? "text-green-500" : "text-red-500"}`}
                   >
                     YOU
@@ -96,9 +98,11 @@ const GraphLevelGuessed = ({
           );
         })}
       </div>
-      <p className="text-white/50 text-center text-[10px] pt-2">
+      {showLabel && 
+      <p className="text-white/50 text-center text-[10px] ">
         GLOBAL GUESS DISTRIBUTION
       </p>
+      }
     </div>
   );
 };
