@@ -6,7 +6,7 @@ interface GraphLevelGuessedProps {
   guessesFromPlayers: Map<string, number>;
   correct_level_id: number;
   player_guess_id: number;
-  showLabel: boolean;
+  showLabel?: boolean;
 }
 
 const GraphLevelGuessed = ({
