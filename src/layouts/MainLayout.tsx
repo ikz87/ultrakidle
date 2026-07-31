@@ -469,7 +469,7 @@ const MainLayout = () => {
 
                 <div className="z-10 text-left lg:text-xl md:text-lg text-sm border-t border-white/5 pb-4">
                   <span className="opacity-50 uppercase ">
-                    INTO SOCIALS... OK
+                    INIT SOCIALS... OK
                   </span>
                   <div className="flex gap-3 lg:text-3xl md:text-xl text-lg flex-wrap">
                     <ExternalLink href="https://github.com/ikz87" className="underline hover:opacity-80 transition-colors">GITHUB</ExternalLink>
