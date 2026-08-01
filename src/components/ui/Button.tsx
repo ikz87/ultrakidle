@@ -8,11 +8,11 @@ interface ButtonProps extends HTMLMotionProps<"button"> {
     px?: string;
     py?: string;
     className?: string;
+    as?: 'button' | 'div';
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className = '', variant = 'primary', size = 'md', px, py, children, ...props }, ref) => {
-        // Shared clip-paths for different sizes
+const Button = React.forwardRef<HTMLButtonElement | HTMLDivElement, ButtonProps>(
+    ({ className = '', variant = 'primary', size = 'md', px, py, children, as = 'button', ...props }, ref) => {
         const polygons = {
             sm: '[clip-path:polygon(2px_0,calc(100%-2px)_0,100%_2px,100%_calc(100%-2px),calc(100%-2px)_100%,2px_100%,0_calc(100%-2px),0_2px)]',
             md: '[clip-path:polygon(4px_0,calc(100%-4px)_0,100%_4px,100%_calc(100%-4px),calc(100%-4px)_100%,4px_100%,0_calc(100%-4px),0_4px)]',
@@ -22,7 +22,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
         const poly = polygons[size];
 
-        // Button variants handling: Outer background is the border color, Inner is the fill
         const variants = {
             primary: {
                 outer: 'bg-white',
@@ -52,10 +51,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         };
 
         const padding = {
-            sm: 'p-[1px]', // 1px border
-            md: 'p-[2px]', // 2px border
+            sm: 'p-[1px]',
+            md: 'p-[2px]',
             lg: 'p-[2px]',
-            xl: 'p-[2px] md:p-[3px]', // 3px border for giant buttons
+            xl: 'p-[2px] md:p-[3px]',
         };
 
         const innerPadding = {
@@ -67,7 +66,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
         const currentInnerPadding = `${px || innerPadding[size].split(' ')[0]} ${py || innerPadding[size].split(' ')[1]}`;
 
-        // Motion variants logic
         const getMotionProps = () => {
             if (variant === 'primary') {
                 return {
@@ -78,19 +76,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     },
                 };
             }
-            if (variant === 'outline') {
-                return {
-                    whileHover: {
-                        opacity: 0.5,
-                        transition: { duration: 0.1 },
-                    },
-                    whileTap: {
-                        backgroundColor: '#ef4444',
-                        transition: { duration: 0 },
-                    },
-                };
-            }
-            if (variant === 'danger') {
+            if (variant === 'outline' || variant === 'danger') {
                 return {
                     whileHover: {
                         opacity: 0.5,
@@ -118,12 +104,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             return {};
         };
 
+        const Component = as === 'div' ? motion.div : motion.button;
+
         return (
-            <motion.button
-                ref={ref}
+            <Component
+                ref={ref as any}
                 className={`group relative inline-flex items-center justify-center font-bold select-none disabled:!opacity-50 disabled:pointer-events-none uppercase tracking-tighter cursor-pointer ${poly} ${currentVariant.outer} ${padding[size]} ${className}`}
                 {...getMotionProps()}
-                {...props as HTMLMotionProps<"button">}
+                {...(props as any)}
             >
                 <motion.div
                     className={`w-full h-full flex items-center justify-center ${poly} ${currentVariant.inner} ${sizes[size]} ${currentInnerPadding}`}
@@ -131,7 +119,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 >
                     {children}
                 </motion.div>
-            </motion.button>
+            </Component>
         );
     }
 );

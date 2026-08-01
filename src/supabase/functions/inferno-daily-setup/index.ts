@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
       const fileBuffer = await withRetry(async () => {
         if (sub.storage_path) {
-          const res = await fetch(`https://gallery.ultrakidle.online/${sub.storage_path}`);
+          const res = await fetch(`https://images.ultrakidle.online/${sub.storage_path}`);
           if (!res.ok)
             throw new Error(
               `Failed to fetch from R2 Gallery: ${res.statusText} (${sub.storage_path})`

@@ -8,6 +8,45 @@ export interface Message {
 }
 
 export const MESSAGES: Message[] = [
+    {
+    id: 'infernoguessr-gallery-release',
+    date: '2026-08-01',
+    content: (
+      <div className="space-y-4 lg:space-y-6 text-justify">
+        <p className="text-zinc-400 text-sm">
+          SYSTEM UPDATE LOG // [01-AUG-2026]
+        </p>
+        <p className="text-green-500 lg:text-xl text-base font-bold tracking-wide uppercase">
+          INFERNOGUESSR GALLERY IS LIVE
+        </p>
+
+        <p className="text-white/70 lg:text-base text-sm">
+          The official Infernoguessr Gallery has been deployed. You can now
+          browse the full collection of community-submitted screenshots and
+          check their global performance.
+        </p>
+
+        <div className="space-y-2">
+          <ul className="list-disc list-outside pl-4 text-white/70 text-sm lg:text-base space-y-2">
+            <li>
+              <span className="text-white font-semibold">
+                Submission Archive:
+              </span>{" "}
+              View all approved images currently in the rotation.
+            </li>
+            <li>
+              <span className="text-white font-bold">Data & Stats:</span>{" "}
+              Track engagement and accuracy metrics for each submission.
+            </li>
+          </ul>
+        </div>
+
+        <p className="text-white/70 lg:text-base text-sm">
+          A direct link to the gallery is now available on the home page, go check it out!
+        </p>
+      </div>
+    ),
+  },
   {
     id: 'infernoguessr-cybergrind-release',
     date: '2026-05-26',

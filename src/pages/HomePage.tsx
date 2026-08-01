@@ -448,18 +448,11 @@ const HomePage = () => {
               </Button>
 
               <div className="flex w-full h-fit gap-2 flex-row">
-                <ExternalLink
-                  href="https://ko-fi.com/G2G41UYAX6"
-                  className="flex-1"
-                >
-                  <Button
-                    variant="outline"
-                    size="xl"
-                    className="w-full pointer-events-none"
-                  >
+                <ExternalLink href="https://ko-fi.com/G2G41UYAX6" className="flex-1">
+                  <Button variant="outline" size="xl" as="div" className="w-full">
                     DONATE
                     <img
-                      className={`w-6 ml-3`}
+                      className="w-6 ml-3"
                       src={resolveExternalUrl(
                         "/external/kofi/5c14e387dab576fe667689cf/670f5a01229bf8a18f97a3c1_favion.png",
                       )}
@@ -475,6 +468,17 @@ const HomePage = () => {
                   CREDITS
                 </Button>
               </div>
+              <ExternalLink href="https://gallery.ultrakidle.online/" className="flex-1">
+                <Button variant="outline" size="xl" as="div" className="w-full">
+                  GALLERY
+                  <img
+                    className="w-6 ml-3"
+                    src="/images/v1-pin.png"
+                    alt="Infernoguessr"
+                  />
+                </Button>
+              </ExternalLink>
+
               <div className="flex h-fit gap-2 flex-row">
                 <Button
                   variant="outline"

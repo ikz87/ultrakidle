@@ -22,7 +22,7 @@ const r2Client = new S3Client({
 });
 
 const GALLERY_BUCKET = "level-images";
-const GALLERY_DOMAIN = "https://gallery.ultrakidle.online";
+const GALLERY_DOMAIN = "https://images.ultrakidle.online";
 
 const discordHeaders = {
   Authorization: `Bot ${BOT_TOKEN}`,
