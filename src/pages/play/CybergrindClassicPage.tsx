@@ -462,7 +462,7 @@ const CybergrindClassicPage = () => {
 
     return (
       <>
-        <div className="font-atkinson z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
+        <div className="z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
           <SEO
             title="Cybergrind"
             description="Endless enemy-guessing mode."
@@ -605,7 +605,7 @@ const CybergrindClassicPage = () => {
 
   return (
     <>
-      <div className="font-atkinson z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
+      <div className="z-40 flex flex-col w-full pt-4 min-h-full justify-start items-start">
         <SEO
           title={`Cybergrind - Wave ${currentWave}`}
           description="Endless enemy-guessing mode."
