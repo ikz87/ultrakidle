@@ -225,7 +225,7 @@ const SettingsPage = () => {
             Visual
           </h2>
           <p className="opacity-50 text-left text-sm mb-2 uppercase tracking-widest">
-            Change font displayed across the site.
+            Change the font and animated backgrounds displayed across the site.
           </p>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 cursor-pointer uppercase text-sm tracking-widest">
@@ -253,6 +253,18 @@ const SettingsPage = () => {
               </span>
             </label>
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer opacity-80 hover:opacity-100 uppercase text-sm tracking-widest w-fit mt-2">
+            <input
+              type="checkbox"
+              checked={settings.backgroundGifs}
+              onChange={(e) =>
+                updateSettings({ backgroundGifs: e.target.checked })
+              }
+              className="w-4 h-4 accent-green-500 shrink-0"
+            />
+            <span>Enable animated background GIFs</span>
+          </label>
         </div>
 
         {/* Behavior Section */}

@@ -174,9 +174,11 @@ const MainLayout = () => {
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-black h-screen w-screen">
       </div>
       {/* Background Layer */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <img className="opacity-30 object-cover w-full h-full scale-[1.04]" src={`${import.meta.env.BASE_URL}images/main-menu.gif`} alt="Background" />
-      </div>
+      {settings.backgroundGifs && (
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <img className="opacity-30 object-cover w-full h-full scale-[1.04]" src={`${import.meta.env.BASE_URL}images/main-menu.gif`} alt="Background" />
+        </div>
+      )}
 
       <div className="fixed top-0 left-0 z-10 h-dvh w-full flex flex-col pointer-events-none overflow-x-hidden">
         {/* Mobile Top Panel */}

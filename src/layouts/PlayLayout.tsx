@@ -6,6 +6,7 @@ import ModeTabs from "../components/ui/ModeTabs";
 import type { GameMode } from "../components/ui/ModeTabs";
 import Button from "../components/ui/Button";
 import { Typewriter } from "../components/Typewriter";
+import { useSettings } from "../context/SettingsContext";
 
 interface PlayLayoutProps {
     children?: ReactNode;
@@ -29,6 +30,9 @@ const PlayLayout = ({
     showDeathBackground = false,
 }: PlayLayoutProps) => {
     const navigate = useNavigate();
+    const { settings } = useSettings();
+
+    const showDeath = showDeathBackground && settings.backgroundGifs;
 
     const tabs: { id: GameMode; label: string }[] = [
         { id: "classic", label: "CLASSIC" },
@@ -70,7 +74,7 @@ const PlayLayout = ({
                 {children}
             </div>
 
-            {showDeathBackground ? (
+            {showDeath ? (
                 <div className="fixed left-0 top-0 -z-10 flex h-dvh w-dvw items-center justify-center overflow-visible bg-black">
                     <div className="h-1/3 w-1/3 overflow-visible">
                         <img
