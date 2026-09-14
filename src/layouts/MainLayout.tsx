@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { isRunningInDiscord, getGuildId } from '../lib/discord';
+import { isRunningInDiscord, isRunningInGuild, getGuildId } from '../lib/discord';
 import { supabase } from '../lib/supabaseClient';
 import { LeaderboardTabs } from '../components/game/LeaderboardTabs';
 import { CybergrindLeaderboard } from '../components/game/CybergrindLeaderboard';
@@ -167,6 +167,7 @@ const MainLayout = () => {
   const isHome = location.pathname === '/';
   const isPlay = location.pathname.startsWith('/play') || location.pathname.startsWith('/cybergrind');
   const inDiscord = isRunningInDiscord();
+  const inGuild = isRunningInGuild();
 
   return (
     <div className="text-white overflow-hidden w-full h-dvh flex flex-col relative">
@@ -181,29 +182,35 @@ const MainLayout = () => {
         {/* Mobile Top Panel */}
         {inDiscord && (
           <div className="lg:hidden flex-shrink-0 bg-black/60 border-b border-white/10 mb-0 z-20 pointer-events-auto">
-            <button
-              onClick={() => setIsRankingOpen(prev => !prev)}
-              className="w-full flex pt-16 items-center justify-between py-2 px-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-indigo-400 font-bold tracking-widest text-xs uppercase">SERVER_RANKINGS</span>
-                <span className="text-[10px] opacity-30 uppercase">LIVE</span>
-              </div>
-              <motion.span
-                animate={{ rotate: isRankingOpen ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-white/50 text-sm"
-              >
-                ▼
-              </motion.span>
-            </button>
-            <div
-              className={`transition-all duration-300 overflow-hidden ${isRankingOpen ? 'p-2' : 'h-0 pointer-events-none'
-                }`}
-              aria-hidden={!isRankingOpen}
-            >
-              <LeaderboardTabs layout="horizontal" guildId={guildId} />
-            </div>
+            {inGuild ? (
+              <>
+                <button
+                  onClick={() => setIsRankingOpen(prev => !prev)}
+                  className="w-full flex pt-16 items-center justify-between py-2 px-3 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-indigo-400 font-bold tracking-widest text-xs uppercase">SERVER_RANKINGS</span>
+                    <span className="text-[10px] opacity-30 uppercase">LIVE</span>
+                  </div>
+                  <motion.span
+                    animate={{ rotate: isRankingOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-white/50 text-sm"
+                  >
+                    ▼
+                  </motion.span>
+                </button>
+                <div
+                  className={`transition-all duration-300 overflow-hidden ${isRankingOpen ? 'p-2' : 'h-0 pointer-events-none'
+                    }`}
+                  aria-hidden={!isRankingOpen}
+                >
+                  <LeaderboardTabs layout="horizontal" guildId={guildId} />
+                </div>
+              </>
+            ) : (
+              <div className="pt-16" />
+            )}
           </div>
         )}
 
@@ -490,7 +497,7 @@ const MainLayout = () => {
           </div>
 
           {/* Column 2: Desktop Ranking Panel (collapsible, own scroll, fixed header) */}
-          {inDiscord && (
+          {inGuild && (
             <div
               className={`hidden lg:flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out bg-black/60 border-l border-white/10 pointer-events-auto z-20 ${isRankingOpen ? 'w-[170px]' : 'w-[45px]'
                 }`}

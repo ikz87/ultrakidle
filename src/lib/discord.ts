@@ -24,6 +24,21 @@ export function getGuildId() {
     return currentGuildId;
 }
 
+export type DiscordContext = "web" | "guild" | "user";
+
+export function getDiscordContext(): DiscordContext {
+    if (!isRunningInDiscord()) return "web";
+    return getGuildId() ? "guild" : "user";
+}
+
+export function isRunningInGuild() {
+    return getDiscordContext() === "guild";
+}
+
+export function isRunningAsUserApp() {
+    return getDiscordContext() === "user";
+}
+
 export async function setupDiscord() {
     if (!discordSdk) {
         discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);

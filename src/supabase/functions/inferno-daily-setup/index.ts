@@ -71,44 +71,40 @@ Deno.serve(async (req) => {
       throw new Error(`Expected 5 rounds, got ${rounds?.length}`);
     }
 
-    for (const round of rounds) {
-      const sub = round.image_submissions;
-      const ext = extname(sub.storage_path || sub.image_url || ".png");
-      const destPath = `${date}/${crypto.randomUUID()}${ext}`;
+    await Promise.all(
+      rounds.map(async (round) => {
+        const sub = round.image_submissions;
+        const ext = extname(sub.storage_path || sub.image_url || ".png");
+        const destPath = `${date}/${crypto.randomUUID()}${ext}`;
 
-      const fileBuffer = await withRetry(async () => {
-        if (sub.storage_path) {
-          const res = await fetch(`https://images.ultrakidle.online/${sub.storage_path}`);
-          if (!res.ok)
-            throw new Error(
-              `Failed to fetch from R2 Gallery: ${res.statusText} (${sub.storage_path})`
-            );
+        const fileBuffer = await withRetry(async () => {
+          const url = sub.storage_path
+            ? `https://images.ultrakidle.online/${sub.storage_path}`
+            : sub.image_url;
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error(`Fetch failed: ${res.statusText} (${url})`);
+          }
           return res.arrayBuffer();
-        } else {
-          const res = await fetch(sub.image_url);
-          if (!res.ok) throw new Error(`Failed to fetch ${sub.image_url}`);
-          return res.arrayBuffer();
-        }
-      }, `Download round ${round.round_number}`);
+        }, `Download round ${round.round_number}`);
 
-      await r2Client.send(
-        new PutObjectCommand({
-          Bucket: DEST_BUCKET,
-          Key: destPath,
-          Body: new Uint8Array(fileBuffer),
-          ContentType: `image/${ext.replace(".", "")}`,
-        })
-      );
+        await r2Client.send(
+          new PutObjectCommand({
+            Bucket: DEST_BUCKET,
+            Key: destPath,
+            Body: new Uint8Array(fileBuffer),
+            ContentType: `image/${ext.replace(".", "")}`,
+          })
+        );
 
-      const publicUrl = `${PUBLIC_DOMAIN}/${destPath}`;
+        const { error: updateErr } = await supabase
+          .from("inferno_daily_rounds")
+          .update({ public_image_url: `${PUBLIC_DOMAIN}/${destPath}` })
+          .eq("id", round.id);
 
-      const { error: updateErr } = await supabase
-        .from("inferno_daily_rounds")
-        .update({ public_image_url: publicUrl })
-        .eq("id", round.id);
-
-      if (updateErr) throw updateErr;
-    }
+        if (updateErr) throw updateErr;
+      })
+    );
 
     await cleanupOldFolders(date);
 

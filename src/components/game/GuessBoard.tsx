@@ -78,7 +78,9 @@ const getAppearanceRangeText = (
   if (color === "green" || !color) return undefined;
   const sorted = [...levels].sort((a, b) => a.orderIndex - b.orderIndex);
   const idx = sorted.findIndex(
-    (l) => `${l.levelNumber}: ${l.name.toUpperCase()}` === value
+    (l) =>
+      `${l.levelNumber}: ${l.name.toUpperCase()}` ===
+      String(value).toUpperCase()
   );
   if (idx === -1) return undefined;
 
