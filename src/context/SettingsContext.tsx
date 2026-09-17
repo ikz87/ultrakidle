@@ -25,6 +25,7 @@ export interface UserSettings {
     classic: boolean;
     cybergrind: boolean;
   };
+  infernoSearchIgnoreSeparators: boolean;
   confirmDialogs: {
     infernoguessr: boolean;
     classic: boolean;
@@ -59,6 +60,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     classic: false,
     cybergrind: false,
   },
+  infernoSearchIgnoreSeparators: false,
   confirmDialogs: {
     infernoguessr: false,
     classic: false,

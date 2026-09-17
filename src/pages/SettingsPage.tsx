@@ -396,6 +396,26 @@ const SettingsPage = () => {
                 </label>
               </div>
             </div>
+{/* Search Without Separators */}
+            <div className="flex flex-col gap-2">
+              <p className="opacity-40 text-left text-xs mb-1 uppercase tracking-widest">
+                Allow searching level numbers without a separator ("5-2" as
+                "52") in Infernoguessr modes.
+              </p>
+              <label className="flex items-center gap-3 cursor-pointer opacity-80 hover:opacity-100 p-2 bg-white/5 w-fit rounded uppercase text-sm tracking-widest font-bold">
+                <input
+                  type="checkbox"
+                  checked={settings.infernoSearchIgnoreSeparators}
+                  onChange={(e) =>
+                    updateSettings({
+                      infernoSearchIgnoreSeparators: e.target.checked,
+                    })
+                  }
+                  className="w-4 h-4 accent-green-500"
+                />
+                <span>Enable</span>
+              </label>
+            </div>
 {/* Image Control Persistence */}
             <div className="flex flex-col gap-2">
               <p className="opacity-40 text-left text-xs mb-1 uppercase tracking-widest">

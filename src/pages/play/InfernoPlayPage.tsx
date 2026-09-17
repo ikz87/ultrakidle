@@ -123,11 +123,22 @@ const InfernoPlayPage = () => {
   const filteredLevels = useMemo(() => {
     if (!searchQuery.trim()) return sortedLevels;
     const q = searchQuery.toLowerCase().trim().replace(/[-\s]+/g, " ");
+    const qCompact = q.replace(/[-\s]/g, "");
     return sortedLevels.filter((l) => {
       const norm = (s: string) => s.toLowerCase().replace(/[-\s]+/g, " ");
-      return norm(l.name).includes(q) || norm(l.levelNumber).includes(q);
+      if (norm(l.name).includes(q) || norm(l.levelNumber).includes(q)) {
+        return true;
+      }
+      if (settings.infernoSearchIgnoreSeparators) {
+        const compact = (s: string) => s.toLowerCase().replace(/[-\s]/g, "");
+        return (
+          compact(l.name).includes(qCompact) ||
+          compact(l.levelNumber).includes(qCompact)
+        );
+      }
+      return false;
     });
-  }, [searchQuery, sortedLevels]);
+  }, [searchQuery, sortedLevels, settings.infernoSearchIgnoreSeparators]);
 
   const fetchGameState = async ({ silent = false } = {}) => {
   if (!silent) {
