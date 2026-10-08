@@ -31,15 +31,17 @@ const EnemyGridItem = memo(
       <div
         className={`relative p-1 border transition-all duration-75 ${
           isExcluded
-            ? "border-red-500/40 grayscale opacity-30"
+            ? "border-red-500/40"
             : "border-white/10 group-hover:border-white/40"
         }`}
       >
-        <EnemyIcon
-          icons={enemy.icon}
-          size={48}
-          isSpawn={enemy.id === 69}
-        />
+        <div className={isExcluded ? "grayscale opacity-30" : ""}>
+          <EnemyIcon
+            icons={enemy.icon}
+            size={48}
+            isSpawn={enemy.id === 69}
+          />
+        </div>
         {isExcluded && (
           <div className="absolute inset-0 pointer-events-none before:content-[''] before:absolute before:top-1/2 before:left-0 before:w-full before:h-[2px] before:bg-red-600 before:-rotate-45 after:content-[''] after:absolute after:top-1/2 after:left-0 after:w-full after:h-[2px] after:bg-red-600 after:rotate-45" />
         )}
