@@ -66,7 +66,14 @@ export const useIGCybergrindLeaderboard = () => {
 
         if (neighborError) throw neighborError;
 
-        setEntries([...top10, ...(neighbors as IGCGLeaderboardEntry[])]);
+        const merged = [...top10];
+        for (const neighbor of neighbors as IGCGLeaderboardEntry[]) {
+          if (!merged.some((e) => e.user_id === neighbor.user_id)) {
+            merged.push(neighbor);
+          }
+        }
+        merged.sort((a, b) => a.rank - b.rank);
+        setEntries(merged);
       } catch (err) {
         console.error("Error fetching ig cybergrind leaderboard:", err);
       } finally {
