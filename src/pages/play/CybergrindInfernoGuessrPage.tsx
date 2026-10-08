@@ -17,6 +17,7 @@ import { useSettings } from "../../context/SettingsContext";
 import { useTime } from "../../context/TimeContext";
 import HealthBar from "../../components/game/HealthBar";
 import RunSummaryModal from "../../components/game/RunSummaryModal";
+import { DownscaledImage } from "../../components/DownscaledImage";
 
 
 
@@ -810,7 +811,7 @@ const CybergrindInfernoGuessrPage = () => {
                       <span className="text-white/30 text-xs uppercase tracking-widest animate-pulse">LOADING IMAGE...</span>
                     </div>
                   )}
-                  <img
+                  <DownscaledImage
                     src={
                       currentRound.public_image_url
                         ? resolveExternalUrl(currentRound.public_image_url) +
@@ -821,8 +822,9 @@ const CybergrindInfernoGuessrPage = () => {
                         : ""
                     }
                     alt="Target"
-                    className="w-full h-full object-contain pointer-events-none"
+                    className="w-full h-full pointer-events-none"
                     draggable={false}
+                    zoom={zoom}
                     onLoad={() => {
                       setImageLoaded(true);
                       if (imgRetryTimer.current) clearTimeout(imgRetryTimer.current);

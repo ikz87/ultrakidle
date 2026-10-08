@@ -13,6 +13,7 @@ import AlertDialog from "../../components/ui/AlertDialog";
 import { getMsUntilNicaraguaMidnight } from "../../lib/time";
 import { useSettings } from "../../context/SettingsContext";
 import GraphLevelGuessed from "../../components/ui/GraphLevelGuessed";
+import { DownscaledImage } from "../../components/DownscaledImage";
 
 interface Submitter {
   name: string;
@@ -892,7 +893,7 @@ const InfernoPlayPage = () => {
                       </span>
                     </div>
                   )}
-                  <img
+                  <DownscaledImage
                     src={
                       resolveRoundImage(
                         displayRound.round_number,
@@ -909,8 +910,9 @@ const InfernoPlayPage = () => {
                         : "")
                     }
                     alt="Target"
-                    className="w-full h-full object-contain pointer-events-none"
+                    className="w-full h-full pointer-events-none"
                     draggable={false}
+                    zoom={zoom}
                     onLoad={() => {
                       setImageLoaded(true);
                       if (imgRetryTimer.current)
