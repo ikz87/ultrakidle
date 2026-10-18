@@ -13,13 +13,56 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE EXTENSION IF NOT EXISTS "pg_cron" WITH SCHEMA "pg_catalog";
 
 
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
+
+
+
+
 
 
 COMMENT ON SCHEMA "public" IS 'standard public schema';
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pg_trgm" WITH SCHEMA "public";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+
+
+
+
+
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+
+
+
 
 
 
@@ -863,6 +906,64 @@ $$;
 
 
 ALTER FUNCTION "public"."end_ig_cybergrind_run"("p_run_id" bigint, "p_status" "public"."cybergrind_run_status_enum") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."fn_sync_submission_stats"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+declare
+  v_submission_id bigint;
+begin
+  -- Get the submission ID from the round associated with the guess
+  select image_submission_id into v_submission_id
+  from public.inferno_daily_rounds
+  where id = coalesce(new.round_id, old.round_id);
+
+  if v_submission_id is not null then
+    update public.image_submissions
+    set
+      avg_score = (
+        select coalesce(avg(g.score), 0)
+        from public.inferno_guesses g
+        join public.inferno_daily_rounds r on g.round_id = r.id
+        where r.image_submission_id = v_submission_id
+      ),
+      avg_time = (
+        select coalesce(avg(g.time_spent_seconds), 0)
+        from public.inferno_guesses g
+        join public.inferno_daily_rounds r on g.round_id = r.id
+        where r.image_submission_id = v_submission_id
+      )
+    where id = v_submission_id;
+  end if;
+
+  return null;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."fn_sync_submission_stats"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."fn_sync_submission_times_picked"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+begin
+  if (TG_OP = 'INSERT') then
+    update public.image_submissions
+    set times_picked = times_picked + 1
+    where id = NEW.image_submission_id;
+  elsif (TG_OP = 'DELETE') then
+    update public.image_submissions
+    set times_picked = times_picked - 1
+    where id = OLD.image_submission_id;
+  end if;
+  return null;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."fn_sync_submission_times_picked"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_classic_init"("version" "text" DEFAULT NULL::"text") RETURNS json
@@ -1829,7 +1930,12 @@ begin
       'time_spent_seconds', ig.time_spent_seconds,
       'guessed_level', json_build_object('id', gl.id, 'level_number', gl.level_number, 'level_name', gl.level_name),
       'correct_level', json_build_object('id', cl.id, 'level_number', cl.level_number, 'level_name', cl.level_name),
-      'submitted_by', json_build_object('name', sp.discord_name, 'avatar_url', sp.discord_avatar_url)
+      'submitted_by', json_build_object('name', sp.discord_name, 'avatar_url', sp.discord_avatar_url),
+      'image_guess_stats', (
+        select coalesce(jsonb_object_agg(icg.id_level::text, icg.amount), '{}'::jsonb)
+        from inferno_image_guesses icg
+        where icg.id_image_submit = idr.image_submission_id
+      )
     ) order by idr.round_number
   ) into rounds_data
   from inferno_guesses ig
@@ -4338,6 +4444,55 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
+CREATE TABLE IF NOT EXISTS "public"."image_submissions" (
+    "id" bigint NOT NULL,
+    "guild_id" "text" NOT NULL,
+    "channel_id" "text" NOT NULL,
+    "message_id" "text" NOT NULL,
+    "level_id" bigint NOT NULL,
+    "image_url" "text" NOT NULL,
+    "storage_path" "text",
+    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "thumbs_up" integer DEFAULT 0,
+    "thumbs_down" integer DEFAULT 0,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "resolved_at" timestamp with time zone,
+    "submitter_id" bigint NOT NULL,
+    "times_picked" integer DEFAULT 0 NOT NULL,
+    "avg_score" numeric(10,2) DEFAULT 0,
+    "avg_time" numeric(10,3) DEFAULT 0
+);
+
+
+ALTER TABLE "public"."image_submissions" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."submitter_profiles" (
+    "discord_user_id" "text" NOT NULL,
+    "discord_name" "text" NOT NULL,
+    "discord_avatar_url" "text",
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "id" bigint NOT NULL
+);
+
+
+ALTER TABLE "public"."submitter_profiles" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."approved_submitters_v" AS
+ SELECT "sp"."id",
+    "sp"."discord_name",
+    "sp"."discord_avatar_url",
+    ("count"("isub"."id"))::integer AS "submissions_count"
+   FROM ("public"."submitter_profiles" "sp"
+     JOIN "public"."image_submissions" "isub" ON (("isub"."submitter_id" = "sp"."id")))
+  WHERE ("isub"."status" = 'approved'::"text")
+  GROUP BY "sp"."id", "sp"."discord_name", "sp"."discord_avatar_url";
+
+
+ALTER VIEW "public"."approved_submitters_v" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."current_daily_choice" (
     "daily_choice_id" bigint NOT NULL,
     "game_date" "date" NOT NULL
@@ -4668,26 +4823,6 @@ ALTER TABLE "public"."ig_cybergrind_runs" ALTER COLUMN "id" ADD GENERATED BY DEF
 
 
 
-CREATE TABLE IF NOT EXISTS "public"."image_submissions" (
-    "id" bigint NOT NULL,
-    "guild_id" "text" NOT NULL,
-    "channel_id" "text" NOT NULL,
-    "message_id" "text" NOT NULL,
-    "level_id" bigint NOT NULL,
-    "image_url" "text" NOT NULL,
-    "storage_path" "text",
-    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
-    "thumbs_up" integer DEFAULT 0,
-    "thumbs_down" integer DEFAULT 0,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "resolved_at" timestamp with time zone,
-    "submitter_id" bigint NOT NULL
-);
-
-
-ALTER TABLE "public"."image_submissions" OWNER TO "postgres";
-
-
 ALTER TABLE "public"."image_submissions" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME "public"."image_submissions_id_seq"
     START WITH 1
@@ -4854,6 +4989,17 @@ CREATE TABLE IF NOT EXISTS "public"."level_enemies" (
 ALTER TABLE "public"."level_enemies" OWNER TO "postgres";
 
 
+CREATE OR REPLACE VIEW "public"."level_submission_counts" AS
+ SELECT "level_id",
+    "count"(*) AS "approved_count"
+   FROM "public"."image_submissions"
+  WHERE ("status" = 'approved'::"text")
+  GROUP BY "level_id";
+
+
+ALTER VIEW "public"."level_submission_counts" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."levels" (
     "id" bigint NOT NULL,
     "level_number" "text" NOT NULL,
@@ -4916,18 +5062,6 @@ CREATE TABLE IF NOT EXISTS "public"."submission_forums" (
 
 
 ALTER TABLE "public"."submission_forums" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."submitter_profiles" (
-    "discord_user_id" "text" NOT NULL,
-    "discord_name" "text" NOT NULL,
-    "discord_avatar_url" "text",
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    "id" bigint NOT NULL
-);
-
-
-ALTER TABLE "public"."submitter_profiles" OWNER TO "postgres";
 
 
 ALTER TABLE "public"."submitter_profiles" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
@@ -5380,6 +5514,14 @@ CREATE INDEX "idx_user_wins_daily" ON "public"."user_wins" USING "btree" ("daily
 
 
 
+CREATE INDEX "submitter_profiles_discord_name_trgm_idx" ON "public"."submitter_profiles" USING "gin" ("discord_name" "public"."gin_trgm_ops");
+
+
+
+CREATE OR REPLACE TRIGGER "trg_sync_submission_stats" AFTER INSERT OR DELETE OR UPDATE ON "public"."inferno_guesses" FOR EACH ROW EXECUTE FUNCTION "public"."fn_sync_submission_stats"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_update_cg_image_guesses" AFTER UPDATE OF "guessed_level_id" ON "public"."ig_cybergrind_rounds" FOR EACH ROW EXECUTE FUNCTION "public"."update_cg_image_guesses"();
 
 
@@ -5397,6 +5539,10 @@ CREATE OR REPLACE TRIGGER "trg_update_inferno_stats" AFTER UPDATE ON "public"."i
 
 
 CREATE OR REPLACE TRIGGER "trg_update_streak_cache" AFTER INSERT ON "public"."user_wins" FOR EACH ROW EXECUTE FUNCTION "public"."update_streak_cache"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_update_submission_times_picked" AFTER INSERT OR DELETE ON "public"."inferno_daily_rounds" FOR EACH ROW EXECUTE FUNCTION "public"."fn_sync_submission_times_picked"();
 
 
 
@@ -5719,6 +5865,10 @@ CREATE POLICY "Enable insert for users based on user_id" ON "public"."user_setti
 
 
 
+CREATE POLICY "Enable read access for all users" ON "public"."inferno_image_guesses" FOR SELECT USING (true);
+
+
+
 CREATE POLICY "Enable read access for all users" ON "public"."level_enemies" FOR SELECT USING (true);
 
 
@@ -5941,10 +6091,227 @@ ALTER TABLE "public"."user_settings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."user_wins" ENABLE ROW LEVEL SECURITY;
 
 
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."current_daily_choice";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."guess_colors";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."inferno_guesses";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."inferno_results";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."user_wins";
+
+
+
+
+
+
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_in"("cstring") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_out"("public"."gtrgm") TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6010,6 +6377,18 @@ GRANT ALL ON FUNCTION "public"."end_cybergrind_run"("p_status" "public"."cybergr
 GRANT ALL ON FUNCTION "public"."end_ig_cybergrind_run"("p_run_id" bigint, "p_status" "public"."cybergrind_run_status_enum") TO "anon";
 GRANT ALL ON FUNCTION "public"."end_ig_cybergrind_run"("p_run_id" bigint, "p_status" "public"."cybergrind_run_status_enum") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."end_ig_cybergrind_run"("p_run_id" bigint, "p_status" "public"."cybergrind_run_status_enum") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."fn_sync_submission_stats"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_sync_submission_stats"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_sync_submission_stats"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."fn_sync_submission_times_picked"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_sync_submission_times_picked"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_sync_submission_times_picked"() TO "service_role";
 
 
 
@@ -6124,6 +6503,97 @@ GRANT ALL ON FUNCTION "public"."get_user_streak_by_id"("p_user_id" "uuid") TO "s
 
 
 
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_query_trgm"("text", "internal", smallint, "internal", "internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_extract_value_trgm"("text", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_trgm_consistent"("internal", smallint, "text", integer, "internal", "internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gin_trgm_triconsistent"("internal", smallint, "text", integer, "internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_compress"("internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_consistent"("internal", "text", smallint, "oid", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_decompress"("internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_distance"("internal", "text", smallint, "oid", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_options"("internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_penalty"("internal", "internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_picksplit"("internal", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_same"("public"."gtrgm", "public"."gtrgm", "internal") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "postgres";
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "anon";
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."gtrgm_union"("internal", "internal") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "anon";
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."has_never_played"() TO "service_role";
@@ -6154,9 +6624,51 @@ GRANT ALL ON FUNCTION "public"."run_daily_rotation"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "postgres";
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "anon";
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_limit"(real) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."shares_guild_with"("p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."shares_guild_with"("p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."shares_guild_with"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "postgres";
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "anon";
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."show_limit"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "anon";
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."show_trgm"("text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."similarity"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."similarity_dist"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."similarity_op"("text", "text") TO "service_role";
 
 
 
@@ -6176,6 +6688,41 @@ GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run"("version" "text", "star
 GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."start_ig_cybergrind_run_bucketless"("version" "text", "start_wave" integer, "caller_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_dist_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."strict_word_similarity_op"("text", "text") TO "service_role";
 
 
 
@@ -6261,6 +6808,80 @@ GRANT ALL ON FUNCTION "public"."vacuum_clean_maintenance"() TO "service_role";
 
 
 GRANT ALL ON FUNCTION "public"."wipe_user_data"("p_user_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_commutator_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_dist_op"("text", "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."word_similarity_op"("text", "text") TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GRANT ALL ON TABLE "public"."image_submissions" TO "anon";
+GRANT ALL ON TABLE "public"."image_submissions" TO "authenticated";
+GRANT ALL ON TABLE "public"."image_submissions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."submitter_profiles" TO "anon";
+GRANT ALL ON TABLE "public"."submitter_profiles" TO "authenticated";
+GRANT ALL ON TABLE "public"."submitter_profiles" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."approved_submitters_v" TO "anon";
+GRANT ALL ON TABLE "public"."approved_submitters_v" TO "authenticated";
+GRANT ALL ON TABLE "public"."approved_submitters_v" TO "service_role";
 
 
 
@@ -6414,12 +7035,6 @@ GRANT ALL ON SEQUENCE "public"."ig_cybergrind_runs_id_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."image_submissions" TO "anon";
-GRANT ALL ON TABLE "public"."image_submissions" TO "authenticated";
-GRANT ALL ON TABLE "public"."image_submissions" TO "service_role";
-
-
-
 GRANT ALL ON SEQUENCE "public"."image_submissions_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."image_submissions_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."image_submissions_id_seq" TO "service_role";
@@ -6504,6 +7119,12 @@ GRANT ALL ON TABLE "public"."level_enemies" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."level_submission_counts" TO "anon";
+GRANT ALL ON TABLE "public"."level_submission_counts" TO "authenticated";
+GRANT ALL ON TABLE "public"."level_submission_counts" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."levels" TO "anon";
 GRANT ALL ON TABLE "public"."levels" TO "authenticated";
 GRANT ALL ON TABLE "public"."levels" TO "service_role";
@@ -6537,12 +7158,6 @@ GRANT ALL ON TABLE "public"."streak_cache" TO "service_role";
 GRANT ALL ON TABLE "public"."submission_forums" TO "anon";
 GRANT ALL ON TABLE "public"."submission_forums" TO "authenticated";
 GRANT ALL ON TABLE "public"."submission_forums" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."submitter_profiles" TO "anon";
-GRANT ALL ON TABLE "public"."submitter_profiles" TO "authenticated";
-GRANT ALL ON TABLE "public"."submitter_profiles" TO "service_role";
 
 
 
@@ -6606,6 +7221,12 @@ GRANT ALL ON SEQUENCE "public"."user_wins_id_seq" TO "service_role";
 
 
 
+
+
+
+
+
+
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
@@ -6630,6 +7251,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
