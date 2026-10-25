@@ -203,6 +203,7 @@ const PlayPage = () => {
                                         const enemy = enemies.find(e => e.name === guesses.find(g => g.correct)?.enemy_name);
                                         return (
                                             <EnemyIcon
+                                                enemyId={enemy?.id}
                                                 icons={enemy?.icon || []}
                                                 size={32}
                                                 isSpawn={(enemy as any)?.isSpawn}
@@ -235,7 +236,7 @@ const PlayPage = () => {
                                             animate={{ opacity: 1, scale: 1 }}
                                             transition={{ delay: 1.8, duration: 0.5 }}
                                         >
-                                            <EnemyIcon icons={revealedEnemy.icon} size={32} isSpawn={(revealedEnemy as any).isSpawn} className="" />
+                                            <EnemyIcon enemyId={revealedEnemy.id} icons={revealedEnemy.icon} size={32} isSpawn={(revealedEnemy as any).isSpawn} className="" />
                                         </motion.div>
                                         <Typewriter
                                             text={revealedEnemy.name}

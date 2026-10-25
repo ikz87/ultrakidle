@@ -1,4 +1,13 @@
-export const enemies = [
+export interface EnemyEntry {
+  id: number;
+  name: string;
+  icon: string[];
+  wikiLink: string;
+  isSpawn?: boolean;
+  inheritsFrom?: number;
+}
+
+export const enemies: EnemyEntry[] = [
   { id: 1, name: "Big Johninator", icon: ["/external/wiki/images/BigJohnator.webp"], wikiLink: "/external/wiki/Big_Johninator" },
   { id: 2, name: "Cancerous Rodent", icon: ["/external/wiki/images/Cancerous_Rodent.webp"], wikiLink: "/external/wiki/Cancerous_Rodent#Cancerous_Rodent-0" },
   { id: 3, name: "Very Cancerous Rodent", icon: ["/external/wiki/images/Very_Cancerous_Rodent.webp"], wikiLink: "/external/wiki/Cancerous_Rodent#Very_Cancerous_Rodent-0" },
@@ -51,6 +60,7 @@ export const enemies = [
     name: 'Swordsmachine "Tundra/Agony"',
     icon: ["/external/wiki/images/Swordsmachine_%22Tundra%22.webp", "/external/wiki/images/Swordsmachine_%22Agony%22.webp"],
     wikiLink: "/external/wiki/Swordsmachine",
+    inheritsFrom: 47,
   },
   {
     id: 67,
@@ -63,6 +73,7 @@ export const enemies = [
     name: 'Ferryman "Rudraksha/Agonis"',
     icon: ["/external/wiki/images/Rudraksha.png", "/external/wiki/images/Agonis.png"],
     wikiLink: "/external/wiki/Ferryman",
+    inheritsFrom: 12,
   },
   {
     id: 69,

@@ -265,6 +265,18 @@ const SettingsPage = () => {
             />
             <span>Enable animated background GIFs</span>
           </label>
+
+          <label className="flex items-center gap-2 cursor-pointer opacity-80 hover:opacity-100 uppercase text-sm tracking-widest w-fit mt-2">
+            <input
+              type="checkbox"
+              checked={settings.showSeasonalEnemyIcons}
+              onChange={(e) =>
+                updateSettings({ showSeasonalEnemyIcons: e.target.checked })
+              }
+              className="w-4 h-4 accent-green-500 shrink-0"
+            />
+            <span>Show special enemy icons during seasonal events</span>
+          </label>
         </div>
 
         {/* Behavior Section */}

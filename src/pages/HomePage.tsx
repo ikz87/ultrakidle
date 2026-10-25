@@ -9,6 +9,8 @@ import { isRunningInDiscord } from "../lib/discord";
 import { resolveExternalUrl } from "../lib/urls";
 import { ExternalLink } from "../components/ui/ExternalLink";
 import { useMessages } from "../context/MessagesContext";
+import { useSeasonalEvent } from "../hooks/useSeasonalEvent";
+import type { SeasonalEvent } from "../lib/events";
 import SEO from "../components/SEO";
 import PlayExpandable from "../components/ui/PlayExpandable";
 import CybergrindExpandable from "../components/ui/CybergrindExpandable";
@@ -181,6 +183,14 @@ const DonorsBoard = ({
   );
 };
 
+const SEASONAL_CELEBRATIONS: Partial<
+  Record<SeasonalEvent, { text: string; color: string }>
+> = {
+  EASTER: { text: "HAPPY EASTER", color: "#FF9BEE" },
+  HALLOWEEN: { text: "HAPPY HALLOWEEN", color: "#FFAB00" },
+  CHRISTMAS: { text: "HAPPY CHRISTMAS", color: "#FF0000" },
+};
+
 const HomePage = () => {
   const {
     loading: gameLoading,
@@ -205,6 +215,10 @@ const HomePage = () => {
   const [playExpanded, setPlayExpanded] = useState(false);
   const [cybergrindExpanded, setCybergrindExpanded] = useState(false);
   const { hasUnread } = useMessages();
+  const seasonalEvent = useSeasonalEvent();
+  const celebration = seasonalEvent
+    ? SEASONAL_CELEBRATIONS[seasonalEvent]
+    : undefined;
 
   useEffect(() => {
     if (dailyChanged) {
@@ -271,13 +285,20 @@ const HomePage = () => {
         description="ULTRAKIDLE - The daily character guessing game for ULTRAKILL players."
       />
       <div className="flex flex-col gap-4 w-full mx-auto h-full min-h-0">
-        <div className="flex flex-col gap-0 w-full lg:text-xl md:text-lg text-sm opacity-50 text-left flex-shrink-0">
-          <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-0 w-full lg:text-xl md:text-lg text-sm text-left flex-shrink-0">
+          {celebration && (
+            <div style={{ color: celebration.color }}>
+              <Typewriter text={celebration.text} speed={0.02} delay={0.1} />
+            </div>
+          )}
+          <div className="flex flex-col gap-4 opacity-50">
             <div className="flex flex-col">
-              <div className="flex gap-1 items-baseline">
-                <Typewriter text="MODULES:" speed={0.02} delay={0.1} />
-                {gameLoading && <LoadingDots />}
-              </div>
+              {!celebration && (
+                <div className="flex gap-1 items-baseline">
+                  <Typewriter text="MODULES:" speed={0.02} delay={0.1} />
+                  {gameLoading && <LoadingDots />}
+                </div>
+              )}
               {diagnosticsStarted && (
                 <>
                   <div className="flex gap-1">

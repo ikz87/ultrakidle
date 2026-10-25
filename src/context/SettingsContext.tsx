@@ -20,6 +20,7 @@ export interface UserSettings {
   showHintIcons: boolean;
   fontFamily: "vcr" | "atkinson";
   backgroundGifs: boolean;
+  showSeasonalEnemyIcons: boolean;
   guessboardColumns: GuessboardColumn[];
   allowRandomGuess: {
     classic: boolean;
@@ -48,6 +49,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   showHintIcons: false,
   fontFamily: "vcr",
   backgroundGifs: true,
+  showSeasonalEnemyIcons: true,
   guessboardColumns: [
     "enemy_name",
     "enemy_type",
@@ -196,7 +198,11 @@ const updateSettings = (newSettings: Partial<UserSettings>) => {
     const localSettings = localSaved ? JSON.parse(localSaved) : null;
 
     if (dbSettings) {
-      const merged = mergeSettings(DEFAULT_SETTINGS, dbSettings);
+      const localBase = mergeSettings(
+        DEFAULT_SETTINGS,
+        localSettings ?? {},
+      );
+      const merged = mergeSettings(localBase, dbSettings);
       setSettingsState(merged);
       localStorage.setItem("ultrakidle_settings", JSON.stringify(merged));
 

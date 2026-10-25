@@ -4,6 +4,7 @@ import { EnemyIcon } from "./EnemyIcon";
 import { useSettings } from "../../context/SettingsContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { levels } from "../../lib/levels_list";
+import type { GameEvent } from "../../lib/events";
 
 import Tooltip from "../ui/Tooltip";
 
@@ -46,7 +47,7 @@ interface GuessBoardProps {
   guesses: GuessResult[];
   modifiers?: string[];
   overrideColumns?: string[];
-  event?: string;
+  event?: GameEvent;
 }
 
 const BADGE_TOOLTIPS: Record<string, string> = {
@@ -296,6 +297,7 @@ export const GuessBoard = ({
                           <div className="flex items-center gap-3 px-3 py-4 font-bold max-w-[200px]">
                             {enemy && (
                               <EnemyIcon
+                                enemyId={enemy.id}
                                 icons={enemy.icon}
                                 size={32}
                                 isSpawn={(enemy as any).isSpawn}

@@ -12,6 +12,7 @@ import { Typewriter } from "../../components/Typewriter";
 import { motion } from "framer-motion";
 import { copyToClipboard } from "../../lib/clipboard";
 import { getMsUntilNicaraguaMidnight } from "../../lib/time";
+import type { GameEvent } from "../../lib/events";
 import { EnemyBoardModal } from "../../components/game/EnemyBoardModal";
 import PlayLayout from "../../layouts/PlayLayout";
 
@@ -45,7 +46,7 @@ const ClassicPlayPage = () => {
     const highlightAll = () => setExcludedEnemyIds([]);
     const clearAll = () => setExcludedEnemyIds(enemies.map((e) => e.id));
 
-    const event = dayNumber === 100 ? 'PARTY' : undefined;
+    const event: GameEvent | undefined = dayNumber === 100 ? 'PARTY' : undefined;
 
     const fetchInit = useCallback(async () => {
         setLoading(true);
@@ -358,6 +359,7 @@ const ClassicPlayPage = () => {
                                         );
                                         return (
                                             <EnemyIcon
+                                                enemyId={enemy?.id}
                                                 icons={enemy?.icon || []}
                                                 size={32}
                                                 isSpawn={(enemy as any)?.isSpawn}
@@ -401,6 +403,7 @@ const ClassicPlayPage = () => {
                                             }}
                                         >
                                             <EnemyIcon
+                                                enemyId={revealedEnemy.id}
                                                 icons={revealedEnemy.icon}
                                                 size={32}
                                                 isSpawn={

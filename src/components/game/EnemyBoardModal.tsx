@@ -37,6 +37,7 @@ const EnemyGridItem = memo(
       >
         <div className={isExcluded ? "grayscale opacity-30" : ""}>
           <EnemyIcon
+            enemyId={enemy.id}
             icons={enemy.icon}
             size={48}
             isSpawn={enemy.id === 69}
@@ -94,6 +95,7 @@ export const EnemyBoardModal = ({
                       className="p-0.5 border border-white/5 opacity-50 transition-all bg-white/10"
                     >
                       <EnemyIcon
+                        enemyId={enemy.id}
                         icons={enemy.icon}
                         size={24}
                         isSpawn={enemy.id === 69}

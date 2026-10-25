@@ -871,6 +871,7 @@ const CybergrindClassicPage = () => {
                         }}
                       >
                         <EnemyIcon
+                          enemyId={revealedEnemy.id}
                           icons={revealedEnemy.icon}
                           size={32}
                           isSpawn={

@@ -5,7 +5,7 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import ReactGA from "react-ga4";
 import { DiscordRedirect } from "./lib/discord";
 import MainLayout from "./layouts/MainLayout";
@@ -33,8 +33,11 @@ import { SettingsProvider } from "./context/SettingsContext";
 import { useSettings } from "./context/SettingsContext";
 import { MessagesProvider } from "./context/MessagesContext";
 import { TimeProvider } from "./context/TimeContext";
+import { SeasonalEventProvider } from "./context/SeasonalEventProvider";
 import { SessionContext, useSessionProvider } from "./hooks/useSession";
 import VersionUpdateModal from "./components/VersionUpdateModal";
+
+const BoundingBoxesPage = lazy(() => import("./pages/BoundingBoxesPage"));
 
 const SHOW_EXPERIMENTAL_MESSAGE = false;
 
@@ -67,6 +70,26 @@ function AppContent() {
     <div className={fontClass}>
       <VersionUpdateModal isOpen={updateAvailable} />
       <Routes>
+        {import.meta.env.DEV && (
+          <>
+            <Route
+              path="/bounding-boxes"
+              element={
+                <Suspense fallback={null}>
+                  <BoundingBoxesPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/head-boxes"
+              element={
+                <Suspense fallback={null}>
+                  <BoundingBoxesPage />
+                </Suspense>
+              }
+            />
+          </>
+        )}
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
           <Route
@@ -113,7 +136,9 @@ function App() {
           <SettingsProvider>
             <MessagesProvider>
               <TimeProvider>
-                <AppContent />
+                <SeasonalEventProvider>
+                  <AppContent />
+                </SeasonalEventProvider>
               </TimeProvider>
             </MessagesProvider>
           </SettingsProvider>

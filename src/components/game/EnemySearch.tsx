@@ -4,12 +4,13 @@ import { useSettings } from '../../context/SettingsContext';
 import AlertDialog from '../ui/AlertDialog';
 import { enemies } from '../../lib/enemy_list';
 import { EnemyIcon } from './EnemyIcon';
+import type { GameEvent } from '../../lib/events';
 
 interface EnemySearchProps {
   onGuess: (enemyId: number) => void;
   disabled?: boolean;
   excludeIds?: number[];
-  event?: string;
+  event?: GameEvent;
 }
 
 export const EnemySearch = ({
@@ -127,6 +128,7 @@ export const EnemySearch = ({
                                   className="p-3 hover:bg-white/10 cursor-pointer uppercase text-left border-b border-white/10 last:border-b-0 flex items-center gap-3"
                                 >
                                   <EnemyIcon
+                                    enemyId={enemy.id}
                                     icons={enemy.icon}
                                     size={24}
                                     isSpawn={(enemy as any).isSpawn}
