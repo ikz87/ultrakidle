@@ -1,6 +1,7 @@
 import SEO from '../components/SEO';
 import { enemies } from '../lib/enemy_list';
-import { resolveExternalUrl, slugify } from '../lib/urls';
+import { slugify } from '../lib/urls';
+import { EnemyIcon } from '../components/game/EnemyIcon';
 import { Link } from "react-router";
 
 const EnemiesPage = () => {
@@ -24,19 +25,19 @@ const EnemiesPage = () => {
                                 key={enemy.id}
                                 className="group flex items-center gap-4 bg-white/5 border border-white/5 p-3 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
                             >
-                                <div className="w-12 h-12 flex-shrink-0 bg-black/40 border border-white/10 overflow-hidden flex items-center justify-center p-1">
-                                    {enemy.icon && enemy.icon.length > 0 ? (
-                                        <img
-                                            src={resolveExternalUrl(enemy.icon[0])}
-                                            alt={enemy.name}
-                                            className="w-full h-full object-contain filter transition-transform duration-200"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-white/5 flex items-center justify-center text-[10px] opacity-20">
-                                            ?
-                                        </div>
-                                    )}
-                                </div>
+                                {enemy.icon && enemy.icon.length > 0 ? (
+                                    <EnemyIcon
+                                        enemyId={enemy.id}
+                                        icons={enemy.icon}
+                                        size={48}
+                                        isSpawn={enemy.id === 69}
+                                        className="shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 flex-shrink-0 bg-white/5 flex items-center justify-center text-[10px] opacity-20">
+                                        ?
+                                    </div>
+                                )}
                                 <div className="text-left flex flex-col min-w-0">
                                     <span className="text-sm text-white truncate group-hover:text-indigo-400 transition-colors">
                                         {enemy.name}

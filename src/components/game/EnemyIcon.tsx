@@ -27,8 +27,8 @@ const PUMPKIN_NATURAL_HEIGHT = 255;
 const STEM_ASPECT_RATIO = 90 / 67;
 const STEM_WIDTH_RATIO = 0.24;
 const TRIANGLE_CLIPS = [
-  "polygon(0 0, 100% 0, 0 100%)",
-  "polygon(100% 0, 100% 100%, 0 100%)",
+  "polygon(-500% -500%, 600% -500%, -500% 600%)",
+  "polygon(600% -500%, 600% 600%, -500% 600%)",
 ];
 
 const containRect = (
