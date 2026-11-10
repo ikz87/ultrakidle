@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/prerender.mjs",
     "lint": "eslint .",
+    "migrate": "bash scripts/migrate.sh",
     "preview": "vite preview"
   },
   "dependencies": {

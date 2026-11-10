@@ -35,7 +35,7 @@ const GraphLevelGuessed = ({
 
   return (
     <div className="w-full pt-6">
-      <div className="flex flex-row items-end h-[100px] w-full px-1 gap-[1px] pb-6">
+      <div className="flex flex-row items-end h-[100px] w-full px-3 gap-[1px] pb-6">
         {levels.map((level) => {
           const guessCount = guessesFromPlayers.has(level.id.toString())
             ? guessesFromPlayers.get(level.id.toString()) ?? 0
@@ -81,7 +81,7 @@ const GraphLevelGuessed = ({
                 />
               </Tooltip>
               {isPlayerGuess && (
-                <div className="absolute top-full flex flex-col items-center mt-1">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 flex flex-col items-center mt-1">
                   <div
                     className={`w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-b-[4px] 
                     ${isCorrect ? "border-b-green-500" : "border-b-red-500"}`}

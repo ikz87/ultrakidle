@@ -2496,11 +2496,6 @@ begin
     classic_success := true;
   exception when others then
     classic_error := SQLERRM;
-    insert into debug_logs (event, payload)
-    values ('classic_rotation_failed', jsonb_build_object(
-      'error', classic_error,
-      'date', today_nicaragua
-    ));
   end;
 
   begin
@@ -2553,11 +2548,6 @@ begin
 
   exception when others then
     inferno_error := SQLERRM;
-    insert into debug_logs (event, payload)
-    values ('inferno_rotation_failed', jsonb_build_object(
-      'error', inferno_error,
-      'date', today_nicaragua
-    ));
   end;
 
   perform net.http_post(
@@ -3507,13 +3497,6 @@ begin
   -- Create a 64-bit hash for the advisory lock to serialize requests for this user/choice
   perform pg_advisory_xact_lock(hashtext(caller_id::text || current_choice_id::text)::bigint);
 
-  insert into debug_logs (user_id, event, payload)
-  values (
-    caller_id,
-    'guess_attempt_started',
-    json_build_object('guess_id', guess_id)
-  );
-
   select enemy_id
   into target_enemy_id
   from daily_choices
@@ -3681,12 +3664,6 @@ begin
     when unique_violation then
       raise exception 'Duplicate guess detected.';
     when others then
-      insert into debug_logs (user_id, event, payload)
-      values (
-        caller_id,
-        'insert_guess_failed',
-        json_build_object('error', SQLERRM, 'detail', SQLSTATE)
-      );
       raise;
   end;
 
@@ -3734,23 +3711,10 @@ begin
     values (caller_id, current_choice_id, false, 5);
   end if;
 
-  insert into debug_logs (user_id, event, payload)
-  values (
-    caller_id,
-    'guess_success',
-    json_build_object('is_correct', is_correct)
-  );
-
   return response_data;
 
 exception
   when others then
-    insert into debug_logs (user_id, event, payload)
-    values (
-      auth.uid(),
-      'function_crashed',
-      json_build_object('error', SQLERRM, 'detail', SQLSTATE)
-    );
     raise;
 end;
 $$;
@@ -4103,12 +4067,7 @@ begin
   ) into request_id;
 
 exception when others then
-  -- Log errors to your debug_logs table if something goes wrong during the request buildup
-  insert into debug_logs (event, payload)
-  values ('dispatch_submissions_failed', jsonb_build_object(
-    'error', SQLERRM,
-    'timestamp', now()
-  ));
+  null;
 end;
 $$;
 
@@ -4142,11 +4101,7 @@ begin
   ) into request_id;
 
 exception when others then
-  insert into debug_logs (event, payload)
-  values ('ig_cleanup_failed', jsonb_build_object(
-    'error', SQLERRM,
-    'timestamp', now()
-  ));
+  null;
 end;
 $$;
 
@@ -4180,11 +4135,7 @@ begin
   ) into request_id;
 
 exception when others then
-  insert into debug_logs (event, payload)
-  values ('poll_submissions_failed', jsonb_build_object(
-    'error', SQLERRM,
-    'timestamp', now()
-  ));
+  null;
 end;
 $$;
 
@@ -4410,7 +4361,6 @@ begin
   where not_after < now() or updated_at < now() - interval '60 days';
 
   -- 6. Instant Cleanup (TRUNCATE is much faster than DELETE)
-  truncate table public.debug_logs restart identity;
   truncate table net._http_response restart identity;
   truncate table cron.job_run_details restart identity;
 
@@ -4672,29 +4622,6 @@ CREATE TABLE IF NOT EXISTS "public"."daily_stats_cache" (
 
 
 ALTER TABLE "public"."daily_stats_cache" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."debug_logs" (
-    "id" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "user_id" "uuid",
-    "event" "text",
-    "payload" "jsonb"
-);
-
-
-ALTER TABLE "public"."debug_logs" OWNER TO "postgres";
-
-
-ALTER TABLE "public"."debug_logs" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME "public"."debug_logs_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
 
 
 CREATE TABLE IF NOT EXISTS "public"."guess_colors" (
@@ -5248,11 +5175,6 @@ ALTER TABLE ONLY "public"."daily_notification_channels"
 
 ALTER TABLE ONLY "public"."daily_stats_cache"
     ADD CONSTRAINT "daily_stats_cache_pkey" PRIMARY KEY ("daily_choice_id");
-
-
-
-ALTER TABLE ONLY "public"."debug_logs"
-    ADD CONSTRAINT "debug_logs_pkey" PRIMARY KEY ("id");
 
 
 
@@ -6002,9 +5924,6 @@ ALTER TABLE "public"."daily_notification_channels" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."daily_stats_cache" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."debug_logs" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."guess_colors" ENABLE ROW LEVEL SECURITY;
@@ -6966,18 +6885,6 @@ GRANT ALL ON TABLE "public"."daily_notification_channels" TO "service_role";
 GRANT ALL ON TABLE "public"."daily_stats_cache" TO "anon";
 GRANT ALL ON TABLE "public"."daily_stats_cache" TO "authenticated";
 GRANT ALL ON TABLE "public"."daily_stats_cache" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."debug_logs" TO "anon";
-GRANT ALL ON TABLE "public"."debug_logs" TO "authenticated";
-GRANT ALL ON TABLE "public"."debug_logs" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."debug_logs_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."debug_logs_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."debug_logs_id_seq" TO "service_role";
 
 
 

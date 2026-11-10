@@ -112,11 +112,6 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("inferno-daily-setup failed:", err);
 
-    await supabase.from("debug_logs").insert({
-      event: "inferno_daily_setup_failed",
-      payload: { error: String(err), set_id, date },
-    });
-
     return Response.json({ error: String(err) }, { status: 500 });
   }
 });
