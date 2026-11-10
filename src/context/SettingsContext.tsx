@@ -42,6 +42,7 @@ export interface UserSettings {
     partial: RGB;
     incorrect: RGB;
   };
+  journalOrder: number[];
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -78,6 +79,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     partial: { r: 0.92, g: 0.68, b: 0.13 },
     incorrect: { r: 0.94, g: 0.27, b: 0.27 },
   },
+  journalOrder: [],
 };
 
 interface SettingsContextType {

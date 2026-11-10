@@ -101,3 +101,32 @@ export const enemies: EnemyEntry[] = [
     wikiLink: "/external/wiki/Earthmover",
   },
 ];
+
+const enemyById = new Map<number, EnemyEntry>(
+  enemies.map((enemy) => [enemy.id, enemy]),
+);
+
+/**
+ * Resolves a stored enemy ordering into a full list of entries.
+ * Unknown/duplicated ids are ignored and enemies missing from the stored
+ * order (e.g. newly added ones) are appended in their default position.
+ */
+export const resolveEnemyOrder = (
+  order: number[] | null | undefined,
+): EnemyEntry[] => {
+  const result: EnemyEntry[] = [];
+  const seen = new Set<number>();
+
+  for (const id of order ?? []) {
+    const enemy = enemyById.get(id);
+    if (!enemy || seen.has(id)) continue;
+    seen.add(id);
+    result.push(enemy);
+  }
+
+  for (const enemy of enemies) {
+    if (!seen.has(enemy.id)) result.push(enemy);
+  }
+
+  return result;
+};
