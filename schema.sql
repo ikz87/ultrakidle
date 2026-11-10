@@ -2604,6 +2604,8 @@ declare
   v_pid bigint;
   v_p_hint jsonb;
   v_guesses json;
+  v_guess_count int;
+  v_lethe_limit int;
 begin
   select decrypted_secret into v_min_client_version
   from vault.decrypted_secrets
@@ -2638,7 +2640,7 @@ begin
     select coalesce(max(best_wave), 0) into v_best_wave
     from cybergrind_records where user_id = caller_id;
 
-v_max_start_wave :=
+    v_max_start_wave :=
       (floor(coalesce(v_best_wave, 0)::numeric / 10) * 5)::int;
 
     if start_wave > v_max_start_wave then
@@ -2742,18 +2744,31 @@ v_max_start_wave :=
     end loop;
   end if;
 
-  select coalesce(json_agg(
-    json_build_object(
-      'guess_enemy_id', cg.guess_enemy_id,
-      'hint_data', cg.hint_data,
-      'is_penance', cg.is_penance,
-      'is_blessed', cg.is_blessed,
-      'created_at', cg.created_at
-    ) order by cg.created_at
-  ), '[]'::json)
+  v_lethe_limit := case
+    when 'LETHE' = ANY(v_mods) then
+      case when 'LETHE' = ANY(v_radiance_targets) then 1 else 2 end
+    else 6
+  end;
+
+  select count(*) into v_guess_count
+  from cybergrind_guesses
+  where round_id = v_round_id;
+
+  select coalesce(json_agg(t order by t.created_at, t.id), '[]'::json)
   into v_guesses
-  from cybergrind_guesses cg
-  where cg.round_id = v_round_id;
+  from (
+    select
+      cg.id,
+      cg.guess_enemy_id,
+      cg.hint_data,
+      cg.is_penance,
+      cg.is_blessed,
+      cg.created_at
+    from cybergrind_guesses cg
+    where cg.round_id = v_round_id
+    order by cg.created_at desc, cg.id desc
+    limit v_lethe_limit
+  ) t;
 
   return json_build_object(
     'run_id', v_run_id,
@@ -2762,7 +2777,9 @@ v_max_start_wave :=
     'modifiers', to_json(v_mods),
     'eclipsed_column', v_eclipsed,
     'radiance_targets', to_json(v_radiance_targets),
-    'guesses', v_guesses
+    'guesses', v_guesses,
+    'guess_count', v_guess_count,
+    'guesses_left', greatest(0, 6 - v_guess_count)
   );
 end;
 $$;

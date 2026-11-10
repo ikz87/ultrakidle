@@ -63,9 +63,11 @@ const mapGuess = (
   is_penance: boolean,
   is_blessed: boolean,
   created_at?: string,
+  id?: number,
 ): GuessResult => {
   const enemyData = enemies.find((e) => e.id === guess_enemy_id);
   return {
+    id,
     guess_id: guess_enemy_id,
     enemy_name: enemyData?.name ?? "UNKNOWN",
     correct: hint_data.correct,
@@ -92,6 +94,7 @@ const mapGuessesFromServer = (guesses: any[]): GuessResult[] =>
       g.is_penance,
       g.is_blessed,
       g.created_at,
+      g.id,
     ),
   );
 
@@ -207,7 +210,10 @@ const CybergrindClassicPage = () => {
       setModifiers(data.modifiers || []);
       setRadianceTargets(data.radiance_targets || []);
       setGuesses(mapGuessesFromServer(data.guesses));
-      setGuessesLeft(Math.max(0, 6 - (data.guesses?.length || 0)));
+      setGuessesLeft(
+        data.guesses_left ??
+          Math.max(0, 6 - (data.guess_count ?? data.guesses?.length ?? 0)),
+      );
     } catch (err) {
       console.error("Error starting cybergrind run:", err);
     } finally {

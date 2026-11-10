@@ -9,6 +9,7 @@ import type { GameEvent } from "../../lib/events";
 import Tooltip from "../ui/Tooltip";
 
 export interface GuessResult {
+  id?: number;
   guess_id?: number;
   enemy_name: string;
   correct: boolean;
@@ -546,9 +547,20 @@ case 'health': {
                 }
               };
 
+              // Penance inserts multiple guesses inside the same transaction, so
+              // they all share the same created_at. Use the server id (unique)
+              // or a composite key instead, otherwise duplicate React keys break
+              // AnimatePresence and exited rows stay in the DOM.
+              const guessKey =
+                guess.id != null
+                  ? `guess-${guess.id}`
+                  : guess.guess_id != null
+                    ? `${guess.created_at ?? "guess"}-${guess.guess_id}`
+                    : `guess-idx-${idx}`;
+
               return (
                 <motion.tr
-                  key={guess.created_at || `${guess.guess_id}-${idx}`}
+                  key={guessKey}
                   layout
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
